@@ -564,7 +564,39 @@ specs are **on the table**; branches without specs are **open**.
   reason for own derivation: the one claim that matters ("loss
   probability under a 1%-correlated event at OUR weights/domains/fleet
   = X") exists in no paper — X comes from a derivation at a definition
-  site, never Cidon's Table 1 for someone else's cluster; (f) GC =
+  site, never Cidon's Table 1 for someone else's cluster.
+  **STORAGE-CLASSES REFINEMENT LANDED 2026-08-17** (resolves the
+  per-class placement question): requirements genuinely DIVERGE per
+  class — live VFS content (fast writes, short exposure, superseded at
+  green-advance/landing) needs copyset math LEAST; archive/generations
+  (existential loss) write in rare batches where bounded placement is
+  affordable — the diagonal that dissolves the §(e) tension. VERDICT:
+  **storage classes over ONE placement function, never two placement
+  authorities** (two authorities = Sylk's two-content-stores fault
+  class; breaks one-function law + laptop degenerate + FS10). The
+  construction: place(group, class, epoch) = top_R(class) of
+  weighted_HRW(candidate_set(class, group, epoch)) — live class:
+  candidate_set = all nodes (pure HRW; copyset exposure ACCEPTED with
+  its derivation written down: exposure window × write rate ×
+  correlated-failure probability vs class loss cost); durable classes
+  (generations/archive): shuffle-derived bounded lists (the copyset
+  knob) + per-class R/EC/scrub; registry class: R for truth + mirrors
+  for reach. Precedents: Tectonic per-call policy on one substrate
+  (RS(9,6)/RS(3,3)/3-way-reencode through ONE Chunk Store —
+  consolidation was the paper's thesis); Ceph one CRUSH + per-pool
+  rules. Declaration point EXISTS: registry descriptors carry storage
+  class, boot-validated (chokepoint law — undeclared kind fails
+  startup). RESOLVES §(e): copyset work only needs correctness in the
+  durable regime (batch, movement-tolerant = the easy case); the hard
+  regime (high-rate churn + bounded lists) is no longer needed. OWED:
+  (1) per-class loss derivation at definition sites; (2) class-
+  transition mechanics = re-place under new class + ref update + old
+  copies GC-eligible (f4 locked-volume pattern; no representation
+  change until EC tail); (3) SERVING.md §6 amendment — one placement
+  function survives VERBATIM, gains class-parameterized candidate set +
+  redundancy declared per artifact kind via registry storage class;
+  laptop degenerate untouched (every class collapses to the single
+  node); (f) GC =
   mark-and-sweep from roots (green chains + registry refs + seal
   manifests + generation pointers), NEVER cross-node refcounts; sweep =
   copy-forward; f4 crypto-erase composes with (i); (g) API = put/get/
