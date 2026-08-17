@@ -50,7 +50,8 @@ specs are **on the table**; branches without specs are **open**.
 | `docs/specs/REGISTRY.md` v2 | ACCEPTED 2026-08-16 (amended under maximal audit, exact implementations): RawObject envelope, per-kind codecs the only typed boundary; **universal canonical encoding** — compiled kinds hecate-wire, schema-registered kinds via compiled `DocValue` type (i128 ints no floats, BTreeMap sorted-unique keys, dialect-proof hashing G11; closed schema subset, unknown keywords reject; append-only schema versions); three-state upsert (unchanged = zero writes); intent/observation split with resolvedSource carve-out; bundles = Merkle fingerprint + dependency snapshot + `resolved_at_revision`; **tenancy = scope-in-key** (Shipped\|Org\|User leading key component, authority in typed handles, publication = Guardian staging transition, G13 gate); **revision-floor reads** (session watch cursor as floor, serve_at_floor wait-or-forward, never stale, G14); storage = 6-op semantic contract (CAS put/get, ref-CAS sole mutation + unbypassable events, ordered scan, label index, forward/reverse ref index, event log) file-backed ≡ replicated (G10); external resumable watch (RESYNC discipline); Guardian staging = inventory-from-bytes content-bound approvals; no semantic search (pgvector fossil), no runtime authority, loud one-way doors |
 | `docs/specs/SKILLS_API.md` | ACCEPTED 2026-08-16 (amended; USER CORRECTION captured: **TS/Python are authoring bindings, never runtimes** — no interpreter in any microVM): one Rust derive → five artifacts (wire codecs, MCP projection, skill:// resource, registry doc, dispatch glue — no second interpreter); bindings = registry-wide typed authoring SDKs generated from kind descriptors, output = canonical DocValue documents only, submitted via apply + Guardian staging; declared-skill invocation = COMPOSITION not code (closed DispatchTarget: Facade w/ pure field-mapping template \| ToolExec via provisioned Recipe — logic forbidden, static total verification at staging); arbitrary behavior enters only as provisioned tools through the tool plane; capabilities = closed harness-versioned bitset w/ compile_to_warden(), derived-not-trusted from dispatch targets (S9); built-ins stateless between invocations (lint); omission-is-absence surfaces, S6 count budgets; S1/S5/S6/S8 permanent (S8 = no-execution structural) |
 | `docs/specs/HEALTH.md` | ACCEPTED 2026-08-16 (amended): one consolidated signal plane, no probes added, no authority ever (H4); per-class **AbsenceIs semantics** (Degraded = silence-is-the-signal \| Unknown = surfaced staleness, never frozen values; (value, freshness) delivery, H7); **content-free law extended by user direction** — operational measurements + opaque refs ONLY, never work content NOR ledger content (no claim/testament/validation/artifact content, no multi-media; no unbounded string/bytes field in any signal type — H8 type-walk gate); context-fit accounting = Branch 14's formula, this spec owns plumbing only; node rollup on gossip budget (H6); scribe triggers (context = threshold-is-evidence unilateral; performance = evidence bundle + single Guardian evidence request, second structurally impossible H3); observe-mode-first for new classes; H1/H4/H5/H8 permanent |
-| Architecture set | `docs/architecture/{AGENTS,SUMMONING,LEDGER,SKILLS,PLATFORM}.md`, `CONTEXT.md`, ADRs 0001–0005 — amended throughout this session (open roster/offices, Arbiter, summon-as-claim, retirement, work volume, ten agents) |
+| `docs/specs/CONSENSUS.md` + `docs/specs/FAULTS.md` | ACCEPTED 2026-08-17 (Branch 20; ratified direction + amendments 2a/2b/3-addendum/5a + three in-exchange delta sets): meta tree (one group per failure-domain-tree level; root = region = one group on laptop) + N session groups; colocation law (no sync WAN on session hot paths — Physalia principle); node-liveness fabric (disk-write-backed support, fortified leadership, idle groups cost zero) with the **fabric-is-liveness-only law** (deletable-fabric acceptance criterion); pure core, CRDB-lineage dialect, IO-as-data + AsyncStorageWrites, entries-then-HardState + watermark-atomicity laws; core-as-disciplined-actor (five Akka laxities refused); PreVote+CheckQuorum unconditional, ReadIndex-only, transfer carve-out; split-brain four-layer table; joint consensus + Ongaro guard + learners-only demotion + apply-time conf changes w/ #12359 conf-commit metadata; dedicated log store, host-owned truncation/snapshots via TRANSFER.md; CAS-first vs lease+fence roster boot-validated + **epoch-scoping law**; cross-region = async content-only durability, no session failover (loss priced by OBJECT_TIER §3 formula), FlexiRaft rejected for meta plane [§7 receipts under verification — open rider]; CS1–CS12 conformance suite + CN1–CN14. FAULTS: closed scope (crash-recover + detected corruption + asymmetric omission + region events + fabric-fault; NOT Byzantine), CTRL dispositions (never silent truncation), 15-class nemesis vocabulary, deterministic whole-cluster simulation (seeded, BUGGIFY-biased, ratcheted budget, N=1 gate), boot-validated failure×obligation matrix, F1–F7 (F7 = region-heal/zombie-region) |
+| Architecture set | `docs/architecture/{AGENTS,SUMMONING,LEDGER,SKILLS,PLATFORM}.md`, `CONTEXT.md`, ADRs 0001–0005 — amended throughout this session (open roster/offices, Arbiter, summon-as-claim, retirement, work volume, ten agents; Failure-domain tree + Epoch scope glossary entries 2026-08-17) |
 
 ## ON THE TABLE (drafted + shown; awaiting acceptance — settle ONE at a time)
 
@@ -132,7 +133,20 @@ specs are **on the table**; branches without specs are **open**.
   direct voter demotion — route through learner); (5a) fault gate upgraded
   to deterministic whole-cluster simulation (FDB/TigerBeetle-VOPR posture;
   mutually reinforcing with pure-core IO-as-data). CONSENSUS.md + FAULTS.md
-  drafts presented in-message, awaiting spec acceptance.
+  drafts presented in-message; three in-exchange delta sets worked to
+  acceptance (split-brain four-layer assembly + fabric-is-liveness-only law
+  + Akka/Elasticsearch rejected-alternative record + CN11/CN12; core-as-
+  disciplined-actor position with five named Akka-laxity refusals;
+  cross-region — failure-domain tree first-class, meta tree = one group per
+  tree level (laptop collapse by derivation), epoch-scoping law, async
+  content-only cross-region durability + no-session-failover priced by the
+  OBJECT_TIER §3 formula, FlexiRaft rejected for the meta plane, CN13/CN14
+  + F7 region-heal). **SETTLED 2026-08-17** — both specs accepted and
+  written ("accepted." ×2). OPEN RIDER: §7 cross-region receipts under
+  verification (user: "Is that cross-region solution backed by research?" —
+  provenance note in the spec separates PRIMARY/unverified/own-synthesis;
+  research in flight; refuting finding reopens §7 only, incl. the
+  zombie-region heal scenario probed in F7).
 - **21 FS implementation (the serving machine)** — **SETTLED 2026-08-16**:
   spec `docs/specs/SERVING.md` accepted whole; decision record below stands
   as history. OPENED 2026-08-16; user
@@ -774,7 +788,14 @@ specs are **on the table**; branches without specs are **open**.
   ETag semantics, tus resumable-upload protocol, Google resumable
   uploads, content-sniffing attack receipts, ImageTragick-class parser
   CVEs, fixed-vs-CDC dedup measurements on media corpora.
-- **27 Leader election revisit** — ADDED 2026-08-17 (user: "re-visit who
+- **27 Leader election revisit** — **NARROWED 2026-08-17** by CONSENSUS.md
+  acceptance: the questions this branch chartered are answered by
+  construction in CONSENSUS §6 (CAS-first vs lease+fence classification,
+  epoch fencing at every resource, epoch-scoping law, boot-validated
+  roster) and §1 (meta tree vs per-domain groups). REMAINING SCOPE = the
+  build-time roster audit only: walk the actual subsystem list, classify
+  every writer, confirm no subsystem needs an election the classification
+  misses. Original charter follows. ADDED 2026-08-17 (user: "re-visit who
   needs leader election — in particular the tectonic-style FS for the
   registry and knowledge graph, the knowledge graph, knowledge forest,
   etc."). The audit roster and its current answers, to be re-derived not
@@ -944,6 +965,16 @@ risk cell), sharded scheduler. Managed-window mapping mode = deliberate
 portability concession (one copy per 2 MiB miss on unproven platforms; the one
 mode where DAX + full witnessing coexist). Compounding: walking-skeleton first light is far behind the wheel
 count — acknowledged repeatedly, accepted under "we do not fear complexity."
+Branch-20 acceptance costs (2026-08-17): minority-region root operations
+stall during WAN partition (closed, enumerated, human-cadence list — CN13
+polices it); region loss forfeits unlanded work within the measured
+seal→replication lag (priced by the OBJECT_TIER §3 formula, ratcheted);
+the meta plane is a tree of groups rather than one group (one
+implementation, tree-derived, laptop-collapsed); the conformance suite
+(CS1–CS12) is a permanent, append-only maintenance surface; fortification
+is election-amortization only — the lease-read latency win CRDB harvests
+from the same fabric is deliberately left on the table (fabric stays off
+the safety path).
 Other standing costs: encrypt-always CPU; per-increment validation; max/ultra
 primary models; full-machinery-locally (degenerate consensus, session infra
 floor — ratcheted budget); shard-local placement optimality (slow rebalancer);

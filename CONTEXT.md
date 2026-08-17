@@ -80,6 +80,12 @@ Switching an agent to its alternate model when its primary provider fails. An op
 **Lease**:
 An optimistic, expiring write-basis snapshot used to guide work and skip merge effort where changes are provably disjoint. A work-reduction aid — never a substitute for real conflict detection at the merge.
 
+**Failure-domain tree**:
+The physical containment hierarchy — node, availability zone, region — against which placement, quorum spread, and authority scoping are expressed. A laptop is a depth-one tree; every topology collapse is derived from the tree, never switched by a mode.
+
+**Epoch scope**:
+The failure domain in which a fencing/epoch authority lives: the smallest domain containing every legal holder of the fenced resource, so the resource and its authority always die together.
+
 **Merge gate**:
 The single path by which completed work reaches disk. Work streams as increments: each increment's validations pass and it merges into green immediately at machine speed; the claim's whole-work validations — owned by the Arbiter, joined by the Architect where design judgment is needed — gate the disk commit (auto- or user-approved). Failures fix forward via superseding increments — green extends, it is never written in place. There is no post-merge audit loop.
 _Green_ = increment-validated work; _disk_ = claim-satisfied work.

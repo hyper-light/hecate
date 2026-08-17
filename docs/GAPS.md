@@ -57,8 +57,15 @@ Architecture set (AGENTS/LEDGER/PLATFORM/SKILLS/SUMMONING + CONTEXT + ADRs
   (2a) "CRDB-lineage dialect" exemplar naming, (2b) bug-record-as-
   conformance-suite, (3-addendum) explicit conf-change activation semantics
   + #12359 countermeasures, (5a) deterministic whole-cluster simulation
-  gate. **Remaining: `CONSENSUS.md` + `FAULTS.md` spec acceptance** (drafts
-  presented in-message 2026-08-17). Consumed by: WAL §5 (the only commit
+  gate. **CLOSED 2026-08-17**: `CONSENSUS.md` + `FAULTS.md` accepted and
+  written with three in-exchange delta sets (split-brain assembly + the
+  fabric-is-liveness-only law; actor-architecture position; cross-region —
+  failure-domain tree, meta tree, epoch-scoping law, async content-only
+  cross-region durability, FlexiRaft rejected for the meta plane).
+  **One open rider**: CONSENSUS §7's cross-region receipts are under
+  verification (research in flight; provenance note in the spec) — a
+  refuting finding reopens §7 only. Branch 27 narrows to the §6
+  writer-roster audit at build time. Consumed by: WAL §5 (the only commit
   path "at every replica count"), SERVING §6 inventory map, SCHEDULER §1 meta
   group, REGISTRY §5 replicated revision (which dangles a reference to the
   nonexistent `CONSENSUS.md`), OBJECT_TIER §4 placement map, LEDGER_CORE §2
@@ -238,10 +245,9 @@ PODS §2/AC-4: WHP/HVF DAX is in-scope fork work, tracked.
 
 1. ~~**D-2 WIRE_FORMAT.md**~~ CLOSED 2026-08-17 (`WIRE_FORMAT.md` +
    `TRANSFER.md` accepted; P0 wire unblocked by process rule) →
-2. **D-1 CONSENSUS.md + FAULTS.md** — now the head of the queue, under the
-   user's etcd challenge (see D-1) (blocks WAL replication hook, registry
-   replicated mode, scheduler meta group, both planes' maps; settle with
-   Branch 27) →
+2. ~~**D-1 CONSENSUS.md + FAULTS.md**~~ CLOSED 2026-08-17 (specs accepted
+   and written; §7 receipts-verification rider open; Branch 27 → roster
+   audit) →
 3. Accept-or-amend the presented foundation set (RUNTIME, WAL, PROTOCOL —
    C-7's status authority) →
 4. First code: runtime + SIM + wire (P0/P1), turning §0 from fact into
