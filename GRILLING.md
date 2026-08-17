@@ -453,4 +453,44 @@ w/ hysteresis (Guha: rounding step 'of significant importance'). Clone-
 defect receipts (Juergens ICSE'09: 52% clone groups inconsistent, ~half of
 unintentional = faults) ground graded-not-hard sibling suspicion. Thin:
 graded-vs-hard retrieval A/B absent; hop-2 decay = the number to re-measure
-from own harness data.
+from own harness data. **Track C LANDED 2026-08-17**: (a) **L-V REJECTED**
+— unidentifiable (n(n+1) params vs tens of ticks; Remien; Van den Bulte
+bias), descriptive-not-predictive across language/market/meme domains
+(Abrams-Strogatz concedes bilinguals exist; Prochazka-Vogl abandoned ODEs
+with fine data; winner-take-all emerges from budget+reinforcement alone —
+Weng/Gleeson/Tria), internally broken (cosine α is SYMMETRIC under an
+asymmetry claim — MacArthur-Levins 1967 is the asymmetric form; endogenous
+K_i voids the regime taxonomy; reframed near-duplicates sit on the α·α≈1
+knife edge; ODE extinction contradicts never-delete doctrine; Connell 1980
+miscited — it's the SKEPTIC's paper, barnacles = Connell 1961).
+REPLACEMENT: asymmetric ML-overlap as evidence + activity-share crossover
+w/ derived hysteresis + dwell (HPA anti-flap) + supersedes edges/regime
+events w/ bi-temporal cooling + co-activation as mutualism/bridge
+protection. (b) **CSD KILLED as a trigger** — wrong tipping class (our
+shifts are exogenous N/R-tipping where theory says no warning: Ashwin,
+Hastings-Wysham, Ditlevsen-Johnsen), wrong statistic (AC×variance product
+= exactly what D&J prove invalid), no data (needs 10²–10³ stationary
+points; we have tens, nonstationary by construction), measured field
+record 9–13% TP / ~50% FP (Burthe 126 datasets; Gsell best-monitored
+lakes; Wilkat 105 seizures: nothing). Alternative = CUSUM-class w/
+ARL-derived thresholds on mechanism-specific signals (contradiction mass,
+correction rates, share crossover) — the Branch-14 discipline reused.
+(c) **CONSERVATION INVARIANT ADOPTED** — it IS input-to-state stability
+(Sontag) / conservation-of-packets (Jacobson 1988: fixed the 1986
+congestion collapse, superposition-stable — THE deployed receipt);
+adaptations: conversion rates FITTED never the High/Med/Low grid,
+token-bucket semantics at the single influence-minting chokepoint (RFC
+2697), hierarchical budgets (global + per-cluster τ_min floors), stated as
+ISS storage-function obligation + property-fuzzed CI assertion beside F21;
+provenance honesty: per-place bounds are literature (Brueckner/MMAS),
+the GLOBAL ledger is our trivial corollary. (d) **CLIMATE: intent adopted,
+plumbing replaced** — paced-debt stays primary (autovacuum precedent),
+windows DERIVED from rate-ladder scales never wall-clock hour/week
+(session lifetime!), robust order statistics (BBR max/min not means), PI
+integrator + dead-band + stabilization window (Go GC pacer: proportional-
+only provably can't kill error; Hollot PI-AQM), superlinear compensation
+for the closed digest→activity→reinforcement loop (BCM stability
+condition), Fourier seasonality dropped v1. ECOLOGY.md fact-check
+corrections on file (Connell, α asymmetry, unsourced coral-CSD claim,
+hand constants). ALL THREE TRACKS LANDED — final reconciliation map
+presented for ruling.
