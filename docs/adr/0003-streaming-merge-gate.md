@@ -2,7 +2,8 @@
 
 Completed work does not land in one batch at testament close. The Engineer's work
 streams as increments; each increment's own validations (Guardian safety, lint,
-conflict check) pass and it OT-merges into green immediately; the claim's whole-work
+conflict check) pass and it merges into green immediately (canonical-rebase engine,
+ADR-0005); the claim's whole-work
 validations (tests green, Inspector approval) gate the **disk commit**, not green
 entry. Failures fix forward via superseding increments — green is never rolled back in
 place. There is no post-merge audit loop: validation precedes merge, always.

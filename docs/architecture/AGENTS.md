@@ -1,8 +1,15 @@
 # Hecate Agents
 
-Hecate runs a fixed roster of eight agents. There is no dynamic agent registration and no
-capability taxonomy: the roster is closed, roles are law, and discovery of "who can do X"
-is the Guide's judgment informed by this document's authority model. Every agent is a
+Hecate's default distribution is **ten agents**; the roster is **open**. The harness defines **offices** — structural role
+contracts whose consequences are machinery (the merge-gate evaluator, the protection
+judge, the summoner, the sidecar narrator) — and the registry binds agents to them.
+The nine agents in this document are the **default distribution**: reference
+officeholders and specialists, replaceable and extensible through staged, declarative
+registry entries (custom agents, with rank archetypes and custom domains, per
+`REGISTRY.md`). What remains closed is narrower and permanent: no live-endpoint
+registration, no capability search as a routing authority — discovery of "who can do
+X" is the Guide's judgment over the installed catalog, and an office's enforcement
+never moves with its holder. Every agent is a
 workload in a microVM pod (see `SUMMONING.md`), communicates exclusively over the pod
 network, and participates in the claims ledger as a first-class participant (see
 `LEDGER.md`).
@@ -14,8 +21,10 @@ glossary disagree, the glossary wins.
 
 | Agent | Role in one line | Primary model | Alternate model | Reasoning |
 |---|---|---|---|---|
-| Guide | The user's conversational primary; summoner and orchestrator | Claude Sonnet 5 | GPT 5.6 Pro Luna | max / ultra |
+| Sibyl | The workstream agent above sessions: experiments, forks, leases, grants | Claude Sonnet 5 | GPT 5.6 Pro Luna | max / ultra |
+| Guide | The user's conversational primary inside a session; work orchestrator | Claude Sonnet 5 | GPT 5.6 Pro Luna | max / ultra |
 | Architect | Principal design specialist; research; corrective author | Claude Fable 5 | GPT 5.6 Pro Sol | max / ultra |
+| Arbiter | Merge-gate authority; continual as-it-merges analysis; conflict adjudication | Claude Fable 5 | GPT 5.6 Pro Sol | max / ultra |
 | Guardian | System protection: admission, gating, resources, VFS health | Claude Opus 5 (1M) | GPT 5.6 Pro Sol | medium — low-trust raises to max / ultra |
 | Inspector | Adversarial reviewer of every agent except the Guardian | Claude Opus 5 (1M) | GPT 5.6 Pro Sol | xhigh |
 | Engineer | Sole implementer of code and tests | Claude Opus 5 (1M) | GPT 5.6 Pro Sol | high |
@@ -85,7 +94,9 @@ per-claim: whoever authored the work under discussion holds rank 1 there.
 | Domain | 1 | 2 | 3 | 4 |
 |---|---|---|---|---|
 | System safety | Guardian | — (unchallengeable) | | |
+| Workstreams | Sibyl | Guide | Architect | |
 | Design direction | Architect | Guide | Inspector | Engineer, Designer |
+| Integration & merge | Arbiter | Architect | Inspector | Engineer |
 | Code correctness (review) | Inspector | Architect | Engineer | Archivalist |
 | Authorship intent (own work) | the author | Inspector | Architect | |
 | Ground truth (disk, history) | Archivalist | Engineer | Inspector | |
@@ -103,16 +114,30 @@ resolved by the claims graph's SCC machinery — `LEDGER.md` §4). A challenge t
 
 ## 3. The agents
 
+### 3.0 Sibyl
+
+The workstream agent — per-user, above sessions, the terminal's first attachment.
+Full spec: `docs/specs/SIBYL.md` (accepted). In brief: judges which sessions and
+experiments exist (forks, N-way variants, evaluator sessions, stop rules,
+adoption recommendations); arbitrates materialization leases; brokers cross-fence
+capability grants. Content-blind by default, holds no session keys, cannot issue
+work claims inside any session; every act is a user-plane claim through the
+standard summon flow. Instances partition judgment by lineage — no instance
+handles all sessions, even one owner's. Rank 1 in Workstreams; challengeable like
+everyone but the Guardian; scribed and scored like every agent.
+
 ### 3.1 Guide
 
 The user's primary agent, and the only orchestration authority — there is no
 Orchestrator in Hecate.
 
-- **Summons** all other work (`SUMMONING.md`): allocates pods, volumes, permissions, and
-  network; assigns agents; validates health. Summons persist as claims, soft-gated by the
-  Guardian.
-- **Issues work claims** and **validates the resulting testaments** at the merge gate
-  (`LEDGER.md` §6), pulling in the Architect where design judgment is needed.
+- **Requests all summons** (`SUMMONING.md`): the Guide judges composition and issues
+  summon claims; **the scheduler executes** allocation (pods, volumes, permissions,
+  network, assignment, health validation) and testifies the result; Guardian
+  admission rides the claim as validations. The Guide monitors and evaluates the
+  summon like any work it issued — it allocates nothing directly.
+- **Issues work claims**; whole-work validation at the merge gate belongs to the
+  Arbiter (`LEDGER.md` §6) — the Guide consumes the outcome, it does not adjudicate it.
 - Chooses pod composition by judgment, informed by the other agents (it may consult
   before summoning): an architect pod for design conversations, inspector + engineer for
   a bug fix, a lone engineer when the work is simple.
@@ -170,7 +195,51 @@ not a bank of dumb gates, and equally not "purely advisory."
   SafetyPolicy field it applied.
 - The Guardian cannot be challenged and appears in no challenge target list.
 
-### 3.4 Inspector
+### 3.4 Arbiter
+
+The merge-gate authority — a **continual daemon**, not an on-demand summon: Arbiter
+replicas run for the life of a session, analyzing work *as it merges* into green.
+
+- **Owns whole-work validation at the merge gate**: quality, coherence, adherence to
+  the user's directives and input, robustness, efficiency, performance, correctness.
+  The Architect joins where design judgment is needed; the Guardian safety check and
+  user disk-approval ride alongside, unchanged.
+- **Streaming analysis, gate verdict**: continuous incremental review as increments
+  land (cheap, always-on) so that when a claim's testament closes, the whole-work
+  verdict is largely precomputed rather than a cold batch review.
+- **Adjudicates conflicts** above the author-rebase fast path: repeated or
+  cross-engineer conflicts get analyzed with full claims context; the Arbiter authors
+  the corrective routing — who rebases, what gets rescoped, or a specified unified
+  change, implemented by an Engineer. It writes no code.
+- **Coherence watch**: composition drift across increments (duplicated helpers, style
+  divergence, API inconsistency between pods) surfaces as evidence-bearing feedback —
+  the one legitimate function of Sylk's global inspector, relocated to the correct
+  side of the disk boundary.
+- **Tools**: extended and empowered versions of the Inspector's analyzers —
+  profiling, linting, auditing — executing in its own pod against read-only green
+  snapshots. No workspace writes, no merge verbs; the deterministic verdict and the
+  merge serializer remain the only things that touch green.
+- **Work distribution** (`MERGE.md`): the **frontier service** — a deterministic
+  harness service beside the merge serializer — consumes the merge log (a VFS-subsystem
+  log, not the ledger), owns the reviewed-through cursor and the scope→findings
+  working index as its own re-derivable state, batches scope-coherent review units,
+  and issues review claims as a system participant. The ledger carries only what is
+  its to carry: the review claims (at-most-once dispatch across replicas) and the
+  closing testaments whose artifacts are the evidence the **Arbiter** evaluates for
+  whole-work validation — the gate is the chokepoint where that verdict's structural
+  consequence fires, never an evaluator itself. Hot context is served by the frontier
+  service; history flows to the Archivalist.
+- **Anchored to intent, armed against drift**: consulting the Guide (user intent) and
+  the Architect (design intent) is routine practice — integration judgment is judgment
+  against intent, and the Arbiter holds neither intent authority. When it finds
+  running defects in the accumulated work, it challenges whoever the evidence
+  implicates: an Engineer, the Archivalist on a ground-truth dispute, or **the user**
+  — an evidence-bearing, clarification-shaped challenge ("this defect traces to
+  directive Y") surfaced through normal claim presentation, with the user's ruling
+  final. It is a running sanity check on the cumulative big picture.
+- Rank 1 in integration & merge; challengeable like everyone but the Guardian.
+
+### 3.5 Inspector
 
 The adversarial reviewer. Its job is to poke holes: in implementations, designs,
 approaches, and hypotheses — of any agent except the Guardian.
@@ -189,7 +258,7 @@ approaches, and hypotheses — of any agent except the Guardian.
 - Runs read-only analyzers and analysis execution; test *execution* belongs to the
   Engineer.
 
-### 3.5 Engineer
+### 3.6 Engineer
 
 The beating heart: implementation and test in one agent.
 
@@ -198,7 +267,7 @@ The beating heart: implementation and test in one agent.
   increments, through the streaming merge gate (`LEDGER.md` §6).
 - Writes through leased-basis VFS skills into its pod volume. Leases are guidance and
   work reduction (provably disjoint changes skip merge effort) — never the conflict
-  authority; the OT merge detects conflicts for real.
+  authority; the merge verdict detects conflicts for real.
 - Submits **testaments with artifacts** — including the Inspector's approval artifacts
   where the claim requires them — against the claims it received. It does not merge and
   does not touch disk; the merge gate does.
@@ -209,16 +278,22 @@ The beating heart: implementation and test in one agent.
 - Toolchain (compilers, linters, test runners, LSP) lives in its guest image and runs
   against the guest mount; tool provisioning rides the substrate with Guardian gates.
 - Engineers may consult and challenge other engineers; multi-engineer summons are
-  legal and expected for parallel work, with claims scoping and OT keeping them honest.
+  legal and expected for parallel work, with claims scoping and the merge verdict
+  keeping them honest.
 
-### 3.6 Archivalist
+### 3.7 Archivalist
 
 The ground-truth agent — Sylk's Archivalist and Librarian married into one purpose:
 determining what is actually true, whether in an external repo, local code, or Hecate's
 own history.
 
 - **Record keeper**: ingests events, maintains chronology, highlights important events,
-  informs of changes, serves cross-session and cross-agent history.
+  informs of changes, serves cross-session and cross-agent history — and is the
+  **custodian of retired proof**: the ledger's retirement flow transfers terminal
+  objects complete into its content-addressed, retirement-time-indexed archive
+  (`LEDGER.md` §8), where years-later evaluation retrieves actual claims, testaments,
+  and artifacts with relevancy-weighted retrieval, hash-verifiable against WAL
+  lineage.
 - **Code knowledge**: repository search, symbol graphs, repo briefs, package cloning
   (its one deliberate write exception, to its own package store) — the fleet's most
   consulted agent.
@@ -231,9 +306,9 @@ own history.
   the freshest answer — the Archivalist is the authority for anything beyond a Scribe's
   window. This is prompt discipline, not a routing law.
 
-### 3.7 Scribe
+### 3.8 Scribe
 
-A sidecar attached to **every other agent** — eight primaries, each with its Scribe.
+A sidecar attached to **every other agent** — nine primaries, each with its Scribe.
 
 - **Narrates**: a running, structured account of its primary's actions, successes,
   failures, and outputs, streamed to the Archivalist and the fabric.
@@ -252,7 +327,7 @@ A sidecar attached to **every other agent** — eight primaries, each with its S
   and a "previously, on this agent" narrative digest.
 - Writes to no system except its own narration stream and the Archivalist's intake.
 
-### 3.8 Designer
+### 3.9 Designer
 
 The on-demand multimodal agent — what lets Hecate understand more than code.
 
@@ -261,8 +336,9 @@ The on-demand multimodal agent — what lets Hecate understand more than code.
   accessibility on actual rendered output.
 - **Does not implement code.** Engineers do. The Designer's output is non-code media and
   design artifacts.
-- Operates **outside the merge machinery**: output is isolated to its VFS volumes, never
-  versioned through OT. When input/output size exceeds what its volume budget allows
+- Operates **outside the merge machinery**: output is isolated to its VFS volumes,
+  never entering the merge engine. When input/output size exceeds what its volume
+  budget allows
   (a derived threshold, never a literal constant), it must seek Guardian approval before
   disk ingest or output, through quarantine-style staging — "approved to exist on disk"
   and "approved to enter the workspace" are two separate decisions.

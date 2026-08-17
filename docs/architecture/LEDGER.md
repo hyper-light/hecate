@@ -1,7 +1,8 @@
 # The Ledger
 
-The durable store owning **claims, testaments, and their validations and artifacts —
-and nothing else**. Configuration belongs in config; operational events belong in logs.
+The ledger is **the durable proof of work**: proof of work required (claims), work
+claimed (receipt), and work completed or failed (testaments — judged by validations,
+evidenced by artifacts). It owns those four object families **and nothing else**. Configuration belongs in config; operational events belong in logs.
 The ledger is Hecate's single work-coordination authority: no agent's synchronous
 reply, progress text, or route response completes work — only ledger lifecycle does.
 
@@ -27,6 +28,10 @@ participant against another, carrying the validations that define its satisfacti
 claim is a constraint and an obligation, not a message. Claims carry scope entries
 (`file | symbol | api | test_surface | component | ux_surface` → key) — and the claims
 *are* the authorization for that scope; there is no separate scope-enforcement service.
+Enforcement is layered by kind: **file** scopes are physics (the warden, at the fs
+boundary), **region** overlap is mathematics (the merge verdict), and
+**symbol/api/surface** scopes are judgment (the Arbiter's review) — stated so no one
+assumes the warden enforces what only analysis can.
 
 **Testament** — the uniform response to a claim. Artifacts stream to the ledger first;
 the testament is the closing commit, on success *or* failure. Immutable once terminal:
@@ -61,7 +66,11 @@ inspection of error text.
 **Relations** — all structure is uniform typed edges: `issuer`, `subject`, `evaluator`,
 `claim_action`, `supersedes`, `depends_on`, `awaits`, `caused_by`, `refines`,
 `conflicts_with`, `derived_from`, `reviews`, `amends`, `contributed_by`. No
-special-case fields. Agents author their own relations by UID and address peers by
+special-case fields. Relations and action types are **closed, append-only
+hecate-wire enums** — never open strings (the rank refuse rule keys on
+`invalidates`-class relations; a security check matches a type, not a string) — with
+a machine-checked bijection between action types and the delta vocabulary, so
+enum/taxonomy drift is a build failure. Agents author their own relations by UID and address peers by
 type; the ledger canonicalizes to UIDs at post time. `caused_by` parentage is stamped
 where the turn is minted (the principal carries it), so an unparented claim is
 unrepresentable — Sylk's forgot-to-attach-caused_by bug family closes structurally.
@@ -114,6 +123,14 @@ generated → posted → received → progressed*
   the outcome.
 - **Self-targeted claims are rejected** before posting (or fail durably), except
   legitimate self-transfers (handoff).
+- **One status vocabulary.** The canonical lifecycle above is the only claim-status
+  set; affordance predicates (`IsTerminal`, `IsActive`) are defined over it directly.
+  No coarse or legacy vocabulary exists, and no decode-only compatibility path ever
+  will.
+- **Deadlines are replay inputs.** Consult deadlines and claim expiries fire as
+  ledger-core timer inputs (virtual time in SIM, the runtime timer wheel in REAL) —
+  every timeout transition is a deterministic function of the input sequence, never
+  of wall-clock observation.
 - Synchronous service handlers may compress lifecycle states into one transaction; the
   wire-visible state sequence is unchanged.
 
@@ -176,11 +193,12 @@ How validated work reaches disk (ADR-0003). The flow:
    plan, or a research doc).
 2. The Engineer's work **streams as increments** (artifacts). Each increment's
    increment-scoped validations pass — Guardian safety scan, lint, conflict check —
-   and it **OT-merges into green immediately**.
+   and it **merges into green immediately** (canonical-rebase engine, `MERGE.md`).
 3. The claim's whole-work validations — tests green, Inspector approval artifacts,
-   design conformance — are evaluated by the **issuer** (the Guide, with the Architect
-   where needed) on the closing testament, and gate the **disk commit** (auto- or
-   user-approved per SafetyPolicy `disk_write_mode`).
+   design conformance, and the Arbiter's integration analysis — are evaluated by the
+   **Arbiter** (merge-gate authority; the Architect joins on design questions) on the
+   closing testament, and gate the **disk commit** (auto- or user-approved per
+   SafetyPolicy `disk_write_mode`).
 4. A failed closing validation **fixes forward**: corrective claims (Architect-authored)
    produce superseding increments. Green is never rolled back in place.
 
@@ -191,11 +209,11 @@ unrepresentable.
 
 Mechanics:
 
-- **Full OT with real conflict detection.** The merge serializer transforms increments
-  against green's accumulated deltas and *detects* overlapping/ambiguous regions —
-  which reject into corrective claims, never silently interleave and never open an
-  in-gate resolution session. The OT machinery is the sole mechanical merge authority;
-  no agent hand-edits at the gate.
+- **Canonical rebase with a deterministic conflict verdict** (ADR-0005, `MERGE.md`).
+  The merge serializer position-maps increments through canonical history and
+  *detects* overlapping/ambiguous regions — which reject into corrective claims,
+  never silently interleave and never open an in-gate resolution session. The merge
+  serializer is the sole mechanical merge authority; no agent hand-edits at the gate.
 - **Leases guide, never guard.** An increment whose basis proves its paths disjoint
   from green's movement skips transform work entirely. Lease staleness informs; the
   conflict authority is the merge.
@@ -312,6 +330,21 @@ hyperscale's sharpest idea, kept and extended:
   deterministic re-derivation. Live deltas are authoritative for delivery; the WAL is
   authoritative for recovery; delta payloads never substitute for re-derivation.
 - Compaction snapshots at sequence boundaries without pausing the ledger.
+- **Retirement bounds hot state — as a custody transfer, never a loss.** The ledger
+  is monotonic as *proof*, never as *memory*: terminal-and-released objects retire
+  from hot state and graph indexes at derived watermarks, moving **complete, by
+  content identity, into the Archivalist's archive** — content-addressed over the
+  unified store, indexed at retirement time by scope, agent, domain, lineage, and
+  time, with the WAL/snapshots as the recovery substrate beneath both tiers. Proof
+  of work is never deleted and never summarized-in-place; it cools, fully
+  interrogable: years-later evaluation retrieves the actual claims, testaments, and
+  artifacts (hash-verifiable against WAL lineage) with the Archivalist's
+  relevancy-weighted retrieval. Traversals crossing the retention boundary return a
+  typed archival continuation — marked results, different latency class, never a
+  silent absence. Explicitly not tombstonic: no delete markers exist in any read
+  path, retirement is an idempotent fast-forward custody transfer with no
+  timing-coupled correctness, hot memory is bounded by live work, and archive growth
+  is bounded only by storage — the correct bound for proof.
 - **Replication is degenerate locally, real remotely — same code path.** The WAL
   commit path is a consensus group from day one: locally a single-replica group where
   every append is the leader voting for itself; distributed, the same group at three

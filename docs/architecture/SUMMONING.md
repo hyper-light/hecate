@@ -9,8 +9,10 @@ Terminology follows `../../CONTEXT.md`.
 
 ## 1. The summon
 
-A summon is the Guide allocating a workload, in the spirit of creating a Kubernetes
-Deployment:
+A summon is a **claim**: an orchestrating agent (the Guide; the autoscaler as a
+system participant) requests a workload; **the scheduler executes it** and
+testifies the allocation; the issuer monitors and evaluates. In the spirit of
+creating a Kubernetes Deployment:
 
 1. **Compose** — the Guide chooses the agent set for the intent (an architect pod for a
    design conversation; inspector + engineer for a bug fix; a lone engineer for simple

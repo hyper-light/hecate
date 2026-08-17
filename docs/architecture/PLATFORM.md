@@ -133,8 +133,9 @@ structural rule for Hecate, not a criticism to remember fondly.
 
 **Merge and VFS:**
 4. *No conflict detection at merge.* The only conflict branch was unreachable; the
-   resolver was a no-op; the one stale-base check was dead code. Hecate: full OT with
-   real detection (ADR-0003 context), leases as guidance only.
+   resolver was a no-op; the one stale-base check was dead code. Hecate:
+   canonical-rebase merge with a deterministic conflict verdict (ADR-0005), leases as
+   guidance only.
 5. *Rejected work reached disk.* Green was never reverted and flushes wrote the whole
    overlay. Hecate: green admits only increment-validated work; disk commits are
    per-descriptor; failure fixes forward (ADR-0003).
