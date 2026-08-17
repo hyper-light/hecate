@@ -1,6 +1,9 @@
 # SPEC: the ledger core — machinery for the proof of work
 
-Status: presented for acceptance. The implementation companion to
+Status: ACCEPTED 2026-08-16 (with sub-decisions (a) apply-on-ack, (b) no outbox,
+(c) event-carried score snapshots; amended under maximal audit — four corners
+closed: effective-state affordance checks, paced retirement, normalized replay
+comparison, bounded monitor closures). The implementation companion to
 `docs/architecture/LEDGER.md` (the law). Runs on hecate-rt under the memory
 doctrine: single-owner tasks, arenas + generational handles, zero refcounting,
 deterministic maps, apply-on-input purity.
@@ -9,6 +12,13 @@ deterministic maps, apply-on-input purity.
 
 One **ledger core** per session — a single-owner task in the session colocation
 unit. All mutation flows through its mailbox; all hot state lives in its arenas.
+
+**Ceiling, priced**: one session's mutations serialize through one task — the
+ceiling (arena writes + delta emission, millions of ops/sec class) sits orders
+of magnitude above session demand (agents generate hundreds/sec). Sharding the
+core would destroy the total order that replay, monitors, and effective-state
+checks stand on. The ceiling is measured in CI with its derivation at the
+definition site; sustained read load rides projections (§5), never the mailbox.
 
 **Slot layout enforces writer disjointness structurally:**
 
@@ -40,8 +50,15 @@ apply to arenas, assign sequence → build deltas (deterministic order) → emit
 
 - **State is a function of the acked log, exactly**: mutations apply only on
   durable-ack (pipelined — the pending queue keeps throughput; determinism keeps
-  replay trivial: replaying acked records reproduces arenas byte-identically,
+  replay trivial: replaying acked records reproduces arenas identically,
   re-executing no validators, no handlers).
+- **Effective-state checks (amendment, closes the pipelined-affordance race)**:
+  the refuse/affordance set evaluates against **effective state = applied arenas
+  ⊕ pending queue, speculatively applied in input order** — every input is
+  checked against exactly the state it will apply onto, so a pipelined sequence
+  can never pass a check its predecessor invalidates (the Sylk
+  update-on-terminal class, structurally closed). Apply-on-ack is then
+  unconditional. Determinism holds because input order is total (L13).
 - The **refuse set** evaluates purely over core-local state: writer-crossing,
   self-targeting, malformed relations (closed enums — decode already rejected
   unknowns), non-agentic quality bars, and the **rank override check** — which
@@ -58,7 +75,13 @@ apply to arenas, assign sequence → build deltas (deterministic order) → emit
   incremental SCC: each parked turn's monitor holds its transitive blocking
   closure, SCC-condensed at construction, satisfied interiors collapsed to
   released tokens. A per-node subscriber index (`node → monitors`) makes delta
-  dispatch O(affected monitors), never O(all).
+  dispatch O(affected monitors), never O(all). (Global incremental SCC rejected
+  deliberately: its incrementality bugs are exactly the stranded-turn class L4
+  exists to catch — per-scope + oracle fuzz is the more *verifiable* design.)
+- **Closure memory is bounded (amendment)**: overlapping closures duplicate
+  across monitors, so the aggregate carries a derived budget — parked-turn
+  ceiling × live-graph anchors, derivation at the definition site — and a
+  breach alarms loudly in the health plane rather than growing silently.
 - **Monotone-cut release for free**: the core processes inputs in total order, so
   a monitor's view is always a prefix of the delta stream — no torn reads exist to
   defend against; release fires when the local fixpoint (`terminal ∧ children
@@ -76,6 +99,11 @@ apply to arenas, assign sequence → build deltas (deterministic order) → emit
   standing identity subscriptions + the bounded dedup window
   (`(delta_key, seq)` LRU sized from queue-capacity derivation, plus content
   identity). One causally coherent entry point per dispatch.
+- **Exactly-once is three layers doing different jobs** (stated so no layer is
+  ever "simplified" away): cursor-exact stream resume (beyond-window
+  retransmits impossible by construction) → windowed dedup LRU (in-window
+  delivery races) → content identity (content-identical reposts). L6 tests the
+  composition, not any single layer.
 - **Services**: a boot-time handler registry, harness-side. Invocation in tracked
   scopes with bounded queues; overflow → durable `receipt_failed` + backpressure
   artifact; **handler panic → `testament_generation_failed` + error-trace
@@ -106,8 +134,12 @@ apply to arenas, assign sequence → build deltas (deterministic order) → emit
 
 ## 6. The retirement engine
 
-A derived-cadence sweep in the core's idle work, structured as a **fast-forward
-custody transfer** (each step idempotent, self-checking):
+**Paced work, never idle work (amendment)**: a busy core never idles, so
+retirement tracks **debt** (bytes past the retention watermark); when debt
+crosses a derived threshold, retirement steps interleave with mutation
+processing at a derived ratio (both from arena-budget anchors). Under
+saturating load, retirement keeps pace by construction (L8). The sweep is a
+**fast-forward custody transfer** (each step idempotent, self-checking):
 
 1. Collect terminal-and-released objects beyond the retention watermark.
 2. Write archive entries (content-addressed docs + retirement-time index entries
@@ -127,7 +159,7 @@ watermark return archival continuations.
 |---|---|---|
 | L1 | Lifecycle conformance sweep: every transition × injected failure at every boundary ⇒ exactly the spec'd durable state | undocumented states; lost failure facts |
 | L2 | Writer disjointness: compile-visibility probe + runtime attempt ⇒ unrepresentable/refused | the split eroding |
-| L3 | Replay: arenas byte-identical from acked log; zero validator/handler re-execution (instrumented) | hidden state; replay side effects |
+| L3 | Replay: arenas identical from acked log **with derived caches normalized** (lazy `content_hash` memoization state excluded from comparison — computed-when differs between live and replay; values must match, presence must not); zero validator/handler re-execution (instrumented) | hidden state; replay side effects; a CI gate that quietly lies |
 | L4 | Monitor oracle fuzz: randomized graphs (cycles included) vs brute-force fixpoint oracle; delta-order fuzz ⇒ identical release decisions, no lost wakeup | satisfaction bugs — the class that strands turns |
 | L5 | Deadlock: constructed SCCs ⇒ deadline then lowest-sequence victim, identical across seeds | nondeterministic victim selection |
 | L6 | Dedup: retransmit/replay/content-identity fuzz ⇒ exactly-once effects at every seam | duplicate work; duplicate render |
@@ -137,10 +169,16 @@ watermark return archival continuations.
 | L10 | Service dispatch: panic ⇒ failure testament + trace artifact; overflow ⇒ receipt_failed + backpressure artifact; compression wire-identical | crashing validators; silent overload |
 | L11 | Accumulator: bounded, flush-on-close, suppressed-on-yield | testimony floods; premature testimony |
 | L12 | Modulation snapshots: rank verdicts identical under snapshot-delivery reordering within a window; replay identical | score coupling breaking purity |
+| L13 | Effective-state checks: racing mutation fuzz through the pending window vs a serial oracle — zero divergence between checked-against state and applied-onto state; the update-on-terminal class unrepresentable | the pipelined-affordance race |
+| L14 | Retirement pacing: saturating mutation load — debt stays under threshold, hot bounds hold, mutation latency degradation within derived budget | retirement starvation; the "idle work" lie |
+| L15 | Monitor closure budget: adversarial shared-closure graphs — aggregate memory within derived budget, breach alarms loud | silent closure sprawl |
 
 ## 8. Acceptance criteria
 
-1. L3 (replay) and L4 (oracle-verified satisfaction) are permanent CI gates.
+1. L3 (replay), L4 (oracle-verified satisfaction), and L13 (effective-state
+   checks) are permanent CI gates.
+1b. The core's throughput ceiling is measured in CI against the derived session
+   demand model; the margin is reported, never assumed.
 2. The core is a single-owner task; no lock, no shared state, no synchronous
    out-call exists in it (architecture test).
 3. No outbox structure exists; projectors are cursor consumers only (L9).
