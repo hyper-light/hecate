@@ -69,6 +69,11 @@ enum DocValue {
   `DocValue` wire codec. **Those bytes are the spec bytes; BLAKE3 over them is
   the identity.** Key order, whitespace, and serialization dialect can never
   fork the hash (G11 extension).
+- **Descriptors are also the SDK-generation source**: the TS/Python authoring
+  bindings (`SKILLS_API.md` §2) generate their typed APIs from kind
+  descriptors — compiled reflection for compiled kinds, the registered schema
+  for config kinds — so every kind, including config-registered ones, gets a
+  friendly authoring surface whose output is always the canonical document.
 - **The schema language is a closed subset**, enforced at descriptor
   registration: `type, properties, required, additionalProperties, items, enum,
   const, pattern, minimum/maximum, minLength/maxLength, minItems/maxItems,
