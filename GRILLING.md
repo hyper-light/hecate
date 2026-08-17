@@ -588,15 +588,40 @@ specs are **on the table**; branches without specs are **open**.
   class, boot-validated (chokepoint law — undeclared kind fails
   startup). RESOLVES §(e): copyset work only needs correctness in the
   durable regime (batch, movement-tolerant = the easy case); the hard
-  regime (high-rate churn + bounded lists) is no longer needed. OWED:
-  (1) per-class loss derivation at definition sites; (2) class-
-  transition mechanics = re-place under new class + ref update + old
-  copies GC-eligible (f4 locked-volume pattern; no representation
-  change until EC tail); (3) SERVING.md §6 amendment — one placement
-  function survives VERBATIM, gains class-parameterized candidate set +
-  redundancy declared per artifact kind via registry storage class;
-  laptop degenerate untouched (every class collapses to the single
-  node); (f) GC =
+  regime (high-rate churn + bounded lists) is no longer needed. **FINAL REFINEMENT (user's cut, agent-validated, 2026-08-17)**: the
+  one-placement-function law = one AUTHORITY (a single pure function
+  computed identically everywhere), not one policy — the function takes
+  storage class as a durable input. THE LOSS INTEGRAL decides the
+  disciplines: expected loss ∝ correlated-event rate × exposure time ×
+  copyset coverage — (i) WORK class (green chains, sealed increments,
+  session state: hours–days exposure, session-bounded blast radius) =
+  pure weighted HRW unchanged, keeping locality/movement/zero-lookup
+  where the serving path needs them; (ii) LINEAGE class (registry
+  content + KG/vector generations + archives: months–years exposure,
+  monotonic accumulation, cold ⇒ scrub-stretched windows) =
+  copyset-bounded HRW HERE AND ONLY HERE; (iii) COLD TAIL = EC across
+  domains (already a third discipline by prior decision — the per-class
+  precedent was internal all along). DISSOLVES two of three work items:
+  movement analysis (bounding now scoped to cold content = background
+  re-placement paced by the repair scheduler, zero serving-path/FS10
+  tension; work class keeps HRW's movement guarantee verbatim) and the
+  loss derivation (narrowed to lineage-class parameters — the
+  friendliest regime: cold, append-mostly, repair-paced). GUARD RAILS
+  (the Sylk two-stores fault in a new coat, held out): class = property
+  of the content's ROOT, recorded in manifest/descriptor at write time
+  (registry storage-class hook exists), never a runtime heuristic,
+  never a second authority — place(map_epoch, class, group_id) stays
+  pure and deterministic on every node; class transitions ride EXISTING
+  lifecycle boundaries only (landing/archival promote work→lineage;
+  seal-then-reencode / f4 lock-then-migrate siblings; no new state
+  machine); laptop degenerate CLASS-BLIND BY COLLAPSE — labels persist
+  inert, so a laptop corpus later joining a fleet re-places correctly
+  from recorded classes; cache roles orthogonal (class governs
+  authoritative copies only). OWED: (1) lineage-class loss derivation
+  at its definition site + the work-class acceptance derivation
+  (exposure × rate × loss-cost, written down); (2) SERVING.md §6
+  amendment — one authority, three disciplines, class as durable input;
+  (3) SIM correlated-failure sweep per class against its own bar; (f) GC =
   mark-and-sweep from roots (green chains + registry refs + seal
   manifests + generation pointers), NEVER cross-node refcounts; sweep =
   copy-forward; f4 crypto-erase composes with (i); (g) API = put/get/
