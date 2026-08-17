@@ -1148,3 +1148,42 @@ condition), Fourier seasonality dropped v1. ECOLOGY.md fact-check
 corrections on file (Connell, α asymmetry, unsourced coral-CSD claim,
 hand constants). ALL THREE TRACKS LANDED — final reconciliation map
 presented for ruling.
+
+**Consensus re-analysis dossier LANDED (2026-08-17, for the Branch-20 etcd
+challenge)** — every challenged failure mode classified by layer: (a)
+etcd-server/boltdb/watch, (b) etcd-raft-library, (c) single-group-topology.
+FINDING: the famous record is overwhelmingly (a)+(c) — v3.5 silent data
+inconsistency = server apply-loop watermark race (consistent index persisted
+before entry effects; official postmortem: corruption detection experimental
++ off, functional tests "unmaintained, flaky"; the class decisions (2)+(5)
+exist to make structurally impossible); boltdb 8GB ceiling/mmap/blocking
+defrag/freelist O(n) (Alibaba rewrote it → 100GB) = backend; k8s stale-reads
+(#59848)/LIST OOM (KEP-3157)/OpenAI Events-split = watch layer + one-keyspace
+topology; 5–7 voter + single-group ceiling = topology the direction already
+rejects. The (b) record is real, short, enumerable: apply-time conf-change
+liveness hole #12359 (closed STALE — countermeasures = conf-commit metadata
+on votes, no direct voter demotion), PreVote stuck-states #8243/#8501 (fixed),
+ReadIndex/learner #10589, probe stalls #13418, transfer-bypasses-PreVote
+carve-out; protocol-level: Ongaro single-server-change guard,
+PreVote+CheckQuorum joint requirement w/ asymmetric-omission residual
+(Decentralized Thoughts + Cloudflare/HAOC'21). META-SCALE TABLE: every
+property the scaled systems share and etcd lacks (multi-group: Spanner ~1000
+groups/node since 2012, CRDB hundreds of thousands; liveness amortized above
+the group: CRDB store-liveness/fortification SIGMOD'26, TiKV hibernation
+retrofit w/ #10017 as the retrofit-bug receipt; storage decoupled: Delos
+loglets/raft-engine/pebble; reconfiguration-as-data: Delos VirtualLog;
+epoch-fenced writers: ZippyDB/LogDevice/Chubby) is already in the direction
+or now amendable. AsyncStorageWrites (the adopted interface shape) was
+authored BY CockroachDB (PR #14627). Exemplar options graded: cockroachdb/
+raft fork (active, TLA+-backed fortification work, Go), tikv/raft-rs (Rust
+portability proof, pre-AsyncStorageWrites, joint-consensus long experimental),
+from-scratch-to-dissertation (forfeits decade of (b) fixes unless checklist
+= conformance suite), VSR/TigerBeetle (Jepsen-clean core but single-group,
+Zig; its real export = VOPR/FDB deterministic simulation posture). CANDIDATE
+AMENDMENTS: 2a re-name exemplar "CRDB-lineage dialect"; 2b (b)-record +
+protocol checklist as executable conformance suite; 3-addendum explicit
+conf-change activation semantics + #12359 countermeasures; 5a upgrade gate
+to deterministic whole-cluster simulation (FDB ~1 trillion CPU-hours;
+TigerBeetle VOPR; mutually reinforcing with the pure-core IO-as-data shape).
+Full dossier with ~35 primary sources in-conversation; re-presentation =
+the pending exchange.
