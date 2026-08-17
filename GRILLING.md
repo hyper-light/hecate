@@ -492,6 +492,61 @@ specs are **on the table**; branches without specs are **open**.
   scrub/latent-sector-error studies (Bairavasundaram), convergent
   encryption (Tahoe-LAFS/DupLESS + attacks). Haystack/f4/groupcache receipts already
   on file. Underlies everything — sequences early in the walking skeleton.
+  **RESEARCH LANDED 2026-08-17 (EdenFS-layer ↔ Tectonic-tier report)** —
+  STRUCTURAL HEADLINE: Hecate gets Tectonic's fabric with ~⅓ of its
+  metadata problem — Tectonic's Block layer (⅔ of ALL its metadata ops =
+  "where does this block live") collapses into the HRW pure function +
+  exception table; Name/File layers collapse into content-addressed
+  manifests + registry refs. Total mutable tier metadata = inventory-map
+  epoch (Branch 20) + exception table + refs. KEEP from Tectonic:
+  client-driven data path (proxy "vastly less efficient"), dumb storage
+  nodes (get/put/list/scan only), checksum-at-every-transformation (incl.
+  RS inverse-check when EC lands; in-memory corruption "a regular
+  occurrence" at scale). Tier map T0–T5 + the VFS.md reconciliation
+  sentence (arena + pack store = RAM/NVMe tiers of ONE chunk store;
+  movement = explicit lifecycle, never spill; EdenFS's two-overlapping-
+  disk-caches admission = the cautionary receipt — ONE on-disk format,
+  cache/origin as ROLES). Decision answers: (a) pack volume SETTLED —
+  Haystack-shape framed chunks, BLAKE3-address-IS-the-checksum, in-RAM
+  index w/ rebuild-by-scan as truth + trustless sidecar, batched fsync,
+  torn tail self-drops via own hash, NO fsck; LSM/ShardStore rejected
+  (mutable-key medicine — 16 formal-methods-caught bugs as the price
+  receipt), BlueStore raw-block rejected (small-overwrite medicine;
+  Haystack on XFS = 85% of raw throughput), file-per-chunk = measured
+  anti-pattern; compaction = copy-forward; CacheLib 8-byte-hash escape
+  hatch if index RAM drifts (derived); (b) write path = four rungs
+  witnessed→sealed→PLACED (parallel idempotent PUTs, any-copy-valid-by-
+  hash [composed Venti/OCI/Ambry — THIN, no single source], hedged
+  reservations ~20% p99, ack=R_eff)→REFERENCED (placement strictly
+  precedes reference ⇒ orphans-never-dangling); hedged reads at derived
+  p95 (Tail-at-Scale 1800→74ms receipt); (cache) CacheLib whole-volume
+  FIFO eviction (WA 1.5→1.05×), admission = endurance governor (TBW-
+  derived servo; 44% fewer flash bytes; Tectonic-Shift PID 1.5–3.3×);
+  summon claims/template eager-sets = declared-future admission (Shift
+  pattern, native fit); (c) EC = seal-then-encode, LRC vs Clay table,
+  HONEST: derive the crossover — replicated may dominate at small fleets,
+  never adopt RS(10,4) by imitation; (d) scrub MANDATORY beyond verify-
+  on-read (>60% of latent sector errors found ONLY by scrub; 3.45%/32mo
+  LSE rate), derived cadence, reverse index (device→chunk-groups) for
+  repair; (e) copysets: random R=3 @5K nodes = 99.99% loss under 1%
+  correlated failure vs 0.15% copyset — **copysets × HRW composition is
+  NOVEL (confirmed absent from literature) — needs own loss-probability
+  math + SIM sweep**; Tectonic's block-group scar (80% groups write-
+  unavailable at 5% nodes down) = the fixed-set trap to avoid; (f) GC =
+  mark-and-sweep from roots (green chains + registry refs + seal
+  manifests + generation pointers), NEVER cross-node refcounts; sweep =
+  copy-forward; f4 crypto-erase composes with (i); (g) API = put/get/
+  batch_exists/ranged_get/list/scan, NO append verb (large objects =
+  ranged reads over manifest chunk lists); (h) only NEW metadata = the
+  per-node reverse index (scan-derivable, sidecar-cached); (i)
+  RECOMMENDATION (own settlement required): **scope-salted convergent
+  encryption** — key = f(content hash, dedup-domain salt), domain = the
+  legitimate sharing scope (lineage/user/global) = the isolation line;
+  dedup survives within domain, salt defeats confirmation-of-file across;
+  preserves crypto-erase per domain; (j) laptop degenerate clean via the
+  format-role unification. Work plan S1–S8 on file; venue corrections
+  noted (BlueStore SOSP'19, Shift ATC'23, LSE study SIGMETRICS'07).
+  Branch 24 now DESIGN-READY: exchanges can open on the map above.
 - **Walking skeleton** — final branch; re-presents against completed tree
   (P0 wire → P1 runtime → P2 spine → P3 pod leg → P4 first agent → P5 first
   merged change; now must thread Sibyl/home-session/lineage into first light;
