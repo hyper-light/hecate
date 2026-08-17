@@ -1,12 +1,13 @@
 # SPEC: sessions and lineages
 
-Status: presented for acceptance (grilling Branch 19, contract ratified through
-seven exchanges + vocabulary ruling). Research on file: CitC/EdenFS/Scalar,
-namespace/HNC/Capsule/vCluster, prebuild pools, jj/Pijul/eg-walker/mergiraf
-divergence corpus, 267K-merge overlap study, agentic-PR conflict rates. The
-evaluation-funnel stage numbers land from the selection-gap track (in flight) into
-§7 without changing its shape. Vocabulary: **"workspace" is retired**; the concepts
-are **lineage**, **session**, and the pod's **work volume**.
+Status: ACCEPTED 2026-08-16 (grilling Branch 19; verdict held pending Branch 21,
+unblocked by `SERVING.md` — §3's contract is that spec's machine; all four
+acceptance riders executed with the SERVING.md commit). Research on file:
+CitC/EdenFS/Scalar, namespace/HNC/Capsule/vCluster, prebuild pools,
+jj/Pijul/eg-walker/mergiraf divergence corpus, 267K-merge overlap study,
+agentic-PR conflict rates, selection-gap funnel corpus (§7 numbers landed).
+Vocabulary: **"workspace" is retired**; the concepts are **lineage**,
+**session**, and the pod's **work volume**.
 
 ## 1. The lineage (first-class)
 

@@ -43,29 +43,20 @@ specs are **on the table**; branches without specs are **open**.
 | `docs/specs/SCHEDULER.md` | sharded deterministic evaluation-log spine; **deterministic optimism** (parallel intent-aware speculative planners, logged outputs, serial pure applier); content-keyed memoization + snapshot-page/chunk locality scoring; gang-at-admission; Borg bands, hard limits; §9b request lifecycle (amendment=supersession-with-reuse; disposition-retry partials; issuer judges sufficiency) |
 | `docs/specs/SIBYL.md` | the 10th agent (name user-ratified): workstream judgment above sessions, lineage-partitioned instances (never global), judgment/machinery split, experiment-as-claim-tree, content-blind, grant brokering (Biscuit), user-plane ledger. AGENTS.md + glossary landed |
 | `docs/specs/SERVING.md` | the serving machine (Branch 21, ACCEPTED 2026-08-16): two-representation law (per-pod log-structured overlay = journal + extent index; manifests-over-CAS everywhere else), ack=witness (group commit before reply, no fsck — recovery is replay), seal at increments (writeback drain → op-log derivation → CDC/BLAKE3 → CAS), green = manifest chain (extends never writes, EROFS structural, all-DAX shared pages, pin+re-bind), inode law (volume,path-entry stable per volume lifetime, serializable for handoff), digest-xattr honesty, weighted-HRW topology (chunk-groups + exception table, state-follows-compute, R_eff loud degenerate), mapping engine splice\|managed per platform, own FUSE-over-virtio layer on hecate-rt in the libkrun fork, scratch volume role. Riders landed: VFS.md (4th role + op-log clause), ADR-0005 amendment (one law: no auto-resolution anywhere; dispositions by author liveness), CONTEXT.md (Landing, Conflict value, Witness, Seal) |
+| `docs/specs/SESSIONS.md` | ACCEPTED 2026-08-16 (verdict held for Branch 21, unblocked by SERVING.md): lineage first-class + single-holder fenced materialization lease; session = template-stamped isolation unit, per-session pods, home session hosts Sibyl; §3 physical contract = SERVING.md's machine; fork = O(manifest) + skeleton; three-layer landing engine (manifest prune → eg-walker replay as detector-only → jj conflict algebra, resolution-is-a-change); composition = declared-order pairwise, disjoint-or-verdict-clean + re-verification; resolver proposers version-pinned, validated, never silent; conflict deposits per-template; user review first-class (materialization = prompt + zero unresolved conflicts); 6-stage evaluation funnel with measured lifts (dedup/differential/hybrid/committee; composition-by-regeneration PDR; critic-gated early stopping); lifecycle fast-forward states; GC licensed by continuous exfiltration; scale-down floors ratcheted. Riders executed with SERVING.md commit |
 | Architecture set | `docs/architecture/{AGENTS,SUMMONING,LEDGER,SKILLS,PLATFORM}.md`, `CONTEXT.md`, ADRs 0001–0005 — amended throughout this session (open roster/offices, Arbiter, summon-as-claim, retirement, work volume, ten agents) |
 
 ## ON THE TABLE (drafted + shown; awaiting acceptance — settle ONE at a time)
 
-1. `docs/specs/SESSIONS.md` — whole (lineage first-class, per-session pods,
-   three-layer landing engine + jj conflict algebra, conflict deposits, review
-   gates, 6-stage evaluation funnel with numbers, lifecycle/churn/GC, floors).
-   **Verdict UNBLOCKED 2026-08-16** — Branch 21 settled; §3's contract is now
-   backed by SERVING.md. All four held riders EXECUTED with the SERVING.md
-   commit: (i) cost-ledger line (landing engine = second merge machine);
-   (ii) VFS.md op-log clause; (iii) CONTEXT.md Landing + Conflict value;
-   (iv) ADR-0005 amendment + §5 cross-ref (one law: no automatic resolution
-   of concurrent code edits anywhere; dispositions differ only by author
-   liveness — bounce vs value). Verdict re-presented; awaiting accept.
-2. `docs/specs/LEDGER_CORE.md` — + sub-decisions (a) apply-on-ack, (b) no outbox
+1. `docs/specs/LEDGER_CORE.md` — + sub-decisions (a) apply-on-ack, (b) no outbox
    (log+cursors), (c) event-carried score snapshots.
-3. `docs/specs/AUTOSCALING.md` — + sub-decisions (i) ratio-law-only,
+2. `docs/specs/AUTOSCALING.md` — + sub-decisions (i) ratio-law-only,
    (ii) scale-to-zero for idle daemons.
-4. `docs/specs/REGISTRY.md` v2 — syllium-informed; ref-CAS sole mutation; watch
+3. `docs/specs/REGISTRY.md` v2 — syllium-informed; ref-CAS sole mutation; watch
    API; schema-doc kinds; §4b materialization path.
-5. `docs/specs/SKILLS_API.md` — one derive → five artifacts; S6 surface counts.
-6. `docs/specs/HEALTH.md` — one plane (Sylk ran four); no authority.
-7. `docs/specs/FOREST.md` — Z-set field engine, ACT-R/FSRS/MMAS/Parunak/PPR
+4. `docs/specs/SKILLS_API.md` — one derive → five artifacts; S6 surface counts.
+5. `docs/specs/HEALTH.md` — one plane (Sylk ran four); no authority.
+6. `docs/specs/FOREST.md` — Z-set field engine, ACT-R/FSRS/MMAS/Parunak/PPR
    dynamics, primary-by-construction, observe-mode value gate, session-isolated
    (global-forest tier DELETED as data-leak; user correction).
 
