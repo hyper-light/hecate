@@ -1,7 +1,10 @@
 # SPEC: the autoscaler — a deterministic target-tracking controller
 
-Status: presented for acceptance. Companion to `PODS.md` §4b (classes, pull path,
-per-role table). References: Kubernetes HPA algorithm (ratio target-tracking,
+Status: ACCEPTED 2026-08-16 (sub-decisions (i) ratio-law-only, (ii)
+scale-to-zero; amended under maximal audit — four corners closed:
+load-proportional signals only, silence-fails-closed freshness, parked-scope
+drain semantics, ratcheted tolerance). Companion to `PODS.md` §4b (classes,
+pull path, per-role table). References: Kubernetes HPA algorithm (ratio target-tracking,
 tolerance, downscale stabilization — the deliberately-not-PID production consensus),
 Little's law / M-M-c for target derivation, Sylk AUTOSCALING doctrine (parking,
 singleflight, five-outcome taxonomy), the AIMD step discipline.
@@ -25,18 +28,31 @@ faster than the signals can change).
 ## 2. The control law: ratio target-tracking
 
 Per scalable target, declared in its descriptor (`AgentRole` / service config):
-a **signal** (queue depth | latency percentile | rate×service-time) and a **target
-value** whose derivation is stated (e.g., Guardian hold-queue p99 target derived
-from the held-syscall block budget; Arbiter frontier-lag target from the review
-staleness budget; Little's-law `N = λW/ρ*` informs the target, it is not the
-controller).
+a **signal** and a **target value** whose derivation is stated.
+
+- **Signals are load-proportional classes only** (amendment): queue depth |
+  arrival rate × service time | utilization — classes that scale ~inverse-
+  linearly with replicas, which is the ratio law's validity condition.
+  **Latency percentiles are never controller signals** (p99 is convex in load;
+  the ratio law over/undershoots on it — HPA's own guidance): latency
+  *budgets* enter through **target derivation** — Little's law converts a
+  latency budget into the queue-depth/concurrency target the loop tracks
+  (e.g., Guardian held-syscall p99 budget → derived hold-queue depth target;
+  Arbiter review-staleness budget → frontier-lag target).
+- **Freshness, silence fails closed** (amendment): every signal carries a
+  freshness bound derived from its window; a stale signal ⇒ **hold** — no
+  actuation in either direction — plus a loud health-plane alarm. The
+  controller never acts on data older than its derived bound (A11).
 
 ```
 desired = ceil(current_replicas × observed_signal / target_value)
 ```
 
-- **Tolerance band**: no action while `|observed/target − 1| ≤ τ`, with τ derived
-  from the signal's observed variance — not a hand constant.
+- **Tolerance band**: no action while `|observed/target − 1| ≤ τ`, with τ
+  derived from the signal's **commissioning-baseline variance, ratcheted**
+  (the standing floor-ratchet pattern) — never continuously adaptive, which
+  would let sustained flapping widen τ and mask the very drift that caused it;
+  re-derivation only at declared re-commissioning points. Not a hand constant.
 - **Asymmetric response**: scale-up acts on the *current* desired immediately;
   scale-down acts on the **maximum desired over a trailing stabilization window**
   (window derived from service time × a stated factor) — the flap-killer.
@@ -64,7 +80,11 @@ queueing models inform *targets*, not the loop.
 - **Scale-down** = graceful drain: select the replica with fewest in-flight claims
   (ties: newest, preserving warmed caches); mark draining → takes no new claims →
   completes or parks → teardown fast-forwards; its claims redistribute by lease
-  redelivery. **No replica ever dies mid-claim.**
+  redelivery. **No replica ever dies mid-claim** — where "mid-claim" means
+  mid-turn-execution: a **parked scope is not a mid-claim death** — it transfers
+  via the AGENTS_RUNTIME brief+claims handoff (successor resumes from the
+  ledger; volume re-binds; no transcript), and A5 asserts parked-scope resume
+  equivalence on the successor.
 - **Scale-to-zero** (sub-decision ii): an idle load-driven daemon with an empty
   queue and no office obligation scales to zero; the first demand signal
   re-summons through parking/singleflight with warm-tier latency. Offices with
@@ -98,16 +118,19 @@ cannot resonate; A9 tests for cross-loop oscillation explicitly.
 | A2 | Flap resistance: signal oscillating within tolerance ⇒ zero actions; step change ⇒ bounded ramp, no overshoot past step clamps | oscillation; cliff actuation |
 | A3 | Asymmetry: up within one evaluation; down only after the stabilization window's max-desired agrees | premature downscale killing warm capacity |
 | A4 | In-flight accounting: pending summons counted; no re-actuation while materializing | double-scaling races |
-| A5 | Drain safety: scale-down under load ⇒ zero mid-claim kills; claims redistribute; drained replica's scribe flushes narration | work loss on downscale |
+| A5 | Drain safety: scale-down under load ⇒ zero mid-turn kills; claims redistribute; **parked scopes resume equivalently on the successor** (brief+claims handoff); drained replica's scribe flushes narration | work loss on downscale; parked-scope stranding |
 | A6 | Berserk autoscaler: forced pathological targets ⇒ admission ceilings hold, five-outcome accounting complete | the front door failing its one job |
 | A7 | Scale-to-zero round trip: idle → 0 → demand ⇒ one singleflight activation, ready within the warm-tier budget | cold-start regression; activation stampede |
 | A8 | Advisory isolation: work-driven signals reach the Guide as information; no code path lets the autoscaler summon a worker (structural) | orchestration authority leaking to a controller |
 | A9 | Loop composition: sustained demand ⇒ replicas and pool converge without cross-loop oscillation | resonance between the two loops |
 | A10 | Low-trust coupling: flipping `trust_mode` ⇒ Guardian hold-queue target tightens and replicas ramp; hold latency stays within budget | "low-trust means slow" |
+| A11 | Staleness hold: stalled signal stream (dead publisher, stuck cursor) ⇒ zero actuation in either direction + loud alarm; recovery resumes control cleanly | acting on stale data; silent controller blindness |
 
 ## 7. Acceptance criteria
 
-1. A1/A5/A6/A8 permanent CI gates.
+1. A1/A5/A6/A8/A11 permanent CI gates.
+1b. No latency-percentile signal exists in any descriptor (architecture test);
+   latency budgets appear only in target derivations.
 2. The ratio law is the only controller in the tree; no PID, no per-target bespoke
    loops — a target is a descriptor, never code.
 3. Every constant (tolerance, windows, factors, floors, cadences) derives from
