@@ -801,8 +801,9 @@ specs are **on the table**; branches without specs are **open**.
   Sequenced immediately before the walking skeleton; kept current from
   then on (a stale gap ledger is itself a gap).
 - **30 Fault detection + recovery (fleet level)** — ADDED 2026-08-17
-  (user). Scope: hosts and storage nodes — NOT agent replicas (AUTOSCALING
-  A5) or pods (PODS §4/warden fail-closed), which are settled. Shape
+  (user). Scope: hosts and storage nodes — NOT pod drain, which is
+  settled as one concept in two layers (AUTOSCALING A5 policy + PODS
+  mechanism; agent replicas run inside pods). Shape
   constraints: the health plane is the signal substrate (HEALTH.md — one
   stream, judgment at the edges, content-free law); PROTOCOL.md already
   names a wire-level failure detector; the fenced, versioned inventory map
@@ -872,9 +873,17 @@ specs are **on the table**; branches without specs are **open**.
   generation-numbered node identity so a returning node's old chunks
   are re-inventoried by scan, never trusted). Transitions are map-epoch
   bumps (fenced, consensus-owned); weights follow state (cordoned
-  weight→0 for new placement, unchanged for reads). Distinguish loudly
-  from agent-replica drain (AUTOSCALING A5) and pod drain (PODS) —
-  three lifecycles, three owners, one vocabulary sweep owed. Laptop:
+  weight→0 for new placement, unchanged for reads). **Two drain
+  concepts, correctly factored (user correction 2026-08-17)**: (1)
+  **pod drain** — one concept, two layers: policy (AUTOSCALING A5
+  selects which replica pod, when) + mechanism (PODS init executes:
+  finish-or-park claims, scribe flush, teardown) — agent replicas run
+  inside pods, so "replica drain" IS pod drain, never a separate
+  machinery; (2) **node drain** — this branch, independent: re-place
+  data per plane discipline + move colocation units, which *causes*
+  pod drains on the draining node as a consequence (node drain
+  composes over pod drain, one direction, never a third machinery).
+  Laptop:
   the single node is permanently active; cordon of the only node is a
   typed refusal. RESEARCH FIRST: Kubernetes cordon/drain semantics
   (naming precedent + eviction API), Ceph noout/norebalance/OSD
