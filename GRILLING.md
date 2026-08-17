@@ -229,6 +229,41 @@ specs are **on the table**; branches without specs are **open**.
   candidate for the Forest's lexical/dense channels; structural search
   (ast-grep rules) as an agent capability. Prior research-first list
   (Glean/Kythe/stack-graphs/SCIP/LSIF) demoted to comparative background.
+  **SURVEY LANDED 2026-08-17** (tests run by the surveyor, green): mature
+  single-machine substrate — KG/ingest/resolution/storage/search/MCP all
+  built, byte-identical determinism ENFORCED by tests (streamed≡batch,
+  sharded≡serial, spilled≡RAM, incremental-converges-to-scratch, content-id
+  reproducible at kernel scale); honest-resolution eval 7 langs green;
+  benchmarks: linux kernel 72.5K files → 2.75M nodes, cold 8.97s, warm 0.11s,
+  one-file update 2.30s (**relink is FULL, O(corpus) — the incremental cost
+  floor**); .vseg RAW-only (codec stack aspirational), content-addressed
+  generations + atomic CURRENT swap + GC; u32 ceilings (2³² defs, 4GiB heap)
+  checked with actionable errors. Distribution: wire/transport/agent fan-out
+  fabric REAL (20/20 loopback), but distributed INDEXING 100% unwritten
+  (no realm column/scoped resolution/product batching/merge driver/federated
+  query; content_hash→xxh3 I3 fix pending). Integration seams: **VFS seam
+  exists** (stream_apply takes caller FileStats + work closure, disk-free;
+  extract_product pure) but build_index_full welded to Manifest::scan →
+  upstream `Manifest::from_entries` + Verified-mode content hook (small
+  patches); no external-diff API (diffs save parse only — relink full
+  regardless); globals: process-wide leaked interner (biggest hazard for
+  multi-session hosts), WARM_ROOTS, process-wide ANN_BUILD mutex, jemalloc
+  as vorpal-index LIBRARY dep (check). **Hecate adaptation shape (draft, to
+  settle)**: (i) per-lineage-baseline index generations are CAS-shareable
+  below the isolation line (deterministic: same manifest ⇒ same generation
+  bytes — receipts in-tree); (ii) session overlay over shared base + scoped
+  resolution + federated RRF = the distributed adaptation (REMOTE.md D3),
+  needed because full relink at monorepo scale is infeasible per edit —
+  session-scale corpora relink in ms, the base/overlay split is the
+  Meta-scale answer; (iii) parse products keyed by source_xxh3 → CAS product
+  bank (dedup across sessions); (iv) instance model decision: embedded-lib
+  (needs scoped-interner upstream) vs session-scoped worker process vs
+  KG-service pod — OPEN; (v) 15 MCP tools → Archivalist/agent skills;
+  structural search as agent capability; (vi) LexicalEmbedder + ModelProvenance
+  learned:bool gate = candidate for Forest channels, provenance pattern
+  matches doctrine. Upstream patch list: Manifest::from_entries, content-
+  source hook, xxh3 identity (I3), scoped interner, budget/shard knobs as
+  parameters not env vars.
 - **23 The document DB (records + full-text)** — ADDED 2026-08-16 (user: "as
   well as the document db"). The Archivalist's second organ: durable document
   records (papers from the academic handoff, design docs, session records,
