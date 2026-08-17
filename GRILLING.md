@@ -265,4 +265,18 @@ Capsule/prebuild pools); parallel workstreams + land queues + Chubby/Biscuit;
 scheduler architectures (Borg/Omega/Twine/Nomad/K8s, read directly);
 divergence/merge (jj algebra, eg-walker, mergiraf numbers, 267K-merge overlap
 study, agentic-PR conflict rates); selection-gap funnel (CodeMonkeys/OpenHands/
-S*/RTV/PDR numbers; composition correction).
+S*/RTV/PDR numbers; composition correction); FS serving ×4 (EdenFS internals,
+CitC/Piper, virtio-fs/DAX/libkrun, sharded CAS/placement — baked into
+SERVING.md); **Sylk decay post-mortem** (2026-08-16, for the FOREST decay
+examination): SEVEN mutually inconsistent decay impls, only one ACT-R-shaped
+and it has a seconds-vs-hours unit bug (~4 nats; 17-day intended retrieval
+window → 6.7 minutes actual; domain-dependent offset breaks cross-domain
+comparability); reinforcement path never wired (traces empty → whole stack
+degenerates to Score×0.7); learning primitive = EWMA mislabeled as posterior
+(α+β→1, Confidence()→0 permanently after ~21 obs); half-life off-by-ln2 twice
+contradictorily in one file; 4/7 impls exponential while docs forbid it; the
+most detailed doc spec (Archivalist Knowledge Decay Protocol) never shipped;
+6+ subsystems built-tested-unreachable. 15 named lessons → become named tests
+in the successor decay spec. VERDICT IMPLICATION: Sylk is evidence about
+implementation discipline, NOT evidence against ACT-R-the-model; the
+best-fit question stays open pending the literature report.
