@@ -800,6 +800,87 @@ specs are **on the table**; branches without specs are **open**.
   authoritative gap ledger the walking skeleton re-presents against.
   Sequenced immediately before the walking skeleton; kept current from
   then on (a stale gap ledger is itself a gap).
+- **30 Fault detection + recovery (fleet level)** — ADDED 2026-08-17
+  (user). Scope: hosts and storage nodes — NOT agent replicas (AUTOSCALING
+  A5) or pods (PODS §4/warden fail-closed), which are settled. Shape
+  constraints: the health plane is the signal substrate (HEALTH.md — one
+  stream, judgment at the edges, content-free law); PROTOCOL.md already
+  names a wire-level failure detector; the fenced, versioned inventory map
+  (Branch 20) is the only authority that may declare a node's state —
+  detection *proposes*, the map *disposes* (no component acts on its own
+  suspicion; fencing epochs make stale actors harmless). Decisions:
+  detection primitive (phi-accrual vs SWIM-style gossip vs
+  lease-expiry-only — and whether the wire detector and fleet detector
+  are one machine), **gray/fail-slow detection** (the hard case: a node
+  that answers pings but serves at 1% speed — differential observability,
+  peer-comparison latency ratios), declaration protocol (suspicion →
+  quorum-confirmed → map epoch bump → fenced), recovery orchestration
+  (who triggers what: durable-plane repair = map-driven under-replicated-
+  first (OBJECT_TIER §4); serving-plane = successor promotion via the
+  deterministic HRW order; session colocation-unit failover =
+  checkpoint+replay paths already spec'd per subsystem), **recovery
+  pacing** (repair storms are the named killer — Tectonic's 10%-
+  reconstructed-reads cap and reservation-declines as the receipts;
+  derived repair-bandwidth floors vs serving TrafficClass), and the
+  laptop degenerate (detector runs, declarations are local no-ops,
+  R_eff=1 loud). RESEARCH FIRST when opened: phi-accrual (Hayashibara),
+  SWIM + Lifeguard (memberlist's false-positive fixes), gray failure
+  (Azure differential-observability paper), fail-slow-at-scale (FAST'18
+  — fail-slow hardware receipts), Ceph OSD heartbeat/mon declaration
+  flow, correlated-recovery pacing receipts.
+- **31 Replica handling** — ADDED 2026-08-17 (user). The two planes have
+  distinct replica lifecycles and this branch owns both, plus the
+  cache-warmth tier that is NOT replication: (i) **serving plane,
+  mutable side** — journal-ship to top-(R−1) HRW successors, promotion
+  by the deterministic order (SERVING.md §6): the promotion protocol
+  needs its fencing story (epoch token on every successor effect;
+  split-brain unrepresentable), divergence detection for shipped
+  journals (chained CRC + seq continuity), and re-ship on successor
+  loss; (ii) **durable plane** — copyset members (OBJECT_TIER §4):
+  read-repair on verify-fail, map-driven re-replication
+  (under-replicated-first), **hinted handoff rejected and recorded** —
+  immutable self-verifying content re-places from any valid copy;
+  hinting is a mutable-store concept with nothing to buy here; (iii)
+  **cache warmth** (pinned query nodes, mirrored routing artifacts) —
+  explicitly not replicas: loss = re-warm, never repair; the boundary
+  stated structurally so cache copies never count toward R_eff.
+  Decisions: R derivations per class (from the class loss integral +
+  copyset math, at definition sites), read-repair semantics (inline vs
+  queued), replica verification cadence tie-in to scrub, cross-domain
+  placement invariants under exception-table pins, and rebuild-vs-
+  serving isolation floors (shared with 30's pacing). RESEARCH FIRST:
+  Dynamo read-repair + anti-entropy (as the contrast — what mutability
+  forced), Cassandra hinted-handoff failure receipts, Ceph
+  backfill/recovery throttling, TiKV replica scheduling.
+- **32 Node lifecycle: resource provisioning, cordon/quarantine,
+  drain/spindown** — ADDED 2026-08-17 (user). The inventory-map state
+  machine for hosts/storage nodes — the operational verbs the fleet has
+  implied but never specified. States and their laws: **provisioning**
+  (join = probe-derived anchors first: WAL.md's ω derivation, device
+  bandwidth/TBW, capacity, declared failure domain; admission
+  Guardian-gated like any capability; a node without probe results
+  cannot enter the map — constants-from-data made structural);
+  **active**; **cordoned** (no new placements, serves existing reads;
+  the safe default for suspicion and maintenance); **quarantined**
+  (suspected-faulty escalation: serves nothing unverified, scrub-
+  prioritized, contributions to R_eff excluded — feeds from 30's
+  gray-failure verdicts); **draining** (re-place per plane discipline —
+  durable: map-driven copy-out; serving: successor promotion + session
+  colocation moves — then remove; drain completion is *verified
+  emptiness*, never a timer); **retired/spun-down** (out of the map;
+  re-join = full re-provisioning, no resurrection of stale state —
+  generation-numbered node identity so a returning node's old chunks
+  are re-inventoried by scan, never trusted). Transitions are map-epoch
+  bumps (fenced, consensus-owned); weights follow state (cordoned
+  weight→0 for new placement, unchanged for reads). Distinguish loudly
+  from agent-replica drain (AUTOSCALING A5) and pod drain (PODS) —
+  three lifecycles, three owners, one vocabulary sweep owed. Laptop:
+  the single node is permanently active; cordon of the only node is a
+  typed refusal. RESEARCH FIRST: Kubernetes cordon/drain semantics
+  (naming precedent + eviction API), Ceph noout/norebalance/OSD
+  out-vs-down distinction, Borg maintenance windows, Backblaze drive
+  lifecycle stats, SMART predictive receipts (Google disk-failure
+  paper — SMART's weak predictivity).
 - **Walking skeleton** — final branch; re-presents against completed tree
   (P0 wire → P1 runtime → P2 spine → P3 pod leg → P4 first agent → P5 first
   merged change; now must thread Sibyl/home-session/lineage into first light;
