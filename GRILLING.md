@@ -532,7 +532,39 @@ specs are **on the table**; branches without specs are **open**.
   correlated failure vs 0.15% copyset — **copysets × HRW composition is
   NOVEL (confirmed absent from literature) — needs own loss-probability
   math + SIM sweep**; Tectonic's block-group scar (80% groups write-
-  unavailable at 5% nodes down) = the fixed-set trap to avoid; (f) GC =
+  unavailable at 5% nodes down) = the fixed-set trap to avoid;
+  **WALKTHROUGH LANDED 2026-08-17**: the gap is STRUCTURAL — the copysets
+  literature assumes placement-as-assignment (authority records decisions),
+  the HRW literature assumes placement-as-computation and never priced
+  correlated loss (its failure cost was a cache miss); HRW's per-key
+  pseudorandomness ≡ random placement = the 99.99% column. The tension:
+  few distinct R-sets (loss probability) vs many repair partners per node
+  (scatter width/exposure window), under Cidon's CONSERVATION LAW
+  (expected loss constant — copysets reshape frequent-small into
+  rare-large events). PARTIALLY SOLVED BY ACCIDENT: chunk-group
+  indirection already bounds copysets at ~group_count (~9% of triple
+  space at 100 devices — better than random-over-chunks, far from
+  Cidon's few hundred); and the authority objection DISSOLVES — a
+  shuffle is a pure function of (inventory-map epoch, seed), locally
+  derivable by every node: candidate lists from seeded shuffles,
+  weighted HRW *within* the list, promotion order preserved —
+  coordination-free placement survives, copyset count becomes a DESIGNED
+  quantity. THREE WORK ITEMS (no precedent): (1) the loss formula for
+  our shape — weighted nodes, hierarchical domains, small-N regime
+  boundary (at N=5, C(5,3)=10 — machinery inert; derived fleet-size
+  threshold below which bounding adds nothing; laptop far below it);
+  (2) MOVEMENT ANALYSIS — the delicate part: candidate lists must be
+  stable under single-node churn (fixed seeds, lists patched not
+  rebuilt) or naive re-derivation breaks HRW's w/W movement bound;
+  FS10 must hold WITH bounding; (3) scatter-width knob — choose S from
+  repair-bandwidth anchors to meet the derived exposure-window bound,
+  minimize copysets subject to it; SIM correlated-failure sweep (kill a
+  domain, measure loss events + repair completion across seeds).
+  Risk LOW (parts individually proven, oracle-testable in SIM); the
+  reason for own derivation: the one claim that matters ("loss
+  probability under a 1%-correlated event at OUR weights/domains/fleet
+  = X") exists in no paper — X comes from a derivation at a definition
+  site, never Cidon's Table 1 for someone else's cluster; (f) GC =
   mark-and-sweep from roots (green chains + registry refs + seal
   manifests + generation pointers), NEVER cross-node refcounts; sweep =
   copy-forward; f4 crypto-erase composes with (i); (g) API = put/get/
