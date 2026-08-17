@@ -348,7 +348,54 @@ specs are **on the table**; branches without specs are **open**.
   nodeIDs[] sidecar already does it once) or range leasing; (2) positional
   partition indices → stable partition identities (content hash per cell +
   indirection) so cells seal/migrate independently; (3) de-splice the
-  overlay routing graph. Distribution-research pair still in flight.
+  overlay routing graph. **DISTRIBUTION RESEARCH LANDED 2026-08-17 — sketch CONFIRMED with five
+  sharpenings**: (1) centroid tier = sealed per-generation routing artifact
+  (centroids + cell→artifact map), K ≈ (15–20)·√N derived — tens of MB at
+  10⁸, genuinely replicate-everywhere incl. laptop; assignment/routing =
+  EXHAUSTIVE centroid scan, pinned kernel, fixed tie-break (lowest cell id)
+  — never graph-assisted (FAISS 1T + reproducibility receipts; deterministic
+  -IVF-assignment literature does not exist, flagged); (2) **balance-by-
+  construction is a LOAD-BEARING REQUIREMENT of HRW placement, not an
+  optimization** — skew's effect on load is QUADRATIC (FAISS 1T law: <10
+  lists >600× skew → 120s queries); SPANN's hierarchical balanced
+  clustering (balance in the objective) + derived cell-size cap + split-at-
+  cap during deterministic build; (3) ParlayANN determinism costs NOTHING —
+  1.2× FASTER than reference build, quality within 1%; stateless build
+  workers; **build verification = content-hash comparison** (an audit no
+  mutable index can run); (4) closure multi-assignment (ε₁ rule + RNG-prune
+  + ≤8 cap, ~1.2× storage) confirmed + UPGRADED: SOAR decorrelation term
+  ranks which cells get replicas (naive two-closest spilling wastes the
+  second chance — correlated residuals); ε₂ query-side dynamic pruning
+  (SPANN's 6.36-of-32-machines = 80.3% saved — THE distributed-efficiency
+  receipt); closure converts FP-near-tie nondeterminism into correctness-
+  neutral duplication (elegant); (5) rerank depth DERIVED from RaBitQ
+  provable error bounds (drop iff lower bound > current best; turbopuffer
+  <1% reranked in prod) — 'exact rerank always' becomes provable.
+  UPDATE-ABSORPTION VERDICT: deterministic re-baseline + WAL-journaled
+  exact-search overlays DOMINATES on all four axes — fresh static build is
+  the quality CEILING incremental schemes approximate from below
+  (FreshDiskANN equilibrium below static; LIRE/StreamingMerge outputs
+  arrival-order-dependent = un-content-addressable); k_build ≈ 1.7
+  core-ms/vector (ParlayANN anchor) ⇒ 10⁷-vector lineage rebuild = ~5
+  core-hours = minutes on a workstation; crossover to SPFresh-style
+  in-place ≈ N≥10⁹ × ~1%/day churn × sub-day freshness — NOT Hecate's
+  regime (bursty updates at merge-gate/landing = natural re-baseline
+  points); re-baseline trigger derived: c_scan·|overlay| ≥ β·c_indexed
+  (turbopuffer's 128MiB cliff converted to a formula); overlay WAL is
+  load-bearing (the unwired-IVF-WAL lesson honored). Production
+  convergence: object-truth camp (turbopuffer/Pinecone/Lance) vs node-
+  resident camp (Vespa feed-block contrast case); ALL pain concentrates in
+  mutable parts; index family follows storage medium — IVF where the
+  network is, Vamana where the NVMe is: the substrate's shape CONFIRMED.
+  Realm/tenant isolation = generation-lineage-per-scope (turbopuffer
+  namespace-per-query-scope) — tenant predicates never enter the hot path;
+  ACORN/Filtered-DiskANN = billion-scale medicine deferred. Alternatives
+  ranked: global-graph-over-KV (DistributedANN 50B/1000 machines, 6×
+  claim single-sourced) revisit only past ~10⁹–10¹⁰/corpus sustained-QPS;
+  Milvus-shaped streaming machinery = right shape, machinery deleted;
+  SPFresh = right answer to a premise Hecate doesn't have. Thin evidence
+  enumerated. **Branch 22 evidence COMPLETE (graph + vector sides) —
+  design exchanges ready to open.**
   **DISTRIBUTED-KG SYNTHESIS LANDED 2026-08-17 — base+overlay hypothesis
   CONFIRMED: it IS Glean's production architecture** (stacked DBs verbatim:
   "each layer can non-destructively add information to, or hide information
