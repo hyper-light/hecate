@@ -34,7 +34,8 @@ specs are **on the table**; branches without specs are **open**.
 |---|---|
 | `docs/specs/RUNTIME.md` | own sharded async runtime, deterministic-by-construction, SIM driver, no-Arc/arena doctrine, io_uring day-one, lint wall |
 | `docs/specs/WAL.md` | per-session logical logs over derived-ω streams, always-full durability, chained CRC + torn/corrupt discrimination, consensus-API-only commit path |
-| `docs/specs/PROTOCOL.md` | dual-stack UDP/TCP, per-pod HKDF keys + AAD headers, HLC64 + 24B fencing, counter nonces, credit delta streams, hecate-wire (Rust-only, canonical-or-reject, compiler-enforced evolution). OWED at build time: WIRE_FORMAT.md before codec implementation |
+| `docs/specs/PROTOCOL.md` | dual-stack UDP/TCP, per-pod HKDF keys + AAD headers, HLC64 + 24B fencing, counter nonces, credit delta streams, hecate-wire (Rust-only, canonical-or-reject, compiler-enforced evolution). §6 process gate SATISFIED 2026-08-17 (WIRE_FORMAT.md written); §4 amended with the four flow-control clauses (stream+connection credit, absolute-offset credits, BDP-autotuned k×frame_cap windows + never-whole-object-in-credit, bulk delivery class) |
+| `docs/specs/WIRE_FORMAT.md` + `docs/specs/TRANSFER.md` | ACCEPTED 2026-08-17 ("accepted for the sake of output"): one-value-one-encoding + rejection clause + negative vector per rule; LEB128 minimal-form, canonical NaN, no −0, canonical-encoding-ordered maps; two length domains as types (FrameLen frame-cap-bounded, ContentLen u64 — codec never binds content size; carriers follow bounds); ContentRef{root,len,class} with chunking-independent BLAKE3 tree root; ContentClass = chunking-policy AND verification-structure selector (class-aligned law: CDC → manifest of standalone chunk hashes; media → whole-blob tree + bao outboards for the three root-only cases); inline-vs-reference derive law (no unbounded bytes in ledger-content types); ancestor-hash evolution, trybuild-gated; WF1–WF10. Transfer: scoping theorem (addressed path = zero state, TR9); upload = offer → missing-set (batch_exists = dedup fast path, duplicate upload = zero bytes) → parallel verified streams (16 KiB derived groups, length untrusted until final group) → atomic ref-CAS (orphans nothing); ingest machine OPEN→STAGING→COMMITTING→COMMITTED with staging pack role (OBJECT_TIER §2 third role, lease-reclaimed, never placement-eligible), three witness rungs, chunking-at-commit determinism (TR3/TR10); bounds = formulas then carriers (max_content_len = manifest arithmetic; parts_cap BDP-clamped); TR1–TR10. Branch 26 narrowed to content policy |
 | `docs/specs/MERGE.md` + ADR-0005 | canonical rebase + pure deterministic verdict, byte-exact intervals on declared ops, reject-to-corrective, Arbiter gate + frontier service, no LLM in serializer |
 | `docs/specs/VFS.md` | one BLAKE3 CDC chunk store, manifests as layers, four volume roles (work volume/green/tools/scratch — scratch added by SERVING.md), virtio-fs serving, tool plane + 3 Guardian gates, content-addressed distribution |
 | `docs/specs/PODS.md` | microVM pods, manifest-projection rootfs + DAX day-one all platforms, hecate-init 5 duties, warden+sensor (§6), warm tiers + reseed-on-resume, autoscaling classes (§4b; Architect=serialized-judgment), NO work-bearing memory ever persisted |
@@ -106,11 +107,21 @@ specs are **on the table**; branches without specs are **open**.
   queue, presentation plane rendering from deltas.
 - **18 Continuity + conversation** — carry-forward/recall over the archive
   (same-user path partially shaped in SESSIONS/FOREST), Guide conversation model.
-- **20 Consensus + fault matrix** — direction argued, UNRATIFIED: per-session
-  Raft-family groups (5 improvements over hyperscale: homogeneous nodes,
-  pods-never-gossip liveness, work-liveness-to-ledger, consensus-as-pure-log,
-  AD-52 baseline). Raft-implementation-practice research owed, then
-  CONSENSUS.md + FAULTS.md (failure×obligation matrix, crash-fault scope).
+- **20 Consensus + fault matrix** — direction argued (5 decisions: one meta
+  group + N per-session groups w/ node-level liveness amortization; "Raft,
+  etcd-raft dialect, pure core"; PreVote+CheckQuorum; CAS-first single-writer
+  subsystems; crash-recover scope + N=1 crash-injection gate), UNRATIFIED and
+  **CHALLENGED 2026-08-17** — user: "IMMEDIATE and severe concerns with using
+  ETCD or using ETCD as any sort of example - it has well documented
+  shortcomings and failure modes that do not scale up well to Meta scale
+  work." Re-analysis owed as THE NEXT EXCHANGE: etcd's documented failure
+  record (v3.5 apply/applied-index data inconsistency, boltdb/backend size
+  limits, watch fan-out collapse, single-group throughput ceiling,
+  small-voter-set ceiling, k8s-scale pain) vs Meta-scale practice
+  (Delos/virtual consensus + loglets, FlexiRaft/MySQL-Raft, ZippyDB, Shard
+  Manager; Spanner Paxos groups; TiKV/CRDB multi-raft; VSR/TigerBeetle) —
+  explicitly separating etcd-the-system from etcd-raft-the-library-dialect;
+  then re-present. CONSENSUS.md + FAULTS.md after ratification.
 - **21 FS implementation (the serving machine)** — **SETTLED 2026-08-16**:
   spec `docs/specs/SERVING.md` accepted whole; decision record below stands
   as history. OPENED 2026-08-16; user
@@ -725,7 +736,15 @@ specs are **on the table**; branches without specs are **open**.
   QUIC; SPIFFE/SPIRE workload identity; ALTS (Google's
   service-to-service pattern); fencing/epoch interplay with Branch 20;
   key-rotation receipts from production systems.
-- **26 Multi-modal media** — ADDED 2026-08-17 (user): handling, submission,
+- **26 Multi-modal media** — ADDED 2026-08-17 (user); **NARROWED 2026-08-17**
+  by WIRE_FORMAT.md + TRANSFER.md acceptance: the transport is settled
+  (submission, chunking, streamed vs multipart, resumability, witness
+  semantics, ranged reads all live there — the branch inherits it). Remaining
+  scope = content POLICY only: class-assignment policy, content-type
+  verification (magic bytes vs declared), EXIF/metadata hygiene, parser
+  sandboxing, the per-class chunk-policy table, media descriptor documents
+  (MIME/dimensions/duration/codec referencing ContentRef). Original charter
+  follows. Handling, submission,
   chunking, streamed vs multipart upload, encryption. Shape constraints:
   Designer volumes are work-volume-role outside merge machinery (VFS.md
   §3) with a Guardian-staged disk-overflow path; large-object *reads* are

@@ -106,6 +106,19 @@ drop; classes 0/3/5 are never shed — overload surfaces as backpressure to send
   the sender halts at zero credit. Deterministic, seed-replayable in SIM — never
   implicit TCP-buffer pressure (hyperscale's never-awaited `drain()` fault, closed
   by construction).
+- **Flow-control clauses** (amended 2026-08-17 with `TRANSFER.md`'s acceptance,
+  each with its receipt):
+  1. Credit exists at **both stream and connection level** (RFC 9113 §5.2 +
+     RFC 9000 §4.1: one bulk stream must not exhaust the connection buffer).
+  2. Credits are **absolute offsets, QUIC-style** — idempotent under loss and
+     reorder; never HTTP/2-style deltas.
+  3. Windows are derived as `k × frame_cap` per delivery class and
+     **BDP-autotuned** (OpenSSH's 64×-bulk / 4×-interactive pattern is the
+     citable derivation shape); the **never-whole-object-in-credit** invariant
+     is a permanent test — no grant admits an entire content object into buffer.
+  4. Bulk transfer (class 6 carrying `TRANSFER.md` traffic) runs in its own
+     delivery class with dumb prioritization — control frames never queue
+     behind bulk, which is the frame cap's reason to exist (RFC 9113 §4.2).
 - Resume: reconnect with cursor; the server replays forward. Cursor below the
   retention floor → typed `RESYNC_REQUIRED` with a snapshot handle; the client
   re-derives deterministically (watermark-recovery invariant). No best-effort repair
@@ -127,8 +140,12 @@ drop; classes 0/3/5 are never shed — overload surfaces as backpressure to send
 ## 6. hecate-wire (payload codec)
 
 **Process rule: the format specification document (`docs/specs/WIRE_FORMAT.md`) is
-written and merged before the implementation.** Canonical-or-reject is the design
-axiom: for every rule there is a decoder rejection clause.
+written and merged before the implementation.** Satisfied 2026-08-17 —
+`WIRE_FORMAT.md` (accepted) is now the normative format document; this section is
+its summary and defers to it on every point, including the two length domains
+(`FrameLen`/`ContentLen`), `ContentRef`/`ContentClass`, and the inline-vs-reference
+derive law. Canonical-or-reject is the design axiom: for every rule there is a
+decoder rejection clause.
 
 - **Integers**: LEB128 varints, minimal-form only (overlong encodings rejected);
   signed via zigzag. **Booleans**: 0x00/0x01 only. **Option**: 0x00/0x01 only.

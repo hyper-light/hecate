@@ -49,16 +49,30 @@ Architecture set (AGENTS/LEDGER/PLATFORM/SKILLS/SUMMONING + CONTEXT + ADRs
 ## 2. Decision-open (blocking decisions, named owners)
 
 - **D-1 Consensus (Branch 20) — the widest dependency in the tree.**
-  Direction argued, UNRATIFIED; `CONSENSUS.md` + `FAULTS.md` owed
-  (Raft-practice research owed first). Consumed by: WAL §5 (the only commit
+  Direction argued, UNRATIFIED and now **CHALLENGED** (2026-08-17): the user
+  has "IMMEDIATE and severe concerns with using ETCD or using ETCD as any
+  sort of example - it has well documented shortcomings and failure modes
+  that do not scale up well to Meta scale work." The re-analysis must
+  separate etcd-the-system from etcd-raft-the-library-dialect, put etcd's
+  documented failure record (v3.5 data inconsistency, boltdb limits, watch
+  fan-out, single-group ceiling, small-voter-set ceiling, Kubernetes-scale
+  pain) against Meta-scale alternatives (Delos/virtual consensus + loglets,
+  FlexiRaft/MySQL-Raft, ZippyDB, Shard Manager; Spanner Paxos groups;
+  TiKV/CRDB multi-raft practice; VSR/TigerBeetle), and re-present the
+  direction. `CONSENSUS.md` + `FAULTS.md` owed after ratification. Consumed by: WAL §5 (the only commit
   path "at every replica count"), SERVING §6 inventory map, SCHEDULER §1 meta
   group, REGISTRY §5 replicated revision (which dangles a reference to the
   nonexistent `CONSENSUS.md`), OBJECT_TIER §4 placement map, LEDGER_CORE §2
   append API. Branch 27 (leader-election revisit) deliberately re-derives part
   of its scope — settle together.
-- **D-2 `WIRE_FORMAT.md` — unwritten, and a hard process gate.** PROTOCOL §6 +
-  AC-1, SERVING AC-10, OBJECT_TIER §8 all forbid codec implementation before
-  it merges. Blocks P0 of the walking skeleton by the specs' own rule.
+- **D-2 `WIRE_FORMAT.md` — CLOSED 2026-08-17.** `WIRE_FORMAT.md` +
+  `TRANSFER.md` accepted and written ("accepted for the sake of output");
+  PROTOCOL §6's process gate is satisfied, PROTOCOL §4 carries the
+  flow-control amendments, OBJECT_TIER §2 gains the staging pack role.
+  Branch 26 (multi-modal media) narrows to content **policy** only:
+  class-assignment, content-type verification, EXIF hygiene, parser
+  sandboxing, the per-class chunk-policy table, media descriptor documents —
+  it inherits a settled transport.
 - **D-3 Encryption × dedup (OBJECT_TIER §9).** OPEN with recommendation
   recorded (scope-salted convergent); AC-6 blocks the durable plane's first
   user content. Interlocks with Branch 25 (key hierarchy) and Branch 28
@@ -223,8 +237,10 @@ PODS §2/AC-4: WHP/HVF DAX is in-scope fork work, tracked.
 
 ## 9. Blocking order toward the walking skeleton
 
-1. **D-2 WIRE_FORMAT.md** (blocks P0 wire by process rule) →
-2. **D-1 CONSENSUS.md + FAULTS.md** (blocks WAL replication hook, registry
+1. ~~**D-2 WIRE_FORMAT.md**~~ CLOSED 2026-08-17 (`WIRE_FORMAT.md` +
+   `TRANSFER.md` accepted; P0 wire unblocked by process rule) →
+2. **D-1 CONSENSUS.md + FAULTS.md** — now the head of the queue, under the
+   user's etcd challenge (see D-1) (blocks WAL replication hook, registry
    replicated mode, scheduler meta group, both planes' maps; settle with
    Branch 27) →
 3. Accept-or-amend the presented foundation set (RUNTIME, WAL, PROTOCOL —

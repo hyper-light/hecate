@@ -45,12 +45,25 @@ boot-validated per the chokepoint law — never a runtime heuristic, never a
 second authority. Class transitions ride existing lifecycle boundaries only
 (§6).
 
-## 2. The substrate: pack volumes (one on-node engine, two roles)
+## 2. The substrate: pack volumes (one on-node engine, three roles)
 
 The workload is Haystack's verbatim — written once, read often, never
 modified, rarely deleted — minus mutation entirely. One on-disk format
-serves both cache and origin roles; roles differ by policy, never by format
-(the Tectonic chunk store's obliviousness; the laptop degenerate's enabler).
+serves the cache, origin, and staging roles; roles differ by policy, never
+by format (the Tectonic chunk store's obliviousness; the laptop degenerate's
+enabler).
+
+**The staging role** (added with `TRANSFER.md`'s acceptance, 2026-08-17):
+the ingest state machine's landing zone for unaddressed bytes. Same volume
+format, same append + batched-flush + scan-as-truth recovery — `PartAck`
+watermarks are re-derived by staging-pack scan after a crash, which is what
+makes transfer resume truthful by construction (`TRANSFER.md` §5 rung 1).
+Policy differences, exactly three: staged extents are **lease-reclaimed**
+(the transfer's derived lease expires ⇒ scan reclaims, counted); staged
+content is **never placement-eligible** (it has no identity yet — placement
+and replication verbs refuse the staging role structurally); and staged
+bytes convert to addressed chunks only through `TRANSFER.md` §6's single
+commit gate.
 
 - **Volume**: one preallocated large file per volume, held-open fd,
   preallocated extents sized so blockmaps stay RAM-resident (Haystack's
