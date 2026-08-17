@@ -1,11 +1,11 @@
 # SPEC: the Forest — the common root system
 
-Status: presented for acceptance (grilling branches 12+13+16 combined; the
-retention model — the intensity × durability hybrid, §3 — was examined
-separately and ACCEPTED 2026-08-16 after the decay-landscape report + Sylk
-decay post-mortem; the four audit corners and exactness amendments are
-applied). One item still open before the whole-spec verdict: the retrieval-
-hybrid question (three-signal fusion + federation seam). Ratified context: the
+Status: presented for acceptance (grilling branches 12+13+16 combined). The
+§3 retention hybrid and three-signal retrieval hybrid are PROVISIONALLY
+DIRECTED (2026-08-16) — full acceptance pending reconciliation against the
+complete Sylk forest design corpus (ECOLOGY.md, EMERGENT_FOREST.md,
+EMERGENT_AGENCY.md — read in full 2026-08-16); the four audit corners and
+exactness amendments are applied. Ratified context: the
 fabric *plane* is deleted (no second emission path); its *purpose* —
 harness-wide awareness and organic knowledge growth — is promoted to this
 subsystem, **primary by construction**. Research on file (GRILLING.md):
@@ -67,8 +67,10 @@ the session colocation unit):
 
 Each mechanism uses the law with the strongest empirical record for its job:
 
-- **Retention + reinforcement — the intensity × durability hybrid** (ACCEPTED
-  2026-08-16, replacing the ACT-R + FSRS + MMAS stack; receipts: decay-landscape
+- **Retention + reinforcement — the intensity × durability hybrid**
+  (PROVISIONALLY DIRECTED 2026-08-16 — full acceptance pending the
+  full-forest-design reconciliation (ECOLOGY/EMERGENT_FOREST/EMERGENT_AGENCY);
+  replaces the ACT-R + FSRS + MMAS stack; receipts: decay-landscape
   report — ACT-R's form measured below a constant-prediction baseline on 350M
   reviews; three literatures converge on the multiscale decayed-trace object;
   DSR family = best measured bounded-state model — and the Sylk decay
@@ -111,19 +113,41 @@ Each mechanism uses the law with the strongest empirical record for its job:
   balances evaporation), robust to 10–100× parameter variation. Flavors =
   knowledge kinds (precedent, warning, contradiction, tooling), signed
   combination at read.
-- **Query-time retrieval — Personalized PageRank** from the query's marks with
-  **node-specificity weighting** (`−ln(fan)` — the fan effect, IDF, and
-  HippoRAG's specificity are the same correction, three ways): the cross-domain
-  weighted search of branch 13, one convergent multi-hop diffusion instead of
-  iterative retrieval (HippoRAG's measured +20 R@5-class gains and 10–30× cost
-  advantage are the receipts). **Exact implementation (amendment)**: forward
-  push (Andersen–Chung–Lang) — touched mass O(1/(α·ε)) independent of graph
-  size; personalization vector = query marks weighted by specificity,
-  normalized; push order = sorted node keys (deterministic-maps doctrine);
-  all weights fixed-point Q32.32, transcendentals via the runtime's pinned
-  deterministic implementations; α config (canonical 0.15 start, re-fit
-  milestone); ε **derived** — the coarsest value whose score error cannot
-  reorder anything near the digest floor θ (derivation at definition site).
+- **Query-time retrieval — the three-signal hybrid** (PROVISIONALLY DIRECTED
+  2026-08-16 — full acceptance pending the full-forest-design reconciliation;
+  receipt: HippoRAG — the source of our PPR numbers — is itself dense+PPR;
+  PPR-alone was never what was measured):
+  1. **Structural — Personalized PageRank** from the query's marks with
+     **node-specificity weighting** (`−ln(fan)` — the fan effect, IDF, and
+     HippoRAG's specificity are the same correction, three ways): multi-hop
+     association, the signal neither of the others can produce. **Exact
+     implementation**: forward push (Andersen–Chung–Lang) — touched mass
+     O(1/(α·ε)) independent of graph size; personalization vector = query
+     marks weighted by specificity, normalized; push order = sorted node
+     keys; fixed-point Q32.32; α config (canonical 0.15 start, re-fit
+     milestone); ε **derived** — the coarsest value whose score error cannot
+     reorder anything near the digest floor θ.
+  2. **Dense semantic** — embeddings over trail/advisory/trace text, computed
+     at ingest off the turn path (pinned model+version ⇒ deterministic
+     vectors; derived, re-derivable, session-local). **Exact search only —
+     no ANN, ever**: the session fence bounds every corpus, so brute-force
+     cosine suffices; the approximation and insertion-order machinery that
+     plagued Sylk's vector stack is structurally unnecessary. This is also
+     what makes Scribe narration's free text reachable at query time
+     (the typed-marks determinism fix stores it but cannot key it).
+  3. **Lexical** — BM25-class exact-term matching over the same session
+     corpus (error strings, flags, symbol literals — where dense retrieval
+     is measurably weakest), riding the document DB's index machinery
+     (Branch 23).
+  - **Fusion**: deterministic weighted combination, reciprocal-rank fusion
+    as the untrained baseline, weights **fitted** by the standing GLM
+    discipline; the §3 retention hybrid (intensity × R^γ) weights every
+    candidate regardless of surfacing signal.
+  - **Federation seam**: retrieval spans knowledge organs — Forest trails,
+    the knowledge graph (Branch 22), documents (Branch 23) — each exposing
+    `(candidate, score, provenance)` under the same fusion + decay layer.
+    Session-scoped; zero network on the turn path; organ internals stay
+    their branches' business.
 - **Consolidation — sleep-time reflection**: triggered by accumulated
   importance (activation-weighted mass of new traces since last pass;
   threshold from the commissioning distribution, ratcheted), scheduled by the
