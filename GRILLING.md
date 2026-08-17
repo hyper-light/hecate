@@ -51,11 +51,11 @@ specs are **on the table**; branches without specs are **open**.
 
 1. `docs/specs/AUTOSCALING.md` — + sub-decisions (i) ratio-law-only,
    (ii) scale-to-zero for idle daemons.
-3. `docs/specs/REGISTRY.md` v2 — syllium-informed; ref-CAS sole mutation; watch
+2. `docs/specs/REGISTRY.md` v2 — syllium-informed; ref-CAS sole mutation; watch
    API; schema-doc kinds; §4b materialization path.
-4. `docs/specs/SKILLS_API.md` — one derive → five artifacts; S6 surface counts.
-5. `docs/specs/HEALTH.md` — one plane (Sylk ran four); no authority.
-6. `docs/specs/FOREST.md` — Z-set field engine, ACT-R/FSRS/MMAS/Parunak/PPR
+3. `docs/specs/SKILLS_API.md` — one derive → five artifacts; S6 surface counts.
+4. `docs/specs/HEALTH.md` — one plane (Sylk ran four); no authority.
+5. `docs/specs/FOREST.md` — Z-set field engine, ACT-R/FSRS/MMAS/Parunak/PPR
    dynamics, primary-by-construction, observe-mode value gate, session-isolated
    (global-forest tier DELETED as data-leak; user correction).
 
