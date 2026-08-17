@@ -705,10 +705,105 @@ specs are **on the table**; branches without specs are **open**.
   correlated-failure sweep per plane = OT5 (permanent CI). Encryption ×
   dedup stays OPEN (spec §9 records the scope-salted-convergent
   recommendation; AC-6 blocks user content until settled).
+- **25 hecate-wire encryption + security** — ADDED 2026-08-17 (user). The
+  wire is the single protocol surface, so security lives in the protocol
+  layer once, never per-subsystem (chokepoint law). Shape constraints from
+  settled law: encrypt-always is an accepted cost-ledger burden; composite
+  principals + scoped short-lived pod credentials (SUMMONING.md — agents
+  never hold user credentials); warden decides boundary crossings
+  pre-effect; sessions carry key roots (SESSIONS.md); the encryption ×
+  dedup interlock (OBJECT_TIER.md §9) must compose with whatever key
+  hierarchy this branch settles. Decisions: transport crypto + mutual
+  authentication (node↔node, host↔pod, CLI↔harness), workload identity
+  (who mints and attests a pod/agent/node principal), key hierarchy +
+  rotation (session key root → channel keys; revocation on handoff/
+  teardown), replay/downgrade defense in the codec's append-only evolution
+  rules, and the pod-as-semi-trusted posture (sensor/warden asymmetry:
+  tighten-only). RESEARCH FIRST when opened: Noise Protocol Framework
+  (WireGuard lineage — static-key mutual auth without PKI ceremony) vs
+  mTLS/rustls (note the cost-ledger blocking-rustls-egress constraint) vs
+  QUIC; SPIFFE/SPIRE workload identity; ALTS (Google's
+  service-to-service pattern); fencing/epoch interplay with Branch 20;
+  key-rotation receipts from production systems.
+- **26 Multi-modal media** — ADDED 2026-08-17 (user): handling, submission,
+  chunking, streamed vs multipart upload, encryption. Shape constraints:
+  Designer volumes are work-volume-role outside merge machinery (VFS.md
+  §3) with a Guardian-staged disk-overflow path; large-object *reads* are
+  settled (ranged reads over manifest chunk lists — OBJECT_TIER.md §8);
+  this branch owns the *write* mirror. Honest physics up front: CDC dedup
+  is near-zero on compressed media (JPEG/MP4/PNG) — chunking policy must
+  branch on content class (CDC for text/source, fixed-size framing for
+  opaque media), with the policy recorded in the manifest, deterministic.
+  Decisions: streamed vs multipart submission + resumability (witness
+  semantics for a partial media upload — what is acked?), media manifest
+  shape (progressive/streamable ordering), content-type verification
+  (magic bytes vs declared — sniffing attacks), metadata hygiene (EXIF
+  strip as a Guardian-gated default), parser sandboxing (image/video
+  decoders are attack surface — decode only in deny-first pods),
+  encryption per the §9 scope-salt model. RESEARCH FIRST: S3 multipart +
+  ETag semantics, tus resumable-upload protocol, Google resumable
+  uploads, content-sniffing attack receipts, ImageTragick-class parser
+  CVEs, fixed-vs-CDC dedup measurements on media corpora.
+- **27 Leader election revisit** — ADDED 2026-08-17 (user: "re-visit who
+  needs leader election — in particular the tectonic-style FS for the
+  registry and knowledge graph, the knowledge graph, knowledge forest,
+  etc."). The audit roster and its current answers, to be re-derived not
+  assumed: Branch 20's consensus group owns inventory map + refs +
+  (now) the durable-plane placement map; ledger WAL rides the
+  consensus-group API at every replica count (WAL.md §5 — leader =
+  sequencer, 1-replica self-ack locally); per-session single-owner tasks
+  (merge serializer, field service) are *ownership by construction*, not
+  election; the Forest is explicitly no-consensus derived state (FOREST.md
+  §5b); KG/vector generation pointers are ref-CAS. The question the
+  two-planes lesson sharpens: **does ref-CAS + epoch fencing delete
+  election needs the way HRW deleted Tectonic's Block layer?** — Tectonic
+  itself runs *stateless* metadata services over a Paxos KV (no service
+  leaders, consensus only in the substrate); Lance's conditional-PUT
+  commits are election-free single-writer. Decisions: one consensus group
+  vs per-domain groups (blast radius vs machinery count), lease-based
+  single-writer vs election where a writer exists (merge serializer,
+  landing heads, Sibyl arbitration), fencing tokens on every
+  lease-holder effect, laptop degenerate (already: 1-replica group,
+  same call path). RESEARCH FIRST: re-read Chubby/Biscuit notes on file;
+  multi-raft sharding (TiKV) vs one group; ZippyDB shard ownership;
+  Kleppmann fencing; epoch-based single-writer receipts.
+- **28 Secrets handling** — ADDED 2026-08-17 (user): detection, storage,
+  encryption. The structural law this branch must deliver: **secrets are
+  structurally unable to enter durable proof** — the ledger, testaments,
+  artifacts, scribe narration, Forest traces, and debug logs are all
+  durable or derived-durable surfaces; redaction must happen at the
+  emission chokepoints (witness/seal boundary, narration envelope,
+  artifact attach), fail-closed, never as a post-hoc scrub. Shape
+  constraints: pods receive scoped short-lived credentials (SUMMONING.md);
+  the warden is the boundary enforcement point; registry Guardian staging
+  inventories content — secret scanning joins that inventory; the durable
+  plane's §9 scope keys are the storage substrate candidate. Decisions:
+  detection mechanics (entropy + pattern + verified-provider probes;
+  precision/recall targets — false positives poison agent workflows),
+  disposition on detection (block vs redact vs quarantine, per surface),
+  the vault (own encrypted store on the durable plane vs OS keychain
+  locally — laptop degenerate), injection into pods (placeholder
+  materialization at the serving boundary so agents see references, never
+  values), rotation + revocation on session close/handoff, audit trail as
+  claims. RESEARCH FIRST: gitleaks/trufflehog detection receipts, GitHub
+  push-protection numbers, HashiCorp Vault / age / sops patterns (pattern
+  only — no external dependency), per-OS keychain APIs, OWASP secrets
+  guidance.
+- **29 Authoritative gap analysis** — ADDED 2026-08-17 (user: "given all
+  components"). Inventory-only branch, no new design: sweep every
+  component (specs, branch entries, cost ledger, owed lists, ADRs)
+  against a fixed rubric — research on file? spec exists? test matrix?
+  acceptance criteria? laptop degenerate stated? fault-matrix cells?
+  chokepoint coverage boot-validated? open decisions named with owners?
+  — and classify every gap: undesigned / designed-unspecced /
+  specced-untested / decision-open / owed-and-forgotten. Output = the
+  authoritative gap ledger the walking skeleton re-presents against.
+  Sequenced immediately before the walking skeleton; kept current from
+  then on (a stale gap ledger is itself a gap).
 - **Walking skeleton** — final branch; re-presents against completed tree
   (P0 wire → P1 runtime → P2 spine → P3 pod leg → P4 first agent → P5 first
   merged change; now must thread Sibyl/home-session/lineage into first light;
-  each rung carries fault-matrix cells).
+  each rung carries fault-matrix cells; consumes Branch 29's gap ledger).
 - Small owed: full "Guide summons" language sweep (key sites corrected; grep
   pass owed); ADR candidates (sessions/lineage+landing engine; deterministic
   optimism; forest; open roster/offices) — offer per ADR rules.
