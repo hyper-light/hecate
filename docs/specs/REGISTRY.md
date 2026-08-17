@@ -1,10 +1,13 @@
 # SPEC: the registry — the slow plane and the extension surface
 
-Status: presented for acceptance (v2 — rewritten after the syllium agentregistry
-implementation examination, findings on file in GRILLING.md). Ratified context: open
-roster with offices; custom agents/skills/tools/MCP servers/packages as first-class
-staged entries; defaults as catalog entries; no Postgres/Redis dependency;
-laptop-through-Meta on one storage contract.
+Status: ACCEPTED 2026-08-16 (v2 — rewritten after the syllium agentregistry
+implementation examination, findings on file in GRILLING.md; amended under
+maximal audit with exact implementations — three corners closed: universal
+canonical encoding via the `Document` type, tenancy as scope-in-key with typed
+handles, revision-floor reads). Ratified context: open roster with offices;
+custom agents/skills/tools/MCP servers/packages as first-class staged entries;
+defaults as catalog entries; no Postgres/Redis dependency; laptop-through-Meta
+on one storage contract.
 
 ## 1. The envelope (adopted: RawObject, both halves opaque)
 
@@ -34,10 +37,49 @@ Built-in kinds: `AgentRole` (offices, rank archetype, custom domains), `Prompt`,
 
 Registration is a **descriptor**: `{kind, spec schema, storage class, plural}` —
 one registration call for compiled kinds, and (beyond syllium) **the descriptor
-carries the spec's JSON Schema, so a kind can be registered from a config document
+carries the spec's schema, so a kind can be registered from a config document
 without recompiling** — the mechanism that makes custom agents and TS/Py skill
 declarations first-class rather than privileged. Shipped and custom entries differ
 by publisher and staging provenance only.
+
+### 2b. Canonical encoding for schema-registered kinds (amendment — exact)
+
+The §1 law "spec bytes are hecate-wire canonical" holds **universally** because
+schema-registered kinds encode through one compiled generic type:
+
+```rust
+#[derive(Wire)]                       // canonical-or-reject like every wire type
+enum DocValue {
+    Null,
+    Bool(bool),
+    Int(i128),                        // NO floats — non-integer JSON/YAML numbers
+                                      // are a typed apply error ("use a decimal
+                                      // string"); derived quantities are formulas
+                                      // in code, never stored floats
+    Str(String),
+    Bytes(Vec<u8>),
+    List(Vec<DocValue>),
+    Map(BTreeMap<String, DocValue>),  // sorted-unique keys BY CONSTRUCTION;
+                                      // decode rejects unsorted/duplicate keys
+}
+```
+
+- **Ingestion**: author JSON/YAML → parse → `DocValue` (duplicate keys, floats,
+  non-UTF-8 ⇒ typed errors) → validate against the kind's schema → encode via the
+  `DocValue` wire codec. **Those bytes are the spec bytes; BLAKE3 over them is
+  the identity.** Key order, whitespace, and serialization dialect can never
+  fork the hash (G11 extension).
+- **The schema language is a closed subset**, enforced at descriptor
+  registration: `type, properties, required, additionalProperties, items, enum,
+  const, pattern, minimum/maximum, minLength/maxLength, minItems/maxItems,
+  $defs + in-document $ref`. Anything else — remote `$ref`, `format`,
+  conditionals — **rejects the registration loudly**; JSON Schema's
+  silent-unknown-keyword default is inverted.
+- **Schema evolution is append-only**: a descriptor is
+  `(kind, schema_version) → schema document (itself a canonical `DocValue`,
+  content-addressed)`; entries record the `schema_version` they validated
+  under; changing a schema is publishing the next version, never mutating —
+  the hecate-wire evolution discipline applied to config kinds.
 
 Syllium's `Deployment`/`Runtime` half — controllers that create workloads,
 finalizers, soft-delete GC, discovery reconcilers — is **deliberately dropped**: it
@@ -72,6 +114,30 @@ model config, image, tool pins — and produces:
   went in — a lockfile, a cache key, and an audit record in one structure.
 Re-summon with an unchanged fingerprint is a no-op; a `force` token exists for
 operator-forced rebuilds. Handoff re-resolves; nothing else ever does.
+
+**Revision-floor reads (amendment — exact)**: every resolution read carries
+`min_revision`. The requester's floor is its **session registry cursor** (the
+session's registry projector already maintains a watch cursor; summon
+resolution passes it). Replica behavior:
+
+```rust
+async fn serve_at_floor(&self, min_rev: Revision, deadline: Tick) -> Result<View> {
+    if self.applied_revision() >= min_rev { return Ok(self.view()); }
+    // wait for local apply up to the derived staleness budget
+    // (p99 replication lag × stated factor), then forward:
+    match self.wait_applied(min_rev, deadline).await {
+        Ok(()) => Ok(self.view()),
+        Err(Lagging) => self.forward_to_leader(min_rev).await, // leader always qualifies
+    }
+}
+```
+
+A replica **never serves below the floor** — resolution is read-your-writes
+for everything the session has observed, and cross-session freshness is
+bounded by watch propagation. The dependency snapshot records
+`resolved_at_revision`, so every bundle names the exact registry state that
+produced it. Laptop: single instance is always at head; the same code path
+never waits.
 
 ## 4b. From catalog to running pod (why the Deployment half stays dropped)
 
@@ -131,6 +197,37 @@ that can skip an event, including tooling.
 **Revision**: the registry service is a single-owner task, so the monotonic `u64`
 is trivial locally; distributed, the registry rides the meta consensus group —
 revision = log index, same gap arithmetic (`CONSENSUS.md`).
+
+### 5b. Tenancy: scope in the key, authority in the handle (amendment — exact)
+
+- **Scope is the leading component of the ref key**, not metadata:
+
+  ```rust
+  enum Scope { Shipped, Org(OrgId), User(UserId) }
+  struct RefKey { scope: Scope, kind: Kind, ns: Namespace, name: Name, tag: Tag }
+  ```
+
+  Cross-scope collision is unrepresentable, and every scan is a scope-prefixed
+  range — visibility filtering costs zero (range restriction, not row checks).
+- **Write authority lives in the handle type, not per-call checks**: a registry
+  handle is constructed at authentication with its scope baked in —
+  `UserRegistryHandle(UserId)` can only *construct* `RefKey`s in its own
+  `User` scope (the constructor is the chokepoint; foreign-scope keys cannot
+  be expressed). `Shipped` is writable only by the harness-boot publisher
+  (first-boot seeding, upgrades); `Org` refs are written only by the staging
+  executor carrying a Guardian approval bound to that org. Principals arrive
+  from the protocol layer's key identity (per-pod HKDF chain → principal).
+- **Reads/watches take the principal's visibility set**, computed once at
+  handle construction: `{Shipped, Org(own), User(self)}` — scans iterate only
+  those prefixes; watch events are scope-filtered by the same set.
+- **Publication is a staging transition between scopes**: a Guardian-gated
+  claim whose executor copies nothing content-wise (hashes are already in the
+  store) — it CASes new refs in the target scope with provenance in status
+  (`publishedFrom: {scope, uid, approval_hash}`); the source entry is
+  untouched; un-publication is retirement of the target ref (custody
+  transfer). There is no other road between scopes.
+- **Laptop degenerate**: one principal ⇒ visibility `{Shipped, User(local)}`,
+  `Org` prefixes empty — identical code, empty ranges.
 
 ## 6. Watch (adopted internals + the API they never shipped)
 
@@ -192,10 +289,14 @@ hazard, inverted into a rule).
 | G8 | Inventory determinism + hardening: same tree ⇒ same inventory on all platforms; symlink/`..`/oversize trees rejected before read | governance surface drift; traversal |
 | G9 | Reverse-dep invalidation: one entry's change wakes O(dependents), measured, never a full scan | their acknowledged scaling scar |
 | G10 | File-backed ≡ replicated: the same contract test suite passes both storage implementations | laptop/fleet divergence |
-| G11 | Config-registered kind: a kind added via schema document (no recompile) round-trips apply/list/watch/staging | extension surface being compiled-only |
+| G11 | Config-registered kind: a kind added via schema document (no recompile) round-trips apply/list/watch/staging; **same logical document via permuted key orders / YAML vs JSON ⇒ identical hash; duplicate keys and floats ⇒ typed errors; unknown schema keywords reject registration** | extension surface being compiled-only; hash forks from serialization dialect |
 | G12 | One-way door: newer-format store + older binary ⇒ refusal to boot with a typed reason | silent stale reads |
+| G13 | Tenancy: foreign-scope `RefKey` construction unrepresentable (compile probe); forged-ref CAS refused at runtime; visibility sweep — user A never observes user B's refs in list/watch under key fuzz; publication transition is the only cross-scope path (architecture test) | tenant leakage; ungoverned publication |
+| G14 | Revision floor: injected replica lag, resolution at floor F on a replica at F−k ⇒ waits or forwards, never serves stale; `resolved_at_revision ≥ F` in every snapshot | silently stale bundles |
 
 Acceptance: adding a kind is a descriptor (compiled) or a schema document (config) —
-never a migration; G5/G6/G7/G10 permanent; both storage implementations ship
+never a migration; G5/G6/G7/G10/G13 permanent; both storage implementations ship
 together from first light; page caps enforced; every retention/derivation constant
-carries its derivation.
+carries its derivation; spec bytes are hecate-wire canonical for every kind
+(compiled types or `DocValue` — no third encoding ever); scope is a key
+component, never a filter; no resolution read path lacks a floor.
