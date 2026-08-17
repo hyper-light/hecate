@@ -84,11 +84,25 @@ Any state that is neither is a spec violation (architecture test, AC-1).
   derive per-template glob profiles (observe-mode first). Crawls degrade to
   bounded cache-fill (SES7).
 
-## 6. The topology
+## 6. The topology (the serving plane)
 
-- **One placement function**: weighted rendezvous hashing over a versioned,
-  fenced host-inventory map (consensus-owned — consumes Branch 20's API).
-  Domains: chunk-group ID (immutable), session UID (mutable replicas).
+This section owns the **serving plane** of the two-planes factoring
+(`OBJECT_TIER.md` §1, ratified 2026-08-17): session-hot work content —
+work volumes, green chains, tools, the cache hierarchy. The **durable
+plane** (registry content, knowledge/vector generations, lineage baselines,
+archives) is its own system with assignment-based copyset placement —
+`OBJECT_TIER.md` §4. Both planes share one substrate (identity, CDC,
+manifests, pack-volume engine, wire verbs) and never share a placement
+authority. Content crosses planes only at lifecycle boundaries (seal =
+serving-plane write; landing/archival/generation-publication/registry-
+provisioning = durable-plane writes); the serving plane cache-fills FROM
+the durable plane by hash, never the reverse.
+
+- **One placement function per plane** — this plane's: weighted rendezvous
+  hashing over a versioned, fenced host-inventory map (consensus-owned —
+  consumes Branch 20's API). Domains: chunk-group ID (immutable), session
+  UID (mutable replicas). Work-class copyset exposure is accepted with its
+  derivation written down (`OBJECT_TIER.md` §3).
 - Chunk-groups are the placement/repair unit: `group_count = devices ×
   target_groups_per_device` (≈100–200, Ceph anchor); the map carries an explicit
   exception table (upmap pattern) for residual skew and pins.
@@ -100,17 +114,18 @@ Any state that is neither is a spec violation (architecture test, AC-1).
   load-rehash.
 - **The durable object tier is Hecate's own — never a cloud provider's**
   (user directive 2026-08-17): the chunk store IS the object storage. The
-  origin behind every shield tier is the authoritative HRW placement group
-  itself, not S3/GCS/anything external; the registry's documents, index
-  generations, sealed snapshots, and archives all ride this one tier. What
-  S3-level durability requires, we own: R-way placement across failure
-  domains (§ above), erasure coding in the cold tail, background scrub
-  riding BLAKE3 verify-on-read, repair driven by the placement map. External
-  cloud storage may only ever appear as an optional, registry-declared
-  external source behind Guardian staging — a place content can be *imported
-  from*, never a tier Hecate depends on. (The Nix/OCI receipts are receipts
-  for the stateless-over-blob *pattern*; their delegation of the blob tier
-  to a provider is exactly what this rule forbids.)
+  origin behind every shield tier is Hecate-authoritative, not
+  S3/GCS/anything external — for work-class content, the HRW placement
+  group of this section; for lineage-class content (the registry's
+  documents, index generations, sealed snapshots, archives), the durable
+  plane's copyset-map targets (`OBJECT_TIER.md` §4, which owns the
+  S3-level machinery: copyset placement, erasure cold tail, scrub,
+  map-driven repair). External cloud storage may only ever appear as an
+  optional, registry-declared external source behind Guardian staging — a
+  place content can be *imported from*, never a tier Hecate depends on.
+  (The Nix/OCI receipts are receipts for the stateless-over-blob *pattern*;
+  their delegation of the blob tier to a provider is exactly what this
+  rule forbids.)
 - Mutable side: **state-follows-compute** — primary lives at the scheduler's
   colocation host; HRW gives the replica set (journal-ship to top-(R−1)
   successors) and the deterministic promotion order. HRW enters scheduler

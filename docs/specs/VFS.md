@@ -19,6 +19,14 @@ pod overlays, Designer volumes, tool blobs, guest images, registry content.
 - **Placement in memory**: chunk bytes live in our own slab/mmap arena (off-GC-heap
   equivalent; budget-charged). **No disk spill exists.** Exhaustion is a typed
   retryable error plus pressure telemetry to the Guardian — never a hidden write.
+  **Reconciliation with the node pack-volume store** (`OBJECT_TIER.md` §2/§5,
+  amendment 2026-08-17): the arena and the pack-volume store are the RAM and
+  NVMe **tiers of this one store** — movement between them is explicit
+  lifecycle (flush-at-seal, fill-on-demand), never spill; "no disk spill"
+  means exhaustion is typed at each tier, not that no NVMe tier exists.
+  Exactly one on-disk store format exists (the pack volume, cache and origin
+  roles alike) — the EdenFS two-overlapping-disk-caches admission is the
+  binding counter-receipt.
 - **Lifetime**: owner-managed acquire/release counts on generational handles (the
   memory doctrine's shared-immutable mechanism — refcounting as auditable data in the
   owner's state, not smart pointers). A stale handle is a typed error.

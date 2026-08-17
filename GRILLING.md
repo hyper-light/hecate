@@ -430,6 +430,17 @@ specs are **on the table**; branches without specs are **open**.
   the quantitative overlay boundary. Thin evidence enumerated (8 items;
   subtree locality still the must-measure-at-seal). Branch 22 exchanges
   now armed pending the IVF+Vamana pair.
+  **THE PAIR DELIVERED + ACCEPTED 2026-08-17**: `docs/specs/VECTOR_INDEX.md`
+  (in-session user approval; storage dependency resolved by OBJECT_TIER.md's
+  two-planes factoring — generations = lineage class on the durable plane).
+  Sealed IVF+Vamana generations (routing artifact + cell artifacts +
+  manifest w/ embedder pin), deterministic balanced build, ε₁-closure
+  (SOAR-decorrelated variant benchmark-gated), exhaustive-scan routing +
+  ε₂ fanout, bound-driven exact rerank, WAL-journaled exact overlays w/
+  derived re-baseline trigger, colocation law shared with the graph side,
+  VX1–VX12 matrix. Work plan W1–W7 on file (fit-from-our-data = stated
+  first milestone — no literature below billion scale). Graph-side
+  exchanges remain open and compose via the colocation law.
 - **23 The document DB (records + full-text)** — ADDED 2026-08-16 (user: "as
   well as the document db"). The Archivalist's second organ: durable document
   records (papers from the academic handoff, design docs, session records,
@@ -682,6 +693,18 @@ specs are **on the table**; branches without specs are **open**.
   format-role unification. Work plan S1–S8 on file; venue corrections
   noted (BlueStore SOSP'19, Shift ATC'23, LSE study SIGMETRICS'07).
   Branch 24 now DESIGN-READY: exchanges can open on the map above.
+  **SPEC WRITTEN 2026-08-17**: `docs/specs/OBJECT_TIER.md` (presented for
+  acceptance) — two planes over one substrate, pack-volume format +
+  four-rung ladder + copyset map + scrub/EC/GC + seam + laptop, OT1–OT15
+  test matrix; folds the four OWED items: (1) durable-plane placement-map
+  section (Cidon instantiation, scatter width from repair anchors, map
+  schema on consensus) = §4; (2) work-class acceptance derivation written
+  down = §3; (3) SERVING.md cross-reference amendment landed (§6 scoped to
+  the serving plane, planes + seam named; durable-origin bullet corrected)
+  + VFS.md arena/pack-store tier reconciliation landed; (4) SIM
+  correlated-failure sweep per plane = OT5 (permanent CI). Encryption ×
+  dedup stays OPEN (spec §9 records the scope-salted-convergent
+  recommendation; AC-6 blocks user content until settled).
 - **Walking skeleton** — final branch; re-presents against completed tree
   (P0 wire → P1 runtime → P2 spine → P3 pod leg → P4 first agent → P5 first
   merged change; now must thread Sibyl/home-session/lineage into first light;
@@ -707,10 +730,13 @@ primary models; full-machinery-locally (degenerate consensus, session infra
 floor — ratcheted budget); shard-local placement optimality (slow rebalancer);
 two-phase arena lookups; tokio ecosystem cut off (blocking rustls egress);
 **own S3-level object tier (user directive 2026-08-17: never pair to cloud
-providers — the chunk store IS the object storage; origin = authoritative HRW
-groups; erasure cold tail + scrub + repair owned; cloud only as an optional
-registry-declared external import source, never a dependency; SERVING.md §6
-amended)**.
+providers — the chunk store IS the object storage; two planes over one
+substrate per the 2026-08-17 verdict — serving plane origin = authoritative
+HRW groups, durable plane origin = consensus-owned copyset map
+(OBJECT_TIER.md); erasure cold tail + scrub + repair owned; two fleet
+machineries to spec and test, accepted — the second is simpler than the
+composition it replaces; cloud only as an optional registry-declared
+external import source, never a dependency; SERVING.md §6 amended twice)**.
 
 ## Research reports on file (in-conversation; summaries baked into specs)
 
@@ -725,7 +751,17 @@ divergence/merge (jj algebra, eg-walker, mergiraf numbers, 267K-merge overlap
 study, agentic-PR conflict rates); selection-gap funnel (CodeMonkeys/OpenHands/
 S*/RTV/PDR numbers; composition correction); FS serving ×4 (EdenFS internals,
 CitC/Piper, virtio-fs/DAX/libkrun, sharded CAS/placement — baked into
-SERVING.md); **Sylk decay post-mortem** (2026-08-16, for the FOREST decay
+SERVING.md); **vector distribution ×3** (2026-08-17: DiskANN family primary
+texts incl. DistributedANN/BatANN; IVF routing + quantization + filtering —
+FAISS wiki verbatim, SOAR, RaBitQ, ACORN/Filtered-DiskANN, Big-ANN'23;
+production architectures — turbopuffer/Pinecone/Lance/Milvus/Vespa/Qdrant —
+baked into Branch 22 + VECTOR_INDEX.md); **storage ×3** (2026-08-17:
+Tectonic FAST'21 full read + Haystack/f4 + Colossus/ShardStore contrasts;
+EdenFS tier mechanics from repo docs — overlay/hgcache/indexedlog formats,
+materialization states, takeover, pain list; node formats + caching + EC —
+Haystack/ShardStore/BlueStore verdicts, CacheLib/Shift, copysets/LRC/Clay,
+LSE/scrub — baked into Branch 24 + OBJECT_TIER.md; venue corrections noted
+inline); **Sylk decay post-mortem** (2026-08-16, for the FOREST decay
 examination): SEVEN mutually inconsistent decay impls, only one ACT-R-shaped
 and it has a seconds-vs-hours unit bug (~4 nats; 17-day intended retrieval
 window → 6.7 minutes actual; domain-dependent offset breaks cross-domain
