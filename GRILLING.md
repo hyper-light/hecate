@@ -53,7 +53,23 @@ specs are **on the table**; branches without specs are **open**.
 
 ## ON THE TABLE (drafted + shown; awaiting acceptance — settle ONE at a time)
 
-1. `docs/specs/FOREST.md` — Z-set field engine, ACT-R/FSRS/MMAS/Parunak/PPR
+1. `docs/specs/FOREST.md` — **verdict HELD 2026-08-16 on the decay
+   sub-decision**: user doubts ACT-R base-level activation is the best model
+   for the retention purpose (Sylk's implementation was incorrect/incomplete;
+   the four-formula stack ACT-R+FSRS+MMAS+Parunak was never tested against a
+   unified alternative, e.g. marked Hawkes with power-law-via-exp-mixture
+   kernel). Research dispatched ×2: decay-model landscape (ACT-R honest
+   examination under bursty spacing, FSRS/DSR, HLR, Hawkes/point processes,
+   caching theory LRFU/TinyLFU, Mozer MCM/DASH — judged against the four
+   consumers: retrieval ranking, digest admission, retirement, consolidation
+   trigger) + Sylk decay post-mortem (what was actually built, exact
+   divergences, lessons). Rest of the amendment set PENDING with the verdict:
+   4 audit corners (typed-field mark extraction; (HLC,stream,seq) merge order;
+   checkpoint-retention invariant; paced consolidation) + 4 exactness blocks
+   (ACL forward-push PPR w/ derived ε, fixed-point Q32.32; decay
+   implementation TBD by this examination; checkpoint/failover doc + Branch-14
+   boundary; digest floor θ / consolidation debt / snapshot max-age) + F15/F16
+   tests + Branch-22 symbol-mark dependency. — Z-set field engine, ACT-R/FSRS/MMAS/Parunak/PPR
    dynamics, primary-by-construction, observe-mode value gate, session-isolated
    (global-forest tier DELETED as data-leak; user correction).
 
@@ -165,6 +181,38 @@ specs are **on the table**; branches without specs are **open**.
   pack volumes + batch existence checks, groupcache single-flight/mirroring,
   MinIO/Ceph/SeaweedFS parameter-degeneration no-modes receipts, MinIO FS-mode
   removal as the mode-bifurcation record). Next: (b) overlay representation.
+- **22 The knowledge graph (code ground truth)** — ADDED 2026-08-16 (user:
+  "you also need the knowledge graph in the tree"). The Archivalist's organ:
+  the parsed, resolved index over lineage code — symbol graph (defs/refs/
+  types), module structure, semantic search — Hecate's successor to Sylk's
+  core/knowledge stack (two-pass externalized symbol index + HNSW lineage).
+  Distinct from the Forest by content: Forest = work-derived process knowledge
+  (trails/advisories from proof streams); KG = code-derived ground truth
+  (re-derivable from manifests alone). Interplay to settle: KG provides
+  canonical symbol identity for Forest marks; PPR retrieval spanning both
+  graphs is a branch decision. Scope sketch: per-session projection over the
+  session's lineage view (isolation law), incremental maintenance riding green
+  advances/seals (manifest diff → re-parse changed files → graph delta — the
+  Z-set engine as candidate substrate, golden-property harness reusable);
+  parse artifacts content-addressed by file hash (pure function ⇒ dedupable
+  below the isolation line in the CAS, like chunks); retrieval = symbol/ref
+  traversal + semantic; serves agent code grounding + Archivalist deep
+  investigation. RESEARCH FIRST when opened: Glean (Meta), Kythe (Google),
+  stack-graphs/SCIP (GitHub/Sourcegraph), tree-sitter incremental parsing,
+  LSIF; incremental-index-at-scale receipts.
+- **23 The document DB (records + full-text)** — ADDED 2026-08-16 (user: "as
+  well as the document db"). The Archivalist's second organ: durable document
+  records (papers from the academic handoff, design docs, session records,
+  exported advisory documents) + full-text retrieval (BM25-class). Shape
+  constraints from settled law: document BYTES live in the CAS as artifacts
+  (ledger-referenced); the doc DB is the derived, re-derivable INDEX over them
+  + typed metadata — session-scoped per the isolation law, user-archive index
+  for same-user recall, publication via registry scopes like everything else.
+  Interplay: Forest advisories cite documents; KG symbols link into docs.
+  RESEARCH FIRST when opened: Tantivy internals (Rust segment architecture —
+  fork-and-own candidate), Lucene segment/merge lineage, BM25/BM25F,
+  incremental indexing + segment merges, snippet extraction; Bleve as the
+  Sylk-planned reference.
 - **Walking skeleton** — final branch; re-presents against completed tree
   (P0 wire → P1 runtime → P2 spine → P3 pod leg → P4 first agent → P5 first
   merged change; now must thread Sibyl/home-session/lineage into first light;
