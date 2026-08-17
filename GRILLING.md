@@ -306,6 +306,47 @@ specs are **on the table**; branches without specs are **open**.
   fork-and-own candidate), Lucene segment/merge lineage, BM25/BM25F,
   incremental indexing + segment merges, snippet extraction; Bleve as the
   Sylk-planned reference.
+- **24 The object tier (Hecate's own S3-level storage)** — ADDED 2026-08-17
+  (user: "we need to *design* that storage in detail"). SERVING.md settled
+  the topology (HRW chunk-groups, R-way, cache hierarchy, pack volumes,
+  no-cloud-pairing law); this branch designs the storage system itself,
+  database-grade. Decisions to settle, research-first: (a) durable write
+  path — pack-volume format in detail (needle layout, seal/compact, in-RAM
+  index rebuild-by-scan as truth w/ sidecar as optimization — the vorpal
+  pack precedent; crash story: append+fsync vs WAL-machinery reuse);
+  (b) replication protocol — write path for immutable content (any-copy-
+  valid-by-hash simplifies: client-driven R-writes vs primary-driven vs
+  chain replication; ack semantics/write quorum; read repair; hinted
+  handoff vs re-replication); (c) erasure coding for the cold tail — code
+  choice (RS(k+m) vs Azure LRC vs Clay), hot→cold migration (f4 pattern),
+  reconstruction path + degraded reads; (d) scrub + repair — derived
+  cadence, BLAKE3 verify, latent-sector-error receipts, repair scheduler
+  riding the placement map, under-replicated-first prioritization;
+  (e) failure-domain topology — domain declaration/discovery, hierarchical
+  HRW levels, copyset-aware placement (data-loss-probability receipts);
+  (f) capacity + lifecycle — GC of unreferenced content (liveness roots =
+  manifests/ledger refs; exfiltration-licensed doctrine; refcount vs
+  mark-sweep over manifests), per-tenant/session quotas + accounting,
+  compaction reclaim; (g) API surface — put/get/batch-exists/range verbs
+  on hecate-wire (extends the SERVING additions), streaming large objects
+  (packs, generation segments); (h) metadata — volume→location index,
+  placement-map epoch consumption (Branch 20 API), namespace/tenancy via
+  registry-style scopes; (i) **encryption × dedup reconciliation** — the
+  open tension: encrypt-always + per-session keys breaks cross-session
+  chunk dedup ('shared below the isolation line'); candidates: convergent
+  encryption (hash-derived keys — dedup survives; known
+  confirmation-of-file attacks to price), tenant-scoped dedup domains, or
+  encrypted-at-rest-once with capability-gated access — MUST be settled,
+  it decides the dedup story; (j) laptop degenerate — single-disk volumes,
+  R_eff=1 loud, scrub still runs, identical formulas. RESEARCH FIRST when
+  opened: Azure Storage (stream/partition layer split), S3 ShardStore
+  (SOSP'21 — formally verified Rust LSM object store!) + S3 strong-
+  consistency retrofit, Facebook Tectonic (FAST'21), Ceph BlueStore
+  internals, MinIO erasure/healing, Backblaze vaults (17+3), LRC (Huang),
+  copyset placement (Cidon), chain replication (van Renesse), scrub/latent-
+  sector-error studies (Bairavasundaram), convergent encryption
+  (Tahoe-LAFS/DupLESS + attacks). Haystack/f4/groupcache receipts already
+  on file. Underlies everything — sequences early in the walking skeleton.
 - **Walking skeleton** — final branch; re-presents against completed tree
   (P0 wire → P1 runtime → P2 spine → P3 pod leg → P4 first agent → P5 first
   merged change; now must thread Sibyl/home-session/lineage into first light;
