@@ -53,23 +53,28 @@ specs are **on the table**; branches without specs are **open**.
 
 ## ON THE TABLE (drafted + shown; awaiting acceptance — settle ONE at a time)
 
-1. `docs/specs/FOREST.md` — **verdict HELD 2026-08-16 on the decay
-   sub-decision**: user doubts ACT-R base-level activation is the best model
-   for the retention purpose (Sylk's implementation was incorrect/incomplete;
-   the four-formula stack ACT-R+FSRS+MMAS+Parunak was never tested against a
-   unified alternative, e.g. marked Hawkes with power-law-via-exp-mixture
-   kernel). Research dispatched ×2: decay-model landscape (ACT-R honest
-   examination under bursty spacing, FSRS/DSR, HLR, Hawkes/point processes,
-   caching theory LRFU/TinyLFU, Mozer MCM/DASH — judged against the four
-   consumers: retrieval ranking, digest admission, retirement, consolidation
-   trigger) + Sylk decay post-mortem (what was actually built, exact
-   divergences, lessons). Rest of the amendment set PENDING with the verdict:
-   4 audit corners (typed-field mark extraction; (HLC,stream,seq) merge order;
-   checkpoint-retention invariant; paced consolidation) + 4 exactness blocks
-   (ACL forward-push PPR w/ derived ε, fixed-point Q32.32; decay
-   implementation TBD by this examination; checkpoint/failover doc + Branch-14
-   boundary; digest floor θ / consolidation debt / snapshot max-age) + F15/F16
-   tests + Branch-22 symbol-mark dependency. — Z-set field engine, ACT-R/FSRS/MMAS/Parunak/PPR
+1. `docs/specs/FOREST.md` — decay examination RESOLVED 2026-08-16: the
+   **retention model is ACCEPTED — the intensity × durability hybrid**
+   (alternatives (1)+(2); user pushed for the hybrid combination and the
+   domination analysis confirmed it: (3) corrected-ACT-R dominated in every
+   combination). Intensity = K derived exponential registers/channel,
+   saturating gain (MMAS+FSRS+MCM fused), fixed-point lazy read, power tail
+   w_k ∝ λ_k^d, convex GLM fit; durability = FSRS-shaped (D,S,R), collapse on
+   contradiction, params re-fit never copied; declared consumer map (rank =
+   intensity × R^γ; admission = TinyLFU duel per token; retirement =
+   rank-density floor crossing; consolidation = S threshold); contradiction
+   mass = curation-attention signal; one owner module, one clock, co-fitted.
+   ALL amendments APPLIED to the spec: 4 audit corners (typed-field marks +
+   Branch-22 symbol dependency; (HLC,stream,seq) merge; checkpoint-retention
+   invariant + exact checkpoint doc + Branch-14 boundary; paced consolidation)
+   + PPR forward-push exactness + digest floor θ + snapshot max-age + tests
+   F15–F19, F21 (the 15 Sylk-trap suite) + acceptance 4/4b. **REMAINING before
+   whole-spec verdict: the retrieval-hybrid exchange** (PPR-only
+   under-implements the HippoRAG receipt — dense+PPR is what was measured;
+   three-signal fusion: structural PPR + exact-search dense (session-bounded ⇒
+   NO ANN ever) + lexical BM25 via Branch-23 machinery; fitted fusion weights;
+   federation seam for Branches 22/23; narration free text becomes reachable).
+   Presented, awaiting user verdict. — Z-set field engine, ACT-R/FSRS/MMAS/Parunak/PPR
    dynamics, primary-by-construction, observe-mode value gate, session-isolated
    (global-forest tier DELETED as data-leak; user correction).
 
