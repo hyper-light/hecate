@@ -17,7 +17,7 @@ A skill is authored against the harness's typed API and carries, statically:
   check claim/testament flows structurally).
 - **Instructional content**: the procedural guidance an agent needs to use the skill
   well — authored as part of the typed definition, rendered out as content (see §2).
-- **Declared capabilities**: what the skill's handlers may touch (network, workspace
+- **Declared capabilities**: what the skill's handlers may touch (network, work-volume
   views, ledger operations, budgets). This declaration is what the Guardian validates —
   inventory-from-declaration, statically, before any handler runs.
 
@@ -72,7 +72,7 @@ across the pod network, never granted more than their declared and approved surf
 The Sylk number to beat: its architect surfaced **31 tool definitions in turn one**, its
 archivalist about 41. Hecate's rule:
 
-- Each agent's default surface is a **small handful**: the shared fabric façades plus
+- Each agent's default surface is a **small handful**: the shared façades plus
   its role façades. A façade is one well-worded skill with an action parameter, not ten
   sibling verbs.
 - The long tail exists behind **progressive disclosure**: a search-and-activate
@@ -85,7 +85,7 @@ archivalist about 41. Hecate's rule:
 - Activation state must be able to shrink as well as grow (Sylk's was monotonic —
   a bug, not a feature).
 
-## 6. The shared fabric surface
+## 6. The shared façade surface
 
 Every agent gets the same core façades (behavior per `LEDGER.md`):
 
@@ -96,6 +96,6 @@ Every agent gets the same core façades (behavior per `LEDGER.md`):
 - **History**: query a peer Scribe's window; query the Archivalist beyond it.
 - **Self**: health/diagnostic reporting.
 
-Role façades ride on top: the Engineer's workspace/test/toolchain skills, the
+Role façades ride on top: the Engineer's work-volume/test/toolchain skills, the
 Archivalist's investigation instruments, the Guardian's gates and scanners, the
 Designer's media and A/B skills — each a handful, each schema'd, each declared.

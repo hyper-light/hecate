@@ -43,7 +43,7 @@ Vocabulary: **"workspace" is retired**; the concepts are **lineage**,
 
 ## 3. The physical contract
 
-- Session workspace state = `(pinned baseline manifest, witnessed delta overlay,
+- Session working state = `(pinned baseline manifest, witnessed delta overlay,
   green chain)`. The baseline never moves under a session; the overlay contains
   exactly the materialized-iff-diverged entries (EdenFS's contract); green is the
   session's merge-gate output as specified.

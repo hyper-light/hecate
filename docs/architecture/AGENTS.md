@@ -3,7 +3,7 @@
 Hecate's default distribution is **ten agents**; the roster is **open**. The harness defines **offices** — structural role
 contracts whose consequences are machinery (the merge-gate evaluator, the protection
 judge, the summoner, the sidecar narrator) — and the registry binds agents to them.
-The nine agents in this document are the **default distribution**: reference
+The ten agents in this document are the **default distribution**: reference
 officeholders and specialists, replaceable and extensible through staged, declarative
 registry entries (custom agents, with rank archetypes and custom domains, per
 `REGISTRY.md`). What remains closed is narrower and permanent: no live-endpoint
@@ -217,7 +217,7 @@ replicas run for the life of a session, analyzing work *as it merges* into green
   side of the disk boundary.
 - **Tools**: extended and empowered versions of the Inspector's analyzers —
   profiling, linting, auditing — executing in its own pod against read-only green
-  snapshots. No workspace writes, no merge verbs; the deterministic verdict and the
+  snapshots. No work-volume writes, no merge verbs; the deterministic verdict and the
   merge serializer remain the only things that touch green.
 - **Work distribution** (`MERGE.md`): the **frontier service** — a deterministic
   harness service beside the merge serializer — consumes the merge log (a VFS-subsystem
@@ -244,7 +244,7 @@ replicas run for the life of a session, analyzing work *as it merges* into green
 The adversarial reviewer. Its job is to poke holes: in implementations, designs,
 approaches, and hypotheses — of any agent except the Guardian.
 
-- **Writes to no system.** No workspace writes, no VFS volume writes, no merge or
+- **Writes to no system.** No work-volume writes, no VFS volume writes, no merge or
   finalization verbs, no side-effecting execution. This is structural (the write skills
   do not exist in its pod), not prompt discipline. Sylk's global inspector held
   `workspace_write` and the pipeline inspector held the terminal merge verbs; Hecate
@@ -311,7 +311,8 @@ own history.
 A sidecar attached to **every other agent** — nine primaries, each with its Scribe.
 
 - **Narrates**: a running, structured account of its primary's actions, successes,
-  failures, and outputs, streamed to the Archivalist and the fabric.
+  failures, and outputs, streamed to the Archivalist — and consumed by the Forest's
+  field as one of its three mandatory streams (`FOREST.md` §1).
 - **Serves localized history**: peers consult a Scribe directly for its primary's recent
   activity; the Scribe answers from its window and hands off to the Archivalist beyond
   it.
@@ -341,7 +342,7 @@ The on-demand multimodal agent — what lets Hecate understand more than code.
   budget allows
   (a derived threshold, never a literal constant), it must seek Guardian approval before
   disk ingest or output, through quarantine-style staging — "approved to exist on disk"
-  and "approved to enter the workspace" are two separate decisions.
+  and "approved to enter the work volume" are two separate decisions.
 - **A/B testing** is its signature move: N variants of a design, visualization, or mock,
   presented for the **user** to judge. Agent assessments (accessibility, token
   consistency) attach to variants as advisory validations; the user's choice is recorded
@@ -350,7 +351,7 @@ The on-demand multimodal agent — what lets Hecate understand more than code.
 ## 4. What no agent gets
 
 - **Dozens of tools.** Each agent surfaces a small handful of well-worded skills: the
-  shared fabric façades (claims, consult/challenge, history) plus its role façades, with
+  shared façades (claims, consult/challenge, history) plus its role façades, with
   progressive disclosure behind them (`SKILLS.md` §5). Sylk's architect surfaced 31
   tools in its first turn; that number is the cautionary tale.
 - **A second workflow authority.** All work coordination is ledger truth. No agent's

@@ -126,7 +126,7 @@ rolls the write back with a typed error). Pressure telemetry streams to the Guar
   - Hash mismatch on any fetch ⇒ refusal + durable violation event. Verification is
     every-fetch, intrinsic to content addressing.
 - **Three tiers**: base toolchains in role guest images (pinned at summon);
-  provisioned tooling as RO tool manifests (this plane); workspace-local artifacts
+  provisioned tooling as RO tool manifests (this plane); work-volume-local artifacts
   (a project's `node_modules`) as ordinary overlay writes — deduplicated anyway.
 - Tools execute **in-guest** against the pod's own mounts. There is no shared
   execution service; sharing is storage- and governance-level only.
@@ -140,7 +140,7 @@ rolls the write back with a typed error). Pressure telemetry streams to the Guar
 - **Session migration** (colocation-unit move): transfer manifest refs + lazy chunk
   fetch on demand; the WAL side is snapshot + tail export (`WAL.md` §6). State
   transfer cost is O(manifest) up front, O(touched bytes) over time.
-- The **registry** (open branch) rides the same store: its kinds are
+- The **registry** (`REGISTRY.md`, accepted) rides the same store: its kinds are
   content-addressed documents; Guardian staging inventories content, never trusts
   manifests' self-description.
 

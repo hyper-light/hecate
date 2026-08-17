@@ -1,6 +1,6 @@
 # Hecate
 
-Hecate is a multi-agent coding harness written in Rust. It hosts a fixed roster of agents as microVM-isolated, network-addressable workloads, coordinates their work through a durable claims ledger, and inherits its architecture (not its code) from Sylk.
+Hecate is a multi-agent coding harness written in Rust. It hosts an open roster of agents — a shipped ten-agent default distribution, extensible through Guardian-staged registry entries — as microVM-isolated, network-addressable workloads, coordinates their work through a durable claims ledger, and inherits its architecture (not its code) from Sylk.
 
 ## Language
 

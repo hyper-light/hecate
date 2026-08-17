@@ -2,7 +2,7 @@
 
 How work comes into existence in Hecate: the Guide summons; the Guardian admits; the
 harness allocates microVM pods, volumes, permissions, and network; agents run inside a
-hard boundary and reach everything — ledger, workspace, tools, providers — over the pod
+hard boundary and reach everything — ledger, work volumes, tools, providers — over the pod
 network.
 
 Terminology follows `../../CONTEXT.md`.
@@ -53,7 +53,7 @@ product shape possible: `hecate` embeds the runtime; there is no daemon requirem
 platform VM if a backend stalls:
 
 - Linux guest, one dual-arch image family (x86_64 + aarch64).
-- **virtio-fs** for workspace and projection mounts.
+- **virtio-fs** for work-volume and projection mounts.
 - **vsock** for control (agent runtime ↔ harness).
 - **All network egress terminates in a host user-space network stack**
   (gvproxy/TSI-style). There is no guest path to the network that does not traverse a
@@ -102,7 +102,7 @@ The host-side VFS remains the single write authority; guests see **views**.
   host-side from the pod's overlay. Toolchains just work: compilers, test runners, and
   linters operate on ordinary files.
 - Writes land in the overlay **server-side**, where budgets, capture, and Guardian
-  policy live. The guest never holds workspace bytes the host didn't serve it.
+  policy live. The guest never holds work-volume bytes the host didn't serve it.
 - The serving cut is the path-based, stateless namespace interface Sylk already proved
   (Stat / ListDir / ReadFile / Write / handle layer) — now served over virtio-fs instead
   of FUSE-in-process.
@@ -130,7 +130,7 @@ Hecate adopts Sylk's Tool VFS design — the part that was designed right and ne
 - **Lockfile**: per-session, WAL-durable, append-only witnesses per pod; no silent
   upgrades; side-by-side versions are nearly free under dedup.
 - **Projection**: a pod's resolved tool set composes into its guest mount alongside the
-  workspace view; substrate paths are immutable (a "write" to content-addressed bytes is
+  work-volume view; substrate paths are immutable (a "write" to content-addressed bytes is
   meaningless and is refused).
 - **The three Guardian gates**, now real code, not doc prose:
   1. **Provision gate** — before any bytes are fetched: resolved package, source,
@@ -152,7 +152,7 @@ extractors. A capability ships wired or it does not ship.
 
 The summon soft gate, in the spirit of a Kubernetes admission controller:
 
-- **Known agent type** — the roster is closed; a summon naming anything else is refused
+- **Known agent type** — the type must be registry-known (shipped, or Guardian-staged custom); a summon naming an unregistered type is refused
   structurally.
 - **Resource sanity** — pod count, volume budgets, and rate are checked against derived
   ceilings; a malicious or runaway summoner cannot DoS the system by spinning up pods.

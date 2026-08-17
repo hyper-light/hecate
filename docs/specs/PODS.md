@@ -31,7 +31,7 @@ running one agent. Its world:
   is no block-image pipeline in the tree.
 - Guest-writable paths (`/tmp`, scratch, `$HOME`) are guest-side tmpfs bounded by
   the VM's memory allocation. Nothing writable is served from the root projection.
-- Mount set at boot: root projection (RO) + workspace volume (RW overlay) + green
+- Mount set at boot: root projection (RO) + work volume (RW overlay) + green
   base (RO) + tools composition (RO) — per `VFS.md` §5.
 - **Scale clauses (required, not optional):**
   - Serving tasks are shard-multiplexed: host-side serving cost scales with *active
@@ -219,7 +219,7 @@ pre-effect, tamper-proof) → **Scribe** (semantic narration) → **Guardian** (
 | T4 | Serving-cost scaling: fs-op cost flat as idle pod count grows 10× (active-op scaling, not pod scaling) | O(pods) serving regression |
 | T5 | Shared-page density: N resumed clones' resident memory ≈ one snapshot + Σ dirty pages (measured bound, ratcheted) | density mechanism silently broken |
 | T6 | Resume uniqueness: two clones of one snapshot diverge in guest entropy immediately; agent process blocked until reseed completes | the SnapStart key-collision class |
-| T7 | Generic-pool proof: pooled/snapshotted state contains no identity or work material (scan for keys/uids/session refs/workspace bytes); the snapshot API refuses an assigned pod (structural) | frozen-identity bug family; in-progress work leaking to disk |
+| T7 | Generic-pool proof: pooled/snapshotted state contains no identity or work material (scan for keys/uids/session refs/work-volume bytes); the snapshot API refuses an assigned pod (structural) | frozen-identity bug family; in-progress work leaking to disk |
 | T8 | Boot-storm sim: summon stampede ⇒ singleflight per target, bounded parking, counted sheds, zero cold-boot herd | thundering herd |
 | T9 | Budget signal: induced tier degradation ⇒ summon-to-ready misses emit health-plane signals with tier attribution | silent slowdowns |
 | T10 | Telemetry fan-in: pod-count growth leaves control-plane message rate bounded by node count; gossip piggyback stays under the datagram budget | telemetry self-DDoS |

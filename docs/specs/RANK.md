@@ -26,8 +26,10 @@ Refuse cases), claims-architecture scrutiny findings A1–A5 (applied to LEDGER.
   legal, any rank, any score); ordinary testaments are never rank-checked; only
   override-class relations trigger the check.
 - Check inputs: the matrix (config), the claim's domain (field), the author's
-  modulation (one synchronous query to the score service — deterministic harness
-  service, µs-class, SIM-able).
+  modulation — read from the last **event-carried score snapshot** in core-local
+  state (`LEDGER_CORE.md` §2 sub-decision (c): the score service pushes
+  modulation snapshots as ordinary inputs; no synchronous query escapes the
+  core; determinism and replay hold by construction).
 
 ## 3. "Cannot ignore" — already the claims graph
 

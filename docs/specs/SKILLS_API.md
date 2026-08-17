@@ -98,7 +98,7 @@ Hecate. **No Node, no Python, no interpreter executes in any microVM.**
 
 ## 3. Surface discipline
 
-- An agent's default surface = the shared fabric façades + its role façades — a
+- An agent's default surface = the shared façades + its role façades — a
   derived handful (counted, tested), with progressive disclosure (`search` +
   activation) behind it. Activation state can shrink.
 - **Omission is absence**: a capability a role must never hold is not registered in

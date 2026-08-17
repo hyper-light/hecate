@@ -49,7 +49,7 @@ as its only threads beyond the shard.
   TS/Python skills execute in-pod in their image-shipped runtimes behind the typed
   contract. The MCP projection is the wire form; in-guest invocation of a local
   skill is a direct call — same contract, no loopback theater.
-- **Workspace operations go through the guest mount**: reads and writes are ordinary
+- **Work-volume operations go through the guest mount**: reads and writes are ordinary
   file operations against the virtio-fs view; leases are validated server-side; the
   **warden** decides every crossing pre-effect. Toolchain invocations (compiler,
   tests, linters) are plain guest processes — native speed, zero gate round-trips.
@@ -61,7 +61,7 @@ as its only threads beyond the shard.
   warden escalates; the runtime experiences a held syscall or a typed denial, and a
   parked turn if the hold outlasts the derived threshold. **A hold that outlasts a
   second, larger derived threshold (human-latency approvals) tears the pod down
-  entirely**: claims park durably, the workspace volume persists host-side, and the
+  entirely**: claims park durably, the work volume persists host-side, and the
   verdict re-summons and reconstructs — arbitrarily long approval latency costs
   zero resident memory.
 
@@ -83,7 +83,7 @@ Fast-forward idempotent steps, each self-checking:
    evidence request max).
 2. Successor summons through the warm tiers with the bundle **re-resolved** (the
    only moment config reaches live work).
-3. **The predecessor's workspace volume re-binds to the successor** — volumes are
+3. **The predecessor's work volume re-binds to the successor** — volumes are
    host-side manifests that outlive instances by construction; uncommitted overlay
    work transfers by re-bind, never by copy. A self-checking step: the successor
    verifies the volume's manifest head against the claims' declared bases before
