@@ -49,17 +49,16 @@ Architecture set (AGENTS/LEDGER/PLATFORM/SKILLS/SUMMONING + CONTEXT + ADRs
 ## 2. Decision-open (blocking decisions, named owners)
 
 - **D-1 Consensus (Branch 20) — the widest dependency in the tree.**
-  Direction argued, UNRATIFIED and now **CHALLENGED** (2026-08-17): the user
-  has "IMMEDIATE and severe concerns with using ETCD or using ETCD as any
-  sort of example - it has well documented shortcomings and failure modes
-  that do not scale up well to Meta scale work." The re-analysis must
-  separate etcd-the-system from etcd-raft-the-library-dialect, put etcd's
-  documented failure record (v3.5 data inconsistency, boltdb limits, watch
-  fan-out, single-group ceiling, small-voter-set ceiling, Kubernetes-scale
-  pain) against Meta-scale alternatives (Delos/virtual consensus + loglets,
-  FlexiRaft/MySQL-Raft, ZippyDB, Shard Manager; Spanner Paxos groups;
-  TiKV/CRDB multi-raft practice; VSR/TigerBeetle), and re-present the
-  direction. `CONSENSUS.md` + `FAULTS.md` owed after ratification. Consumed by: WAL §5 (the only commit
+  Direction **RATIFIED 2026-08-17** after the user's etcd challenge was
+  answered by the layer-classification dossier (every challenged failure
+  mode traced to etcd-server/boltdb/watch, etcd-raft-library, or
+  single-group-topology; the library record short and enumerable; Meta-scale
+  practice table). Ratified form = the five decisions + four amendments:
+  (2a) "CRDB-lineage dialect" exemplar naming, (2b) bug-record-as-
+  conformance-suite, (3-addendum) explicit conf-change activation semantics
+  + #12359 countermeasures, (5a) deterministic whole-cluster simulation
+  gate. **Remaining: `CONSENSUS.md` + `FAULTS.md` spec acceptance** (drafts
+  presented in-message 2026-08-17). Consumed by: WAL §5 (the only commit
   path "at every replica count"), SERVING §6 inventory map, SCHEDULER §1 meta
   group, REGISTRY §5 replicated revision (which dangles a reference to the
   nonexistent `CONSENSUS.md`), OBJECT_TIER §4 placement map, LEDGER_CORE §2

@@ -121,7 +121,18 @@ specs are **on the table**; branches without specs are **open**.
   (Delos/virtual consensus + loglets, FlexiRaft/MySQL-Raft, ZippyDB, Shard
   Manager; Spanner Paxos groups; TiKV/CRDB multi-raft; VSR/TigerBeetle) —
   explicitly separating etcd-the-system from etcd-raft-the-library-dialect;
-  then re-present. CONSENSUS.md + FAULTS.md after ratification.
+  then re-present. **RE-PRESENTED AND RATIFIED 2026-08-17** ("accepted."):
+  the five decisions stand WITH four amendments — (2a) exemplar renamed
+  "Raft, CRDB-lineage dialect, pure core" (interface shape = etcd-raft as
+  extended by cockroachdb/raft; tikv/raft-rs = Rust portability proof; both
+  exemplars never dependencies); (2b) the (b)-class + protocol bug record
+  ships as an executable conformance suite (named regression tests, never
+  folklore); (3-addendum) explicit conf-change activation semantics with
+  #12359 countermeasures as spec law (conf-commit metadata on votes, no
+  direct voter demotion — route through learner); (5a) fault gate upgraded
+  to deterministic whole-cluster simulation (FDB/TigerBeetle-VOPR posture;
+  mutually reinforcing with pure-core IO-as-data). CONSENSUS.md + FAULTS.md
+  drafts presented in-message, awaiting spec acceptance.
 - **21 FS implementation (the serving machine)** — **SETTLED 2026-08-16**:
   spec `docs/specs/SERVING.md` accepted whole; decision record below stands
   as history. OPENED 2026-08-16; user
