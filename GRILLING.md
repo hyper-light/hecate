@@ -202,25 +202,33 @@ specs are **on the table**; branches without specs are **open**.
   pack volumes + batch existence checks, groupcache single-flight/mirroring,
   MinIO/Ceph/SeaweedFS parameter-degeneration no-modes receipts, MinIO FS-mode
   removal as the mode-bifurcation record). Next: (b) overlay representation.
-- **22 The knowledge graph (code ground truth)** — ADDED 2026-08-16 (user:
-  "you also need the knowledge graph in the tree"). The Archivalist's organ:
-  the parsed, resolved index over lineage code — symbol graph (defs/refs/
-  types), module structure, semantic search — Hecate's successor to Sylk's
-  core/knowledge stack (two-pass externalized symbol index + HNSW lineage).
-  Distinct from the Forest by content: Forest = work-derived process knowledge
-  (trails/advisories from proof streams); KG = code-derived ground truth
-  (re-derivable from manifests alone). Interplay to settle: KG provides
-  canonical symbol identity for Forest marks; PPR retrieval spanning both
-  graphs is a branch decision. Scope sketch: per-session projection over the
-  session's lineage view (isolation law), incremental maintenance riding green
-  advances/seals (manifest diff → re-parse changed files → graph delta — the
-  Z-set engine as candidate substrate, golden-property harness reusable);
-  parse artifacts content-addressed by file hash (pure function ⇒ dedupable
-  below the isolation line in the CAS, like chunks); retrieval = symbol/ref
-  traversal + semantic; serves agent code grounding + Archivalist deep
-  investigation. RESEARCH FIRST when opened: Glean (Meta), Kythe (Google),
-  stack-graphs/SCIP (GitHub/Sourcegraph), tree-sitter incremental parsing,
-  LSIF; incremental-index-at-scale receipts.
+- **22 The knowledge graph (code ground truth)** — ADDED 2026-08-16;
+  **REDIRECTED 2026-08-16 (user): USE AND INTEGRATE ../vorpal — its KG
+  implementation, adapted to distributed use.** Vorpal = the user's Rust
+  ingest→index→search engine on a rebranded ast-grep: tree-sitter extraction
+  across 28 languages ("sees everything", extraction-as-rules, no regex),
+  code KG (defs as nodes; calls/imports/implements/of_type/references/
+  containment edges), HONEST RESOLUTION (scope precedence, confidence labels
+  LOCAL>CROSS_FILE>AMBIGUOUS, unresolved counted never faked, 100% P/R
+  labelled eval suite), hybrid retrieval (exact/token + deterministic
+  feature-hash lexical embeddings [Embedder trait, neural adapters optional]
+  + graph in-degree, RRF-fused w/ per-channel provenance), incremental
+  (per-file product cache + full relink ⇒ no stale nodes), MCP server.
+  **Doctrine alignment is near-verbatim** (its locked decisions: 10⁹-LOC
+  streaming/bounded-memory, deterministic core, Arc-free arenas +
+  generational handles, single-writer-per-shard, blake3 external identity,
+  custom segmented mmap format + io_uring, deterministic ANN build, CSR +
+  masked-SpMV Datalog closure). Deep survey DISPATCHED (built-vs-planned,
+  data model, incremental machinery, storage, fusion, REMOTE.md distribution
+  design, integration seams — esp. VFS/manifest-fed ingest vs disk walks,
+  per-session instances, embeddability). Hecate adaptation questions queued:
+  per-session projection over green/lineage manifests; parse products
+  content-addressed in the CAS (dedup below isolation line); relink scope
+  under green advances; serving via Hecate protocol vs vorpal transport;
+  vorpal MCP tools → skills/facades; vorpal's feature-hash embedder as a
+  candidate for the Forest's lexical/dense channels; structural search
+  (ast-grep rules) as an agent capability. Prior research-first list
+  (Glean/Kythe/stack-graphs/SCIP/LSIF) demoted to comparative background.
 - **23 The document DB (records + full-text)** — ADDED 2026-08-16 (user: "as
   well as the document db"). The Archivalist's second organ: durable document
   records (papers from the academic handoff, design docs, session records,
