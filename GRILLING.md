@@ -617,11 +617,57 @@ specs are **on the table**; branches without specs are **open**.
   machine); laptop degenerate CLASS-BLIND BY COLLAPSE — labels persist
   inert, so a laptop corpus later joining a fleet re-places correctly
   from recorded classes; cache roles orthogonal (class governs
-  authoritative copies only). OWED: (1) lineage-class loss derivation
-  at its definition site + the work-class acceptance derivation
-  (exposure × rate × loss-cost, written down); (2) SERVING.md §6
-  amendment — one authority, three disciplines, class as durable input;
-  (3) SIM correlated-failure sweep per class against its own bar; (f) GC =
+  authoritative copies only). **SUPERSEDED BY THE TWO-PLANES VERDICT (user-driven convergence,
+  2026-08-17)** — the copysets×HRW 'named gap' is WITHDRAWN as a
+  research gap and recorded as a design lesson: it was a symptom of
+  artificial unification — no coherent system needs both disciplines
+  for the same data; factored correctly, each plane falls back on its
+  own literature's PROVEN construction and the novel composition
+  evaporates. THE TWO PLANES: **serving plane** (work volumes, green
+  chains, tools, cache hierarchy, DAX) = weighted HRW, SERVING.md §6
+  STANDS UNCHANGED — zero-lookup/locality/minimal-movement where the
+  turn path needs them, short exposure, session-bounded blast radius;
+  **durable plane** (registry content, KG/vector generations, lineage
+  baselines, archives) = **assignment-based copyset placement AS
+  PUBLISHED** (Cidon/Tiered-Replication construction, chosen scatter
+  width, upmap exceptions, map-driven repair) over a small
+  consensus-owned placement map — LEGITIMATE because nothing in this
+  plane is on the turn path (registry resolution = summon/staging;
+  generation fetch = background cache-fill; archival = background), so
+  the zero-lookup requirement that forced placement-as-computation
+  never applied; no new authority class (consensus already owns
+  inventory map + refs); loss derivation = instantiate Cidon's formula
+  with our parameters, not invent math. **THE ANTI-SYLK LAW RESTATED AT
+  THE RIGHT LAYER**: the Sylk fault was an identity-layer fracture (two
+  hash families) — the law lives BELOW placement: one content identity
+  (BLAKE3), one CDC, one manifest encoding, one pack-volume engine, one
+  wire verb set; dedup works across planes by construction; unified
+  SUBSTRATE, separate FLEET DISCIPLINES (placement/durability/repair) —
+  Tectonic's own factoring read correctly (unified chunk fleet + client
+  library; per-tenant policy/metadata/redundancy kept separate). THE
+  SEAM: content crosses at lifecycle boundaries only (seal =
+  serving-plane; landing/archival/generation-publication/registry-
+  provisioning = the durable-plane writes — same chunks, identity
+  unchanged, placed per copyset map, ref flips; f4 lock-then-migrate);
+  reads flow ONE direction (serving cache-fills FROM durable; never
+  reverse); co-located small fleets need TrafficClass-style
+  repair-vs-serving IOPS isolation (Tectonic Gold/Silver/Bronze);
+  laptop = both planes collapse to the same local packs, plane labels
+  inert. BRANCH 24 REFRAMES: 'design the durable plane as its own
+  system' (what database-grade wanted); placement section = published
+  copyset construction + consensus map; everything else delivered
+  stands (pack format, four-rung write path, CacheLib governance,
+  scrub/EC/GC, metadata collapse — now cleaner: the placement map is
+  the one honest piece of placement metadata, and it's tiny). The
+  storage-class parameter survives as the ROUTER of content to a plane
+  at its lifecycle boundary. Honest cost: two fleet machineries to spec
+  and test — but the second is SIMPLER than the composition it
+  replaces. OWED: (1) durable-plane placement-map spec (Cidon
+  instantiation, scatter width from repair anchors, map schema on
+  consensus); (2) work-class acceptance derivation (exposure × rate ×
+  loss-cost, written down); (3) SERVING.md cross-reference amendment
+  (planes named, seam stated, §6 scoped to the serving plane); (4) SIM
+  correlated-failure sweep per plane against its own bar; (f) GC =
   mark-and-sweep from roots (green chains + registry refs + seal
   manifests + generation pointers), NEVER cross-node refcounts; sweep =
   copy-forward; f4 crypto-erase composes with (i); (g) API = put/get/
