@@ -312,7 +312,43 @@ specs are **on the table**; branches without specs are **open**.
   Vamana artifacts (pinned-order builds); closure multi-assignment =
   boundary ghost-posting analogue; session overlays = exact-search flat
   segments merged at re-baseline; rerank vs full vectors in the OWN object
-  tier; laptop degenerate.
+  tier; laptop degenerate. **COMPONENT SURVEY LANDED 2026-08-17**: "overlay"
+  disambiguated ×3 — (a) Sylk IVF's inter-partition navigation tier (Vamana
+  over partition reps, R=log₂P, SPLICED into the flat adjacency — should be
+  materialized separately: a few-KB, separately-versioned inter-cell routing
+  graph is exactly the distribution seam); (b) vorpal OverlayView = the real
+  delta layer (FileRun content-addressed row-ranges, tombstone remap, 15%
+  refusal ceiling, base∘remap ∪ overlay, never waits on ANN build);
+  (c) EMERGENT_FOREST density layer = doc-only. SYLK FINDINGS (post-mortem
+  class): **BeamSearchBBQ never traverses the graph it builds** — the
+  Vamana graph is built/persisted/health-tracked but unused at query (only
+  OptimizeGraph walks it); deterministic RNG machinery exists in 3 places
+  UNUSED while the paths that matter use unseeded rand (RobustPrune
+  reservoir-sampling, k-means rand.Perm, medoid/boundary sampling);
+  maintenance signals (Gini/CV/Drift/Connectivity) trigger NOTHING (the
+  real trigger = separate EMA health system, √n sampling, α=1/√n); the 4
+  maintenance ops have zero production callers; ivf WAL unwired (sylkdir
+  global_ivf_log IS wired = the O(delta) mechanism: watermark+fingerprint
+  sidecar, torn-stitch→rebuild); vestigial dead quantizer/LSH paths
+  reconstructed on load. VORPAL: ParlayANN-style deterministic build BUILT
+  (bit-identical at any thread count, pinned by test; seeded xorshift,
+  (dist,id) total orders, exact-integer i8 dots), zero-copy v5 format,
+  provenance gating, rerank discipline — behind on IVF (none), RaBitQ,
+  PipeANN/io_uring, ACORN (filters post-tier only), and derived params
+  (65,536 tier cutoff + R=32/L=48/α=1.2 HARDCODED vs Sylk's fully
+  data-derived ConfigForN — Sylk wins exactly once, here). SEALABLE:
+  per-partition graphs (built in ISOLATION per worker — natural cells),
+  partitions.bin CSR (contiguous per-partition byte ranges), centroids.bin
+  + BBQ means (the routing table — replicate everywhere), 65536-record
+  CRC64 shards, ann.bin/ann.files (base_stamp generation identity).
+  MERGE PRIMITIVES EXIST: StitchBatch (O(√N) bulk segment-merge) +
+  Stitcher (cross-shard graph join, √N boundary sampling). THREE
+  PREREQUISITE FIXES for distribution: (1) global sequential uint32 IDs +
+  package-global insertMu → partition-local ID spaces w/ translation (the
+  nodeIDs[] sidecar already does it once) or range leasing; (2) positional
+  partition indices → stable partition identities (content hash per cell +
+  indirection) so cells seal/migrate independently; (3) de-splice the
+  overlay routing graph. Distribution-research pair still in flight.
   **DISTRIBUTED-KG SYNTHESIS LANDED 2026-08-17 — base+overlay hypothesis
   CONFIRMED: it IS Glean's production architecture** (stacked DBs verbatim:
   "each layer can non-destructively add information to, or hide information
