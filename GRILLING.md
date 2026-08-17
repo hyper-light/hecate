@@ -263,7 +263,36 @@ specs are **on the table**; branches without specs are **open**.
   learned:bool gate = candidate for Forest channels, provenance pattern
   matches doctrine. Upstream patch list: Manifest::from_entries, content-
   source hook, xxh3 identity (I3), scoped interner, budget/shard knobs as
-  parameters not env vars.
+  parameters not env vars. **INTERNER RESEARCH LANDED 2026-08-17** —
+  recommendation R1, decision-ready: **per-build NameInterner instance +
+  freeze-to-reader** (same 64-shard design instance-ized; freeze at the
+  commit→link boundary into a lock-free FrozenNames — the lasso
+  Rodeo→RodeoReader receipt: frozen readers scale ~flat to 24 threads vs
+  ~29× slower through the concurrent map; DELETES 7 RwLock acquisitions
+  from the hottest resolver loop = faster than today; reclamation = Drop,
+  zero unsafe; handle-threaded explicitly — churn surface grep-verified
+  tiny: 7 constructor call sites / 4 files / ~10 files total; rustc's
+  scoped-TLS shape REJECTED deliberately — its own panic forces
+  one-thread-per-session, incompatible with builds on a shared rayon pool;
+  spill.rs untouched — create-read-delete lifetime is inside one build;
+  determinism unchanged — nothing observable orders by NameId, verified).
+  Every production compiler scopes interners this way (rustc session /
+  Clang per-instance / V8 per-isolate / JSC per-VM; Roslyn's lossy cache
+  not transplantable — can't mint stable ids). BONUS BUG FOUND: the
+  process-wide table breaks insert_if_referenced's peek — "was this name
+  interned by ANY build ever" vs "by this build" — cross-corpus vocabulary
+  pollutes the referenced-only filter monotonically; R1 fixes it as a side
+  effect. NOTE: vorpal's working tree already carries an uncommitted
+  unsafe-reclaim_all first cut — R1 REPLACES that direction (no unsafe, no
+  quiescence protocol, no ACTIVE_BUILDS plumbing). R2 = content-hash
+  xxh3_64 NameIds as the composable END-STATE add-on when distributed
+  indexing lands (zero-coordination intern scaling, intrinsically I3,
+  Unison precedent; costs +40% Reference/+47% spill/+33% Symbol; 64-bit
+  birthday math safe with per-build collision detection, 128-bit if ids
+  ever become forever-global CAS keys); R1's seams are R2's substrate.
+  R3 (global + reclamation machinery) and R4 (process-per-session only)
+  rejected with reasons. Upstream shape: 4 commits incl. the I3
+  KgWriter-DefaultHasher→xxh3 fix + pinned cross-build test vector.
 - **23 The document DB (records + full-text)** — ADDED 2026-08-16 (user: "as
   well as the document db"). The Archivalist's second organ: durable document
   records (papers from the academic handoff, design docs, session records,
