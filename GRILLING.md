@@ -42,6 +42,7 @@ specs are **on the table**; branches without specs are **open**.
 | `docs/specs/RANK.md` | domain enums, derived bindingness, override-refuse as sole enforcement, score service (prevalence/specificity/trust, demote-only, observe-first). A1–A5 applied to LEDGER.md (single vocab; closed enums+bijection; retirement=custody transfer to Archivalist archive, anti-tombstonic; deadlines as replay inputs; layered scope map) |
 | `docs/specs/SCHEDULER.md` | sharded deterministic evaluation-log spine; **deterministic optimism** (parallel intent-aware speculative planners, logged outputs, serial pure applier); content-keyed memoization + snapshot-page/chunk locality scoring; gang-at-admission; Borg bands, hard limits; §9b request lifecycle (amendment=supersession-with-reuse; disposition-retry partials; issuer judges sufficiency) |
 | `docs/specs/SIBYL.md` | the 10th agent (name user-ratified): workstream judgment above sessions, lineage-partitioned instances (never global), judgment/machinery split, experiment-as-claim-tree, content-blind, grant brokering (Biscuit), user-plane ledger. AGENTS.md + glossary landed |
+| `docs/specs/SERVING.md` | the serving machine (Branch 21, ACCEPTED 2026-08-16): two-representation law (per-pod log-structured overlay = journal + extent index; manifests-over-CAS everywhere else), ack=witness (group commit before reply, no fsck — recovery is replay), seal at increments (writeback drain → op-log derivation → CDC/BLAKE3 → CAS), green = manifest chain (extends never writes, EROFS structural, all-DAX shared pages, pin+re-bind), inode law (volume,path-entry stable per volume lifetime, serializable for handoff), digest-xattr honesty, weighted-HRW topology (chunk-groups + exception table, state-follows-compute, R_eff loud degenerate), mapping engine splice\|managed per platform, own FUSE-over-virtio layer on hecate-rt in the libkrun fork, scratch volume role. Riders landed: VFS.md (4th role + op-log clause), ADR-0005 amendment (one law: no auto-resolution anywhere; dispositions by author liveness), CONTEXT.md (Landing, Conflict value, Witness, Seal) |
 | Architecture set | `docs/architecture/{AGENTS,SUMMONING,LEDGER,SKILLS,PLATFORM}.md`, `CONTEXT.md`, ADRs 0001–0005 — amended throughout this session (open roster/offices, Arbiter, summon-as-claim, retirement, work volume, ten agents) |
 
 ## ON THE TABLE (drafted + shown; awaiting acceptance — settle ONE at a time)
@@ -49,6 +50,13 @@ specs are **on the table**; branches without specs are **open**.
 1. `docs/specs/SESSIONS.md` — whole (lineage first-class, per-session pods,
    three-layer landing engine + jj conflict algebra, conflict deposits, review
    gates, 6-stage evaluation funnel with numbers, lifecycle/churn/GC, floors).
+   **Verdict UNBLOCKED 2026-08-16** — Branch 21 settled; §3's contract is now
+   backed by SERVING.md. All four held riders EXECUTED with the SERVING.md
+   commit: (i) cost-ledger line (landing engine = second merge machine);
+   (ii) VFS.md op-log clause; (iii) CONTEXT.md Landing + Conflict value;
+   (iv) ADR-0005 amendment + §5 cross-ref (one law: no automatic resolution
+   of concurrent code edits anywhere; dispositions differ only by author
+   liveness — bounce vs value). Verdict re-presented; awaiting accept.
 2. `docs/specs/LEDGER_CORE.md` — + sub-decisions (a) apply-on-ack, (b) no outbox
    (log+cursors), (c) event-carried score snapshots.
 3. `docs/specs/AUTOSCALING.md` — + sub-decisions (i) ratio-law-only,
@@ -78,6 +86,97 @@ specs are **on the table**; branches without specs are **open**.
   pods-never-gossip liveness, work-liveness-to-ledger, consensus-as-pure-log,
   AD-52 baseline). Raft-implementation-practice research owed, then
   CONSENSUS.md + FAULTS.md (failure×obligation matrix, crash-fault scope).
+- **21 FS implementation (the serving machine)** — **SETTLED 2026-08-16**:
+  spec `docs/specs/SERVING.md` accepted whole; decision record below stands
+  as history. OPENED 2026-08-16; user
+  critique: EdenFS/CitC borrowings named but machinery never designed, and the
+  laptop→fleet scale story unstated ("sharding — how?"). Decisions to settle,
+  research-first: (a) write/witness model — **RATIFIED 2026-08-16: journal-
+  first (Option C)**. The witness journal IS a session WAL log: FUSE_WRITE
+  appends a content-bearing op, group-committed before the reply (ack = the
+  witness; power-fail-safe, beats EdenFS's process-crash-only). Overlay =
+  derived, rebuildable state (crash recovery = replay; no fsck). Epochs seal
+  into CDC/BLAKE3 CAS snapshots at increments (OSTree/f4 demotion). Manifests
+  keep the one-bit dirtiness contract (hash = clean | journal-ref = dirty).
+  eg-walker op logs derived by diff at seal time, off the hot path, version-
+  pinned (satisfies the SESSIONS.md VFS rider). Journal = FS-service working
+  state, NOT ledger. Spec owed with the branch spec; (b) overlay
+  representation — **ACCEPTED 2026-08-16**: exactly two representations.
+  Mutable = per-pod log-structured work-volume overlay (per-volume journal +
+  extent index; single authority; cross-volume reads unrepresentable; volume
+  outlives pod, re-binds on handoff; no index checkpoint — rebuild bounded by
+  seal cadence, checkpoint is the tripwire; dirty reads = FUSE_READ copies,
+  DAX-for-dirty REJECTED as cross-volume leak via interleaved segments).
+  Immutable = manifests-over-CAS everywhere else (baseline, green chain,
+  seals, tools). Green = manifest chain, no journal: merge gate EXTENDS
+  (never writes) — chain record (version, manifest hash, increment refs) is
+  green's only WAL touch; serving instances compiled with no write path
+  (EROFS structural); all-DAX read-only, cross-pod page sharing; pods pin
+  green@version, re-bind at increment boundaries via manifest-diff targeted
+  invalidations (EdenFS checkout steal). Scratch volume role rider on VFS.md
+  (redirect paths unwitnessed, pod-local, die with pod). Increment submission
+  forces guest writeback drain (FUSE_FSYNC sweep) before seal; (c) metadata
+  model — **ACCEPTED 2026-08-16**: inode identity law = (volume, path-entry),
+  monotonic per volume, stable for the VOLUME's lifetime (table serializes +
+  re-binds with the volume — takeover steal; handoff invisible to (dev,inode)
+  tooling); content identity = manifest-entry hash, re-bind = hash swap under
+  stable inodes + targeted invalidations only (manifest diff), generation
+  numbers guard reuse; manifest entries carry (type, mode, size, BLAKE3) —
+  stat/readdir/ENOENT answered from manifest, zero fetch, no negative cache
+  (manifests complete); tree nodes = CAS chunks, lazy on first readdir;
+  content on open (presence check batched → DAX or extent read); digest
+  xattr contract: BLAKE3 xattr on clean files, ABSENT while dirty (honest),
+  feeds build tools + scheduler memoization; caching split: green/tools =
+  infinite TTL + explicit invalidation at re-bind, work volume = writeback
+  mode (sole-writer guest coherence, batches witnessed writes); prefetch =
+  template eager sets at bind + sampled-access-derived glob profiles
+  (observe-first, EdenFS ~1500-glob receipt), crawl detection → bounded
+  cache-fill (SES7); (d) DAX policy — read-mostly
+  windows; witnessing enforceability VERIFIED via research (per-inode
+  dax=inode + FUSE_ATTR_DAX + EROFS on WRITE mappings, shipped mechanisms);
+  REMAINING resolved — **(d) ACCEPTED 2026-08-16**: mapping engine = one
+  trait, two modes — splice (zero-copy page share) | managed-window (boot-
+  mapped window, daemon copies; zero runtime hypervisor calls; the one mode
+  where DAX + full witnessing could coexist); KVM = splice, HVF = splice
+  behind boot capability probe w/ managed fallback, WHP = managed until
+  proven; window = 2 MiB × derived peak hot ranges + 20-range reclaim
+  headroom, ceilinged by ~1.6% guest-RAM tax — all anchored in kernel
+  constants; **(e) ACCEPTED 2026-08-16**: own FUSE-over-virtio protocol layer
+  + backend trait native to hecate-rt, in-process device in the libkrun fork
+  (vhost-user rejected: process model + sync trait + ENOSYS DAX); borrow
+  structure not code (virtiofsd dispatch shape + zero-copy seam, libkrun
+  3-platform mapping paths, EdenFS inode discipline); advertise multiqueue
+  (5.5× receipt, Linux ≥6.10 guests); (f) scale topology —
+  **ACCEPTED 2026-08-16**: one weighted-HRW placement function over a
+  versioned, fenced host-inventory map (consensus-owned; consumes Branch 20's
+  API, doesn't own it); chunk-groups as placement unit (count = devices ×
+  target-groups-per-device ≈100–200, Ceph anchor) + explicit upmap-style
+  exception table; R-way replication on the live tier, R_eff = min(R_target,
+  distinct failure domains), degenerate durability LOUD (MinIO SNSD wording);
+  erasure only in the Archivalist cold tail (f4); cache = DAX → host
+  pack-volume store (append-only + in-RAM index, Haystack) → HRW peer →
+  shield/origin, single-flight at every layer, popularity-triggered
+  mirroring, never rehash-on-failure (Gutter); mutable = state-follows-
+  compute (primary at the scheduler's colocation host; HRW = replica set:
+  journal-ship to top-(R−1) successors, promotion order = the HRW list, no
+  data-path election; HRW enters scheduler locality scoring as preference);
+  hecate-wire gains batched-existence + group-granular fetch/repair verbs;
+  laptop = inventory of one, identical formulas, no modes; (g) the
+  single-guest-protocol advantage (Linux guest on every host OS ⇒ one serving
+  protocol; EdenFS's FUSE/NFS/ProjFS three-protocol matrix structurally
+  absent) — verify against libkrun/HVF/WHP findings. Research LANDED ×4:
+  EdenFS internals (overlay thrift schema, inode dual-map, metadata-only
+  journal, takeover, the 3-OS pain record); CitC/Piper (snapshot-on-save
+  verbatim, <10-file overlay, 2011 read-tier recipe: stat from metadata +
+  digests-as-xattrs, 500–800K QPS mostly build systems, zero-copy CI);
+  virtio-fs/DAX (witnessing enforceable via per-inode dax=inode +
+  FUSE_ATTR_DAX + EROFS on WRITE mappings — shipped mechanisms; in-process
+  device dissolves reconnect; managed-window copy mode = portable fallback;
+  multiqueue 5.5×; our fork = only 3-platform DAX in existence); sharded CAS
+  (flat weighted HRW à la Buildbarn, chunk-groups + upmap exception table,
+  pack volumes + batch existence checks, groupcache single-flight/mirroring,
+  MinIO/Ceph/SeaweedFS parameter-degeneration no-modes receipts, MinIO FS-mode
+  removal as the mode-bifurcation record). Next: (b) overlay representation.
 - **Walking skeleton** — final branch; re-presents against completed tree
   (P0 wire → P1 runtime → P2 spine → P3 pod leg → P4 first agent → P5 first
   merged change; now must thread Sibyl/home-session/lineage into first light;
@@ -89,8 +188,14 @@ specs are **on the table**; branches without specs are **open**.
 ## Cost ledger (accepted burdens; check every new decision against these)
 
 Owned wheels: runtime+SIM, claims protocol, hecate-wire codec, merge engine +
-verdict theorem, Z-set field engine, forked VMM stack (WHP = risk cell), sharded
-scheduler. Compounding: walking-skeleton first light is far behind the wheel
+verdict theorem, **landing engine (a second merge machine — distinct verdict
+surface: eg-walker replay + jj conflict algebra; accepted deliberately, opposite
+regime from the gate)**, **the serving machine (FUSE-over-virtio layer +
+log-structured overlay + mapping engine; rides owned WAL/chunk-store/fork —
+new surface, not a new stack)**, Z-set field engine, forked VMM stack (WHP =
+risk cell), sharded scheduler. Managed-window mapping mode = deliberate
+portability concession (one copy per 2 MiB miss on unproven platforms; the one
+mode where DAX + full witnessing coexist). Compounding: walking-skeleton first light is far behind the wheel
 count — acknowledged repeatedly, accepted under "we do not fear complexity."
 Other standing costs: encrypt-always CPU; per-increment validation; max/ultra
 primary models; full-machinery-locally (degenerate consensus, session infra

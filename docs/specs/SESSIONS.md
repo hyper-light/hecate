@@ -78,6 +78,9 @@ distinct three-layer machine — never the intra-session streaming merge reused:
    best case, O((k+m)log(k+m)); fork point is a critical version, checkpointed):
    exact position alignment and overlap detection — **emitting conflict values on
    intersection, never interleaving** (the CRDT default is wrong for code).
+   Detector, never resolver: the auto-merge semantics ADR-0005 rejected remain
+   rejected here; the intra-session gate never touches this machinery. Input op
+   logs derive from witnessed writes at seal time (`SERVING.md` §3, `VFS.md` §5).
 3. **Conflicts as first-class algebra values** (jj's term-list representation):
    landing into a lineage head **always succeeds**; conflict values propagate
    through subsequent landings by term extension + cancellation (no nesting);

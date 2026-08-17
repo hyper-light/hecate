@@ -41,6 +41,18 @@ the Arbiter with machine-precise evidence — never by a cold human at conflict 
   exists. **Tripwire recorded**: if p99 intervening-deltas-per-merge crosses a
   measured threshold (offline/long-lived divergence appears), this branch reopens
   with eg-walker as the leading candidate.
+
+  **Amendment (2026-08-16, SESSIONS.md/SERVING.md acceptance)** — two regimes,
+  one law. The rejection above is scoped to the **intra-session gate**, and its
+  tripwire stays armed, unfired. The **landing engine** (cross-session:
+  adopt-result, materialization — hours-to-days divergence across a known fork
+  point, eg-walker's best case) adopts eg-walker as **replay/overlap-detector
+  with its resolution semantics stripped**: it emits conflict values on
+  intersection and never interleaves. The auto-merge this ADR rejected remains
+  rejected everywhere. The one law: **no automatic resolution of concurrent
+  code edits, anywhere** — dispositions differ only by author liveness (gate:
+  author alive ⇒ reject-to-corrective; landing: author may be gone ⇒
+  first-class conflict value for late, validated resolution).
 - Agentic resolution inside the serializer: rejected — model latency and
   nondeterminism in the one component whose output must be a replayable pure
   function. Agentic judgment lives above the verdict, in the Arbiter.

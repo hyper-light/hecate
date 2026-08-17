@@ -81,8 +81,21 @@ Switching an agent to its alternate model when its primary provider fails. An op
 An optimistic, expiring write-basis snapshot used to guide work and skip merge effort where changes are provably disjoint. A work-reduction aid — never a substitute for real conflict detection at the merge.
 
 **Merge gate**:
-The single path by which completed work reaches disk. Work streams as increments: each increment's validations pass and it merges into green immediately at machine speed; the claim's whole-work validations — owned by the Arbiter, joined by the Architect where design judgment is needed — gate the disk commit (auto- or user-approved). Failures fix forward via superseding increments — green is never rolled back in place. There is no post-merge audit loop.
+The single path by which completed work reaches disk. Work streams as increments: each increment's validations pass and it merges into green immediately at machine speed; the claim's whole-work validations — owned by the Arbiter, joined by the Architect where design judgment is needed — gate the disk commit (auto- or user-approved). Failures fix forward via superseding increments — green extends, it is never written in place. There is no post-merge audit loop.
 _Green_ = increment-validated work; _disk_ = claim-satisfied work.
+
+**Landing**:
+The cross-session act of adopting results — into a lineage head, or materializing to a real target. Landing into a head always succeeds, carrying any overlaps as conflict values; materialization requires zero unresolved conflict values plus its review gate. A distinct machine from the intra-session merge gate, never a reuse of it.
+_Avoid_: merge (reserved for the gate), sync, rebase
+
+**Conflict value**:
+A first-class datum representing an unresolved overlap between landed changes — a term list that propagates through subsequent landings, collapses on identical edits, and is resolved by a change like any other. Never markers-in-files as the source of truth; never auto-resolved by any machinery.
+
+**Witness**:
+The serving boundary's durability contract for guest writes: the write is journaled and group-committed before the reply — acked means durable. No unwitnessed byte can exist in a work volume; unacked bytes are work-bearing memory and die with the pod.
+
+**Seal**:
+The freeze of a work volume's journal epoch at increment submission: guest writeback drained, per-file edit ops derived, content chunked into the content store, manifest updated. What seals is exactly what the agent fsync'd; sealed content is immutable and cache-coherent by construction.
 
 ### Skills
 

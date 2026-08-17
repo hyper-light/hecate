@@ -51,15 +51,22 @@ hashed like any content.
 
 ## 3. Volume roles
 
-Three roles, one store beneath them (intentional architecture, ratified):
+Four roles, one store beneath them (intentional architecture, ratified;
+scratch added by `SERVING.md` acceptance 2026-08-16):
 
 1. **Work volume** — per-pod RW overlay of its assigned work: writes land
    server-side into the overlay's delta manifest; basis leases validated at the
    serving boundary. ("Workspace" is retired from the design vocabulary
    (`SESSIONS.md`); the in-guest mount path may keep any conventional name.)
 2. **Green** — the session's versioned, serializer-owned staging truth
-   (increment-validated work only; `MERGE.md`).
+   (increment-validated work only; `MERGE.md`). Extended by chain append, never
+   written in place; serving instances carry no write path (`SERVING.md` §4).
 3. **Tools** — read-only composition of the pod's resolved tool manifests (§6).
+4. **Scratch** — pod-local, unwitnessed, unjournaled, unmergeable; mounted at
+   template/registry-declared redirect paths (`target/`, `node_modules/`,
+   caches) and freed at pod teardown. Exists so the witnessed overlay holds
+   source-tree mutations only (`SERVING.md` §2; the EdenFS-redirections /
+   CitC-vs-ObjFS split).
 
 The Designer's volumes are work-volume-role in isolation but never enter merge; its
 disk path is the Guardian-staged overflow flow with a threshold derived from the
@@ -81,6 +88,11 @@ rolls the write back with a typed error). Pressure telemetry streams to the Guar
   handle layer) proven in Sylk — now served over virtio-fs instead of in-process
   FUSE. Writes are captured server-side into the overlay; RO layers return
   EROFS-equivalent typed errors on write.
+- **Witnessed writes yield per-file op logs**: every captured write is a
+  content-bearing journal record (`SERVING.md` §2); at seal, per-file edit ops
+  are derived from successive witnessed versions by a pure, version-pinned
+  deriver — the landing engine's replay input (`SESSIONS.md` §5 layer 2). The
+  derivation runs off the hot path; same inputs ⇒ same ops, always.
 - Range reads and streaming are first-class (no whole-file `Vec<u8>` transfers as
   the only verb — the Sylk §4.4 portability list, closed).
 - **Merge–splice seam** (`MERGE.md` §1): accepted ops rewrite only the chunks their
