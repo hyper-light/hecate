@@ -75,9 +75,25 @@ specs are **on the table**; branches without specs are **open**.
 
 ## OPEN BRANCHES (no spec)
 
-- **14 Handoff detection math** — context accounting (provider usage vs local
-  estimate; what counts), threshold derivation, GP/UCB vs changepoint (CUSUM/
-  EWMA) for performance dropoff, evidence-bundle assembly. RESEARCH FIRST.
+- **14 Handoff: the full pipeline** — WIDENED 2026-08-16 (user: Sylk's
+  performance handoff "threw out some formulas, it never seemed to work
+  correctly or trigger" — the decay disease again; demand = practical
+  mechanisms end to end, not just math). Five sub-decisions, each settled
+  exactly: (1) **gathering** — which per-turn/per-instance signals are
+  collected, by what mechanism, at which chokepoints (HEALTH owns plumbing;
+  this branch names the concrete collectors); (2) **weighing/classification**
+  — how raw signals become graded evidence (windows, baselines, outcome
+  grades); (3) **storage** — where performance data lives (Scribe working
+  state vs health composites vs score service), durable vs re-derivable,
+  retention; (4) **trigger** — the detection math (changepoint CUSUM/EWMA vs
+  SPRT sequential testing vs Bayesian online changepoint; threshold
+  derivation; why Sylk's never fired) + the evidence-bundle exact content for
+  the single-Guardian-request flow (HEALTH §3); (5) **execution** — the
+  brief+claims handoff mechanics in full (brief content, claim transfer,
+  volume re-bind timing, model swap vs fresh instance, warm-up, in-flight turn
+  disposition). Context-handoff accounting (provider usage vs local estimate)
+  stays sub-decision (1)/(4) territory. RESEARCH DISPATCHED 2026-08-16 ×2:
+  degradation-detection literature + Sylk handoff post-mortem.
 - **15 Steering machinery** — mid-task user guidance: interrupts as
   supersession, priority hints as claim fields, turn-level injection.
 - **17 Remote client + terminal** — seam remote binding: attach/detach, view
