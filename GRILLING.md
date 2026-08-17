@@ -293,6 +293,60 @@ specs are **on the table**; branches without specs are **open**.
   R3 (global + reclamation machinery) and R4 (process-per-session only)
   rejected with reasons. Upstream shape: 4 commits incl. the I3
   KgWriter-DefaultHasher→xxh3 fix + pinned cross-build test vector.
+  **USER PUSHBACK 2026-08-17: Neo4j and Java graph DBs EXCLUDED as
+  references** (survey content stands only as cautionary evidence on
+  mutation machinery). **The IVF + Vamana overlay architecture is the
+  unique substrate** (Sylk core/vectorgraphdb: Vamana + IVF k-means + BBQ +
+  mmap + IVF-WAL; vorpal crates/ann tiers + §10 end-state RaBitQ/PipeANN/
+  ParlayANN/FreshDiskANN-SPFresh/ACORN) — distribution designed from ITS
+  components, nothing sacrificed, complexity unweighted. RESEARCH
+  DISPATCHED ×2: (i) component survey of both implementations (exact
+  algorithms, the overlay's precise mechanics, WAL, maintenance signals,
+  determinism seams); (ii) distributed vector-search anchored on the
+  DiskANN family (SPANN centroid-routing + closure multi-assignment,
+  SPFresh LIRE, ParlayANN deterministic builds, RaBitQ, ACORN) +
+  non-Java production systems (Turbopuffer/Pinecone-serverless
+  object-storage-native, Milvus segments, Qdrant; Vespa as contrast) —
+  judged against the sketch: replicated-everywhere centroid routing tier;
+  IVF cells as content-addressed HRW placement units; sealed per-cell
+  Vamana artifacts (pinned-order builds); closure multi-assignment =
+  boundary ghost-posting analogue; session overlays = exact-search flat
+  segments merged at re-baseline; rerank vs full vectors in the OWN object
+  tier; laptop degenerate.
+  **DISTRIBUTED-KG SYNTHESIS LANDED 2026-08-17 — base+overlay hypothesis
+  CONFIRMED: it IS Glean's production architecture** (stacked DBs verbatim:
+  "each layer can non-destructively add information to, or hide information
+  from, the layers below"; delta→base refs by fact-ID arithmetic; ownership
+  /slice hiding at 7% size / 2–3% indexing / <10% typical-query cost;
+  orphan-prevention law; shard = whole DB stack COLOCATED by base; Janitor
+  prefetch; central store + replicate-to-serving-caches; no consensus near
+  data). FOUR SHARPENINGS the draft lacked: (1) **overlay visibility
+  MASKING is the hard part, not distribution** — vorpal has zero slice
+  machinery; adaptation: overlay records changed-file set, query-time base
+  masking by provenance, base edges into masked nodes re-bind via stable
+  eid=blake3(path:entityPath) — redirect if survives, honest dangling
+  tombstone otherwise, confidence-labeled; NEVER compute derived tiers
+  (ANN/postings) over stacks (Glean's derived-facts caveat) — per-overlay
+  only; (2) overlay build unit = REVERSE-DEP CLOSURE of the edit (Glean's
+  C++ fanout receipt), closure computable from prior generation's reverse-
+  import edges, corpus-scale closures degrade loudly to baseline-rebuild
+  scheduling; (3) COLOCATION LAW: overlay served where its base generation
+  is resident — placement key = base generation, enters scheduler locality
+  scoring; session-private products stay in session key root, CAS bank
+  dedups only at-or-below baseline/green; (4) double-posted cross-realm
+  edges + seal-baked global stats + hub-realm replication or scatter-gather
+  silently degrades. Retained 'database' machinery: ref-CAS pointer w/
+  revision-floor reads + concurrent old+new generation serving + GC
+  new+prior — NOTHING else (no per-shard consensus/MVCC/txns/tombstones/
+  online rebalancing/dynamic index maintenance). Merge/relink: overlays =
+  mold philosophy (fast full relink of small corpus, 0.3–300ms derived);
+  baselines = Glean philosophy (scheduled hierarchical rebuild per lineage
+  advance, CAS product-bank sharing, warm 0.11s at linux scale); periodic
+  re-baseline bounds drift (Lucene compaction cadence, derived from
+  overlay/tombstone ratios); relink wall ≈4.8min/edit at Google scale =
+  the quantitative overlay boundary. Thin evidence enumerated (8 items;
+  subtree locality still the must-measure-at-seal). Branch 22 exchanges
+  now armed pending the IVF+Vamana pair.
 - **23 The document DB (records + full-text)** — ADDED 2026-08-16 (user: "as
   well as the document db"). The Archivalist's second organ: durable document
   records (papers from the academic handoff, design docs, session records,
