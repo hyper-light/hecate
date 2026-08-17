@@ -308,4 +308,30 @@ msg content only); throttle armed BY the low-utilization bug; provenance
 erased on the 7 real (context-limit) handoffs; the one green test runs a toy
 regime with the confidence gate disabled; the real trend detector
 (GetTrend/IsTrendingDown least-squares slope) exists with ZERO consumers.
-16 named lessons → Branch 14 spec tests.
+16 named lessons → Branch 14 spec tests. **Branch 14 detection-literature
+report LANDED** (2026-08-16): degradation is carried by accumulated context
+(sharded-vs-oneshot −39%; aptitude −16% vs unreliability +112%) ⇒ replacement
+is the right intervention class; best-evidenced signal = state-action
+recurrence (MAST 17.14%, OpenHands 4/3/3/6 thresholds in prod — only
+content-level detector shipping anywhere); NO production harness does
+automated mid-task replacement (Hecate builds ahead of precedent);
+Anthropic API has NO logprobs — entropy detectors unavailable and
+wrong-direction for loops; the math verdict = **risk-adjusted CUSUM**
+(Steiner 2000 — built for the case-mix/task-difficulty confounder that
+killed Sylk) with h = ln(ARL0) thresholds DERIVED from a per-session
+false-trigger budget δ (ARL0_i = T/δ_i, refined Brook-Evans/Monte-Carlo,
+DPCLs if mix volatile); BOCPD rejected (no false-alarm guarantee = hand
+constants again); fusion = priced K-of-N vote, never T²; Guardian
+adjudication = SPRT-shaped with the **fresh-context probe** as the single
+evidence request (the causal task-hard-vs-agent-degraded discriminator);
+commissioning via self-starting + fleet priors + FIR head-start on reset.
+Five-tier pipeline fully specified in the report. **Forest-design corpus
+READ in full** (2026-08-16, user directive): ECOLOGY.md (antigenic field,
+L-V competition, hybrids, photosynthesis invariant, disturbances, CSD,
+forest-as-participant), EMERGENT_FOREST.md (interaction-nodes, valenced
+edges, emergent density clusters + naming-as-gate, stages, PoI views,
+C/N/P/W channels, BCM/Turing/allelopathy, open questions), EMERGENT_AGENCY
+(cursor-in-baggage ambient, precedent→validation priors, stage→claim
+severity, brittle→maintenance claims, contradiction→Architect remediation,
+overrides-as-signal). FOREST hybrids marked PROVISIONALLY DIRECTED pending
+the reconciliation exchange (presented).
