@@ -393,3 +393,32 @@ dynamics stress-test — L-V outside biology (predictive or merely
 descriptive; simple supersession alternative), CSD false-positive record
 (Boettiger-Hastings prosecutor's fallacy; data requirements), conservation
 invariants prior art, multi-scale gain control (Go GC pacer, autovacuum).
+**Track A LANDED 2026-08-17**: clustering verdict = **fused-similarity exact
+HDBSCAN\*†own-impl** (pairwise → Prim MST → condensed tree → EOM +
+cluster_selection_epsilon) over d_fused = d_cos × φ(typed-edge strength),
+fixed-point, (weight,id,id) tie-breaks — RNG-free, exact at session scale
+(ms–s recompute; no incremental machinery justified <10⁵ items), ONE
+structure serves five consumers (soft membership→bridges, GLOSH→outliers,
+FLASC flares→frontier, DBSCAN\* slices); approximate_predict placement
+between debounced recomputes; **MONIC overlap-matching for lineage**
+(evolutionary clustering REJECTED — smuggles path-dependent state; cluster
+fresh, then match); Leiden = seeded cross-check alternative #2 (Louvain
+rejected: 25% badly-connected/16% disconnected defect; UMAP rejected:
+stochastic + thread races; streaming variants rejected: lossy
+order-dependent). KEY INSIGHT: contradicts edges are ATTRACTION for topic
+clustering (same subject); stance/faction = separate signed-graph question
+(frustrated-edge counting linear+exact; SPONGE only above derived density).
+Labeling: deterministic c-TF-IDF machine label + LLM curator name at
+promotion gate (LLM labels beat NPMI/C_v which are receipted-broken), name
+= ledger claim bound to MONIC lineage. Stages: KM maturity models =
+receipted vapor; citation-dynamics prior art (Ke sleeping-beauty B
+coefficient, parameter-free) → continuous scores, quantile bands, ratchet
+promotions, EWMA two-threshold hysteresis w/ derived gap (NIST/Nagios).
+PoI: Kleinberg batched burst DP (deterministic Viterbi; ln decomposes to
+per-recompute constants via own fixed-point ln — libm transcendentals
+receipted non-deterministic in Rust), exact Brandes + k-core + quantile
+Guimerà-Amaral roles, inverted sleeping-beauty brittleness, FLASC frontier.
+Implementation: i8-quantized embeddings + integer similarity (bit-exact),
+Q32.32, content-hash IDs, composite-key sorts, brute-force top-k (Faiss's
+own guidance at this scale), no ANN ever. Thin-evidence list on file (11
+items, incl. brittleness construction = ours not literature).
