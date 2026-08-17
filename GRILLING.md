@@ -339,13 +339,21 @@ specs are **on the table**; branches without specs are **open**.
   encrypted-at-rest-once with capability-gated access — MUST be settled,
   it decides the dedup story; (j) laptop degenerate — single-disk volumes,
   R_eff=1 loud, scrub still runs, identical formulas. RESEARCH FIRST when
-  opened: Azure Storage (stream/partition layer split), S3 ShardStore
-  (SOSP'21 — formally verified Rust LSM object store!) + S3 strong-
-  consistency retrofit, Facebook Tectonic (FAST'21), Ceph BlueStore
-  internals, MinIO erasure/healing, Backblaze vaults (17+3), LRC (Huang),
-  copyset placement (Cidon), chain replication (van Renesse), scrub/latent-
-  sector-error studies (Bairavasundaram), convergent encryption
-  (Tahoe-LAFS/DupLESS + attacks). Haystack/f4/groupcache receipts already
+  opened — **LEAD REFERENCE: Meta's Tectonic (FAST'21), per user direction
+  2026-08-17 ("given our emphasis on speed, Tectonic is likely more
+  appropriate")**: the exabyte-scale unified filesystem that consolidated
+  Haystack/f4 blob storage + warehouse storage into one multitenant system
+  — the very lineage (Haystack pack volumes, f4 hot/warm split) our
+  SERVING topology already adopted, with per-tenant optimizations and
+  disaggregated sharded metadata; study its client-driven architecture,
+  metadata layering, placement, and tail-latency machinery first and
+  measure every alternative against it. Then: Azure Storage
+  (stream/partition layer split), S3 ShardStore (SOSP'21 — formally
+  verified Rust LSM object store) + S3 strong-consistency retrofit, Ceph
+  BlueStore internals, MinIO erasure/healing, Backblaze vaults (17+3), LRC
+  (Huang), copyset placement (Cidon), chain replication (van Renesse),
+  scrub/latent-sector-error studies (Bairavasundaram), convergent
+  encryption (Tahoe-LAFS/DupLESS + attacks). Haystack/f4/groupcache receipts already
   on file. Underlies everything — sequences early in the walking skeleton.
 - **Walking skeleton** — final branch; re-presents against completed tree
   (P0 wire → P1 runtime → P2 spine → P3 pod leg → P4 first agent → P5 first
