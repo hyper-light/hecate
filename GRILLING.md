@@ -329,7 +329,12 @@ count — acknowledged repeatedly, accepted under "we do not fear complexity."
 Other standing costs: encrypt-always CPU; per-increment validation; max/ultra
 primary models; full-machinery-locally (degenerate consensus, session infra
 floor — ratcheted budget); shard-local placement optimality (slow rebalancer);
-two-phase arena lookups; tokio ecosystem cut off (blocking rustls egress).
+two-phase arena lookups; tokio ecosystem cut off (blocking rustls egress);
+**own S3-level object tier (user directive 2026-08-17: never pair to cloud
+providers — the chunk store IS the object storage; origin = authoritative HRW
+groups; erasure cold tail + scrub + repair owned; cloud only as an optional
+registry-declared external import source, never a dependency; SERVING.md §6
+amended)**.
 
 ## Research reports on file (in-conversation; summaries baked into specs)
 

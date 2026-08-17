@@ -98,6 +98,19 @@ Any state that is neither is a spec violation (architecture test, AC-1).
   in-RAM index) → HRW peer → shield/origin. Single-flight at every layer;
   popularity-triggered mirroring; failure absorbed by spare capacity, never
   load-rehash.
+- **The durable object tier is Hecate's own — never a cloud provider's**
+  (user directive 2026-08-17): the chunk store IS the object storage. The
+  origin behind every shield tier is the authoritative HRW placement group
+  itself, not S3/GCS/anything external; the registry's documents, index
+  generations, sealed snapshots, and archives all ride this one tier. What
+  S3-level durability requires, we own: R-way placement across failure
+  domains (§ above), erasure coding in the cold tail, background scrub
+  riding BLAKE3 verify-on-read, repair driven by the placement map. External
+  cloud storage may only ever appear as an optional, registry-declared
+  external source behind Guardian staging — a place content can be *imported
+  from*, never a tier Hecate depends on. (The Nix/OCI receipts are receipts
+  for the stateless-over-blob *pattern*; their delegation of the blob tier
+  to a provider is exactly what this rule forbids.)
 - Mutable side: **state-follows-compute** — primary lives at the scheduler's
   colocation host; HRW gives the replica set (journal-ship to top-(R−1)
   successors) and the deterministic promotion order. HRW enters scheduler
