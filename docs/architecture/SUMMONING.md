@@ -136,7 +136,7 @@ Hecate adopts Sylk's Tool VFS design — the part that was designed right and ne
   1. **Provision gate** — before any bytes are fetched: resolved package, source,
      hashes, license, full transitive closure, provenance/attestations. The Guardian
      inventories the closure, never trusts the author's manifest.
-  2. **Sandbox capability gate** — every spawn: proposed mounts, network policy,
+  2. **Sandbox capability gate** — every sandbox summon: proposed mounts, network policy,
      resource caps, purpose; verdicts include APPROVED_WITH_CAVEATS (capability
      downgrade).
   3. **Disk fallback gate** — consented, hash-pinned host-tool use, permanently tagged,

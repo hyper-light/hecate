@@ -894,8 +894,12 @@ specs are **on the table**; branches without specs are **open**.
   (P0 wire → P1 runtime → P2 spine → P3 pod leg → P4 first agent → P5 first
   merged change; now must thread Sibyl/home-session/lineage into first light;
   each rung carries fault-matrix cells; consumes Branch 29's gap ledger).
-- Small owed: full "Guide summons" language sweep (key sites corrected; grep
-  pass owed); ADR candidates (sessions/lineage+landing engine; deterministic
+- Small owed: full "Guide summons" language sweep — **DONE 2026-08-17**
+  (grep pass run: one violation fixed — SUMMONING.md sandbox gate "every
+  spawn" → "every sandbox summon"; remaining hits verified legitimate:
+  process-level spawn in PODS/RUNTIME, deliberate session-creation
+  vocabulary in SIBYL/SESSIONS, AGENTS.md's "no Orchestrator" denial);
+  ADR candidates (sessions/lineage+landing engine; deterministic
   optimism; forest; open roster/offices) — offer per ADR rules.
 
 ## Cost ledger (accepted burdens; check every new decision against these)
