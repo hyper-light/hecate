@@ -334,4 +334,19 @@ C/N/P/W channels, BCM/Turing/allelopathy, open questions), EMERGENT_AGENCY
 (cursor-in-baggage ambient, precedent→validation priors, stage→claim
 severity, brittle→maintenance claims, contradiction→Architect remediation,
 overrides-as-signal). FOREST hybrids marked PROVISIONALLY DIRECTED pending
-the reconciliation exchange (presented).
+the reconciliation exchange (presented). **Reconciliation research pass
+DISPATCHED ×3** (2026-08-16, user directive — alternatives/mechanisms/
+improvements before settlement): (A) structure layer — clustering at bounded
+deterministic scale (HDBSCAN family vs Leiden/graph-community vs exact
+linkage; fused embedding+edge similarity question), cluster labeling,
+stage-band threshold/hysteresis derivation, PoI mechanisms (Kleinberg burst,
+incremental betweenness, sleeping-beauties brittleness); (B) propagating
+invalidity — CHALLENGE to the antigenic-field formulation: TrustRank/
+Anti-TrustRank/Guha distrust as PPR-seed-set alternative (no learned head),
+label spreading closed-form, the honest AIS record, incremental Fiedler/
+λ_max monitoring, retraction-contamination + clone-defect propagation as
+the receipt domain for whether invalidity actually propagates; (C) ecology
+dynamics stress-test — L-V outside biology (predictive or merely
+descriptive; simple supersession alternative), CSD false-positive record
+(Boettiger-Hastings prosecutor's fallacy; data requirements), conservation
+invariants prior art, multi-scale gain control (Go GC pacer, autovacuum).
