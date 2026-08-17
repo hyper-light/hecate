@@ -279,4 +279,28 @@ most detailed doc spec (Archivalist Knowledge Decay Protocol) never shipped;
 6+ subsystems built-tested-unreachable. 15 named lessons → become named tests
 in the successor decay spec. VERDICT IMPLICATION: Sylk is evidence about
 implementation discipline, NOT evidence against ACT-R-the-model; the
-best-fit question stays open pending the literature report.
+best-fit question stays open pending the literature report. **Decay
+literature report LANDED** (2026-08-16): ACT-R form scores BELOW a
+constant-prediction baseline on the only large head-to-head (350M reviews:
+LL 0.4033 vs 0.3945, AUC 0.52); three literatures converge (MCM/DASH,
+marked Hawkes w/ exp-mixture power tails, LRFU/TinyLFU/forward-decay) on ONE
+object: clamped signed multiscale decayed-trace score w/ saturating gain;
+K=O(log range) registers (Beylkin-Monzón), DASH-recipe convex GLM fitting,
+TinyLFU duel admission, Soar crossing-time retirement; FSRS = ranked alt #2
+(lapse-collapse kept as negative-gain rule). Recommendation presented as the
+FOREST retention-model exchange — awaiting user verdict. **Sylk handoff
+post-mortem LANDED** (2026-08-16, for Branch 14): 0 performance handoffs in
+9,780 WAL observations over 3 months — the doc'd detector (ShouldTakeAction,
+peak zones, degradation thresholds) NEVER EXISTED (zero grep hits); shipped
+trigger = GP.mean < 0.5 point comparison; 2 of 3 signal channels have ZERO
+producers (StreamMetrics never assigned anywhere; behavior channel never
+called); surviving signal 97.05% constant 1.0; threshold frozen at Beta(2,2)
+prior = 0.5 across 9,204 checkpoints (split-brain profiles: learner's copy
+updated, controller's read; plus zero-value bool gate skipping every update);
+GP prior mean = constant 0.7 > threshold (trigger unreachable where data
+sparse); context-size feature corrupt (83% of values <100 tokens — counted
+msg content only); throttle armed BY the low-utilization bug; provenance
+erased on the 7 real (context-limit) handoffs; the one green test runs a toy
+regime with the confidence gate disabled; the real trend detector
+(GetTrend/IsTrendingDown least-squares slope) exists with ZERO consumers.
+16 named lessons → Branch 14 spec tests.
