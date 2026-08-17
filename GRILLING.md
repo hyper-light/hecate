@@ -421,4 +421,36 @@ Guimerà-Amaral roles, inverted sleeping-beauty brittleness, FLASC frontier.
 Implementation: i8-quantized embeddings + integer similarity (bit-exact),
 Q32.32, content-hash IDs, composite-key sorts, brute-force top-k (Faiss's
 own guidance at this scale), no ANN ever. Thin-evidence list on file (11
-items, incl. brittleness construction = ours not literature).
+items, incl. brittleness construction = ours not literature). **Track B
+LANDED 2026-08-17 — the antigenic field is REPLACED**: verdict = **two-field
+seed-set PPR** — corruption = PPR from contradiction/pathogen seeds
+(Anti-TrustRank, which BEAT TrustRank per unit labeling at every recall
+level) + immunity = PPR from validation seeds (TrustRank), both over one
+composite reversed-provenance kernel (derivation edges heavy ⊕ co-derivation
+siblings [Guha's 0.4 co-citation receipt + clone receipts] ⊕ semantic-kNN
+over pinned embeddings small ⊕ agent-authorship smaller/longer), α≈0.85,
+out-degree splitting; infection q(v)=max(0, c−i); superposition = per-
+pathogen attribution + exact cure subtraction; ACL forward push + O(1)
+amortized incremental (Zhang-Lofgren-Goel) — unifies with existing PPR
+machinery, ZERO learned components (learned pathogen head unearned: AIS/
+negative-selection receipted underperforming simple baselines — Stibor).
+**contradicts edges are ONE-STEP ONLY** (Guha: transitive distrust
+semantically broken; one-step won at 81-scheme scale); derivation chains
+carry steep geometric decay — CALIBRATION ANCHORS from retraction studies:
+hop-1 heavy (93.6–96% of post-retraction citations unaware, 3 studies),
+hop-2 content ≈ absent (use induces direct edges — van der Vet full-network
+case), semantic spillover ~10× weaker (Azoulay 5–10% lasting decline),
+author channel ~7%/yr to 4 hops (Lu), cure conditioned on invalidation
+PROVENANCE (self-report penalty vanishes entirely — Lu). **Fiedler-drop
+outbreak detection was WRONG**: licensed statistic = s = C_field·λ₁(W_corr)
+vs 1 (Wang SRDS'03 + Prakash G2-threshold theorem, 25+ models); fixed-seed
+power iteration, Weyl skip-gate; Priebe scan statistics for localized
+attribution; DeltaCon for drift; quarantine interventions ranked by λ₁
+eigendrop. **ATMS hard channel** (de Kleer): sole-support closure of a
+collapsed-S item = hard-OUT deterministically; else graded retrieval
+demotion (1−q)^γ, continuous internally, discretized only at action edges
+w/ hysteresis (Guha: rounding step 'of significant importance'). Clone-
+defect receipts (Juergens ICSE'09: 52% clone groups inconsistent, ~half of
+unintentional = faults) ground graded-not-hard sibling suspicion. Thin:
+graded-vs-hard retrieval A/B absent; hop-2 decay = the number to re-measure
+from own harness data.
