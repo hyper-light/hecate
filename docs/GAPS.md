@@ -216,12 +216,19 @@ Architecture set (AGENTS/LEDGER/PLATFORM/SKILLS/SUMMONING + CONTEXT + ADRs
   Noise handshake); fork-quinn = dominated middle (iroh/noq trajectory as
   receipt). Ledger: loss-recovery/CC subtlety = the one genuine risk,
   mitigated by pseudocode-as-tests + seed-replayable SIM (the owned-
-  consensus-core posture); wheel count +1 acknowledged; (c) per-core throughput work items
-  (sendmmsg/GSO batching, ACK-frequency tuning — Fastly parity receipt) as
-  acceptance gates; (d) whether any TCP fallback survives for UDP-hostile
-  networks (robustness question, not convenience); (e) TRANSFER.md §3/§8,
-  PROTOCOL §1.2/§3/§4, FAULTS §3, WIRE_FORMAT amendments enumerated in the
-  dossier. Rationale anchor: the workload is bursty/concurrent/low-bandwidth-
+  consensus-core posture); wheel count +1 acknowledged; (c) **SETTLED-BY-CONSTRUCTION 2026-08-18**: the batching/ACK-frequency
+  items are `hecate-quic`'s own ratchet gates (P-a4); (d) **SETTLED
+  2026-08-18 (user, verbatim): "no fallback. Period. QUIC + UDP over TCP
+  utilizing the standard(s) we just designed."** — TCP exists NOWHERE in
+  the mesh: no tunnel, no tripwire contingency (my telemetry+contingency
+  recommendation overruled — recorded per discipline); the terminal edge
+  is QUIC/UDP like every other participant; RUNTIME §5's provider-egress
+  h2/1.1 is unaffected (external APIs are their wire, not our mesh);
+  (e) **ACCEPTED 2026-08-18 ("fine")** — executes as the PROTOCOL.md
+  whole-spec re-presentation (A1–A6 + the D-10 rewrite: TCP stack deleted,
+  two-plane UDP carriage, WIRE_SECURITY key model, archetype/lane
+  classification + boot classifier, TRANSFER/FAULTS/WIRE_FORMAT
+  cross-amendments, D-7/D-8 reconciliations same-commit). Rationale anchor: the workload is bursty/concurrent/low-bandwidth-
   exposed (agent swarms, laptops, multi-region) — the regime where the QUIC
   receipts (HOL independence under loss, connection migration, multiplexed
   streams, edge-measured wins) bind, and the TCP storage-census receipts

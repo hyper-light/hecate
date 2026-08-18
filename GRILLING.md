@@ -1655,3 +1655,11 @@ Rejected: adopt (fails no-panic law, lint wall — Bytes=Arc in hot path,
 IO-as-data shape, conformance obligation), fork (dominated middle, iroh→
 noq receipt). Risk to ledger: loss-recovery subtlety, mitigated
 consensus-core-style. D-10(c) folds in as hecate-quic ratchet gates.
+**D-10(c)/(d)/(e) SETTLED (2026-08-18)** — (c) folded into hecate-quic
+ratchet gates; (d) user verbatim: "no fallback. Period. QUIC + UDP over
+TCP utilizing the standard(s) we just designed" — TCP deleted from the
+mesh entirely, no tunnel, no tripwire (architect's telemetry+contingency
+recommendation overruled, recorded); provider-egress h2/1.1 unaffected
+(external plane); (e) accepted — PROTOCOL.md re-presentation is the
+execution vehicle. **D-10 IS FULLY SETTLED.** PROTOCOL.md amended spec
+presented in-message next.
