@@ -2010,5 +2010,17 @@ transfer cost). Convergent stack across all surveyed end-states:
 pools → hard feasibility (requirements + repulsion, pure predicates) →
 deterministic scoring → quota-at-admission → gang. Determinism red flags:
 online classifiers + NoExecute eviction (⇒ drain-not-kill only).
-Predicate-cost mitigation = equivalence classes + SEEDED sampling (Borg:
-hundreds of seconds vs >3 days). Exchange presented.
+Predicate-cost mitigation — CORRECTED on reconciliation (2026-08-18):
+SCHEDULER.md §5 already ratifies the STRICTER law ("Score every candidate
+in the shard — no sampling… injects banned nondeterminism; its benefit
+inverts when feasibility is scarce, kubernetes#108606"; AC-2 = no sampling
+code exists, architecture test) — and heterogeneity STRENGTHENS it
+(feasible sets shrink ⇒ sampling's benefit inverts further). The Borg/K8s
+sampling receipts = why THEY sampled at their scale, never a mechanism
+available here; Hecate-legal mitigation = equivalence classes +
+content-keyed memoization only (§5's bundle-hash/constraint-set/
+state-version keying). Also: the "11% picky jobs" correction had no
+target — no Hecate doc ever cited it; all existing Borg citations
+verified sound. Exchange presented, now with the sampling clause struck
+and one added amendment: SCHEDULER §6's "exact on homogeneous nodes" fit
+claim becomes exact-PER-CLASS once node classes exist.
