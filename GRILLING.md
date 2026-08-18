@@ -34,8 +34,23 @@ specs are **on the table**; branches without specs are **open**.
 single status authority; this table is an index. The audit found the table
 over-claimed — the following rows are **DIRECTION-SETTLED ONLY (whole-spec
 verdict owed; headers honestly say "presented")**: PROTOCOL
-(Br 3), MERGE (Br 4), VFS (Br 5), PODS (Br 6), AGENTS_RUNTIME (Br 7),
-RANK (Ex 8), SCHEDULER (branch mislabeled "21" — C-6). WAL (Br 2):
+(Br 3) — **acceptance exchange OPEN 2026-08-17, held on the
+class→transport question**: the audit's six amendments (fencing authorities
+under the meta tree, HLC liveness-only, no-panic P7 fix, D-7 LEDGER/ADR-0002
+reconciliation, D-8 grants→Branch 25, cluster-SIM + layer note) were
+presented; the user then surfaced (1) the audit's real gap — the spec never
+states the class→transport mapping — with the Serf/Consul lineage
+clarified (correction recorded: Consul rides SWIM probes on UDP but Raft
+RPCs + anti-entropy on TCP), and (2) the load-bearing challenge: bulk/
+multi-media (class 6) arguably belongs on UDP — content addressing voids
+the ordered-stream guarantee (TRANSFER's "assembly is by manifest, not
+arrival"), so TCP HOL blocking is pure cost; missing-set = retransmit;
+receiver-granted credits ≈ Homa-shaped receiver-driven pacing (the
+published incast answer); the hard wheel = owning congestion control.
+Research dispatched (Homa/NDP/QUIC-RFC9002/storage-plane practice/incast-CC
++ three-architecture reconciliation vs TRANSFER/PROTOCOL §4/FAULTS/
+cross-region). MERGE (Br 4), VFS (Br 5), PODS (Br 6), AGENTS_RUNTIME
+(Br 7), RANK (Ex 8), SCHEDULER (branch mislabeled "21" — C-6). WAL (Br 2):
 **ACCEPTED 2026-08-17** ("amend and accept" — five audit amendments:
 consensus-substrate clause (per-GROUP logical logs incl. meta tree, raft
 record kinds, entries-then-HardState by append order, prefix-truncation
