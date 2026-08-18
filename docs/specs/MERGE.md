@@ -1,7 +1,8 @@
 # SPEC: the merge engine — canonical rebase, deterministic verdict, distributed staging volume
 
-Status: ACCEPTED 2026-08-18 (whole-spec rewrite through the six-exchange
-grilling arc: writer self-fencing (A1, corrected), descriptor increments +
+Status: ACCEPTED 2026-08-18 (whole-spec rewrite through the grilling arc;
+A1 re-audited and FUSED same day — proposer = session-group leader, term
+is the only fence, generation/SerializerOpen deleted; descriptor increments +
 fixed-layer ops documents (A2, corrected twice under maximal audit),
 replicated-state-machine merge service, green version replication, the
 volume-object model, and the submission transaction — all receipted; dossiers
@@ -45,7 +46,7 @@ copy-on-write. Any pod on any node attaches to any version (§6); readers
 attach to immutable versions; **no mount writes green — its writer is the
 log** (§2).
 
-**The merge service is a replicated state machine with one baton:**
+**The merge service is a replicated state machine whose proposer is its leader:**
 
 ```
         the replicated merge log (session group: 3 machines, identical copies)
@@ -54,17 +55,19 @@ log** (§2).
         └────▲─────┴────▲─────┴────▲─────┘
              │ appends   │ applies  │ applies
         ┌────┴─────┐ ┌───┴────┐ ┌───┴────┐
-        │ PROPOSER │ │applier │ │applier │   ← merge service, 3 instances
-        │ (baton)  │ │ (warm) │ │ (warm) │
+        │ LEADER = │ │follower│ │follower│   ← merge service, 3 instances
+        │ PROPOSER │ │ (warm) │ │ (warm) │
         └──────────┘ └────────┘ └────────┘
 ```
 
 All three instances apply every committed merge record (that is what a Raft
-state machine *is* — paper §5.3); exactly one holds the **baton**: a
-generation number written into the log itself. Only the baton-holder may
-append — decide verdicts, advance the version number. If its node dies, an
-applier writes "I take the baton, generation g+1" and continues — no replay,
-because it was never behind; and it already holds the bytes (§5).
+state machine *is* — paper §5.3). **The proposer is a role of the session
+group's Raft leader** — deciding verdicts and advancing the version number
+is what leadership of this group means; there is no separate writer role
+and no separate fence. If the leader's node dies, a follower wins the
+election (log-current by Raft's own restriction) and *is thereby* the new
+proposer — no replay, because it was never behind; and it already holds
+the bytes (§5).
 
 **One edit, three machines, walked** (pod on A edits `main.rs`; session home
 = B; reader pod on C):
@@ -124,41 +127,52 @@ map:     position-map ops through canonical deltas (base..head]
 verdict: two pure passes (§3)
 apply:   splice accepted ops into a new manifest (chunk-granular, VFS §5)
 place:   push the version's new blobs to the session-group members; await acks
-commit:  merge record {id, verdict, version, manifest_hash, (term,gen)}
+commit:  merge record {id, verdict, version, manifest_hash, term}
          through the session group — a merge that cannot be recorded never
          applies; a version that is not placed is never referenced
 ```
 
-## 2. Writer authority — the baton (self-fencing through the log)
+## 2. Writer authority — the proposer is the leader
 
-The merge log is a per-session logical log on the WAL substrate, committed
-through the session group like every log. **Content-addressed writes need no
-fencing — only the log does**: a stale instance writing blobs produces
-orphans GC sweeps; authority lives entirely in log append.
+(Re-audited and fused 2026-08-18; the prior generation/`SerializerOpen`
+design is deleted — see the rejected-alternative record below.)
 
-- **Open marker**: a new proposer instance's first act is committing
-  `SerializerOpen { generation }` (prior generation + 1, derived from the
-  log it just applied). The commit is simultaneously the leadership proof
-  (only the current leader's client commits anything) and the fence (every
-  prior generation is superseded as quorum-committed state). No side channel
-  exists to disagree, because the fence *is* the authoritative state.
-- **Carriage + enforcement**: every merge record carries `(term, generation)`;
-  the session group's state machine refuses mismatches pre-apply — one
-  lexicographic integer compare, zero crypto.
-- **Liveness**: leader fortification on the node-liveness fabric + the
-  ownership-tree restart (RUNTIME task-lifecycle law). No separate lease
-  machinery exists.
-- **Precedents (receipted)**: the fence-in-the-log pattern is Raft's own
-  term, BookKeeper's fence op, Kafka's KIP-101 leader epoch, and Zab's
-  epoch-in-zxid — four independent production instances.
-- **Failure matrix**: task crash ⇒ restart, apply-to-head, open gen+1; node
-  death ⇒ an applier promotes (one commit — failover at election-timeout
-  scale, not replay); zombie node ⇒ cannot commit (quorum) and is
-  generation-stale besides; pause-and-resume ⇒ the resumed instance's
-  batches carry a superseded generation, refused at apply (the case the
-  generation exists for).
-- **Log invariant**: generations are monotone non-decreasing in log order —
-  scannable; violation is structural corruption (FAULTS §2 disposition).
+- **The merge proposer is a role of the session group's Raft leader.** The
+  fence is the **term** — stamped on every merge record, enforced natively
+  by Raft (a deposed leader's appends never commit). There is no second
+  epoch: no shipped system fences a replica-resident writer with an epoch
+  separate from its own group's term, and the fusion receipts are
+  unanimous — TiKV's region write role IS its Raft leader; KRaft's active
+  controller IS the quorum leader; Multi-Paxos's distinguished proposer IS
+  the leader.
+- **Succession is leadership**: a new leader's term-opening no-op (the
+  Ongaro guard, CONSENSUS §4) is the succession marker; promotion after
+  failure = election among log-current followers (election-timeout scale);
+  planned handoff = leadership transfer (CS6). Warm followers apply every
+  record continuously (§5) and hold the placed bytes, so a new proposer
+  starts at the head with content in hand.
+- **Placement preference, load-bearing**: session-group leadership is
+  fortified at the colocation node (leadership-follows-the-unit); on
+  divergence, leadership transfers back within a derived bound — the
+  scheduler moves the unit only when the node itself is unhealthy.
+- **Intra-process races need no distributed fence**: hecate-rt shards are
+  single-threaded and every task's owner holds its handle — a torn-down
+  task never runs again (RUNTIME task-lifecycle law). A paused-and-resumed
+  *process* is a stale leader; term + fortification + CheckQuorum depose
+  it.
+- **Content-addressed writes still need no fencing** — a stale instance's
+  blob writes are orphans GC sweeps; authority lives entirely in log
+  append, which the term governs.
+- **Rejected-alternative record**: the prior design — a proposer fenced by
+  `SerializerOpen{generation}` markers, free-floating relative to
+  leadership — is CockroachDB's pre-fortification leaseholder
+  architecture: a separately-fenced in-group writer whose divergence from
+  the Raft leader produced the documented "leader-leaseholder splits"
+  (indefinite-outage variant), retired by the Leader Leases protocol
+  change that merged the roles (85% lease-CPU reduction, seconds-scale
+  recovery). We do not rebuild what they spent a protocol change deleting;
+  the fortification their fix rests on is already accepted law
+  (CONSENSUS §3).
 
 ## 3. The verdict — two pure passes
 
@@ -250,7 +264,7 @@ to **immutable versions** (the container-image-by-digest sharing pattern —
 per-pod instantiation from the local store, never a shared live mount);
 version advance is the pod's next re-attach, an explicit lifecycle event.
 **No mount writes green**: the writer is the log (§2); "write access" is the
-baton, not a filesystem mode. Cross-node access is the read-through fill of
+term-holder's role, not a filesystem mode. Cross-node access is the read-through fill of
 §0 — mount-anywhere with locality as caching (receipts: K8s images, EdenFS's
 own four-tier read path, Nix/OSTree).
 
@@ -280,8 +294,7 @@ with its governing settlements:
   review claims derived from the merge log; the gate (§9) fires at work-claim
   close, not in this pipe.
 - **Failure semantics**: timeout ⇒ resubmit (identity dedup makes retries
-  always safe); home-node failover ⇒ resolver re-points to the promoted
-  applier, resubmit lands there, at-most-once holds; submitter dies after
+  always safe); home-node failover ⇒ the new session-group leader IS the new proposer; the resolver re-points, resubmit lands there, at-most-once holds; submitter dies after
   commit ⇒ the claim's state shows the increment applied — the handoff
   successor resumes from the claim, not a lost ack; source node dies before
   fetch ⇒ typed failure, claim redelivers (the priced seal-to-land loss
@@ -337,10 +350,10 @@ with M12 restated for the two-pass shape: no IO inside either pure pass).
 
 | # | Test | Catches |
 |---|---|---|
-| M13a–c | Baton races: restart / pause-resume / colocation-move + zombie-heal fuzz ⇒ stale generations refused pre-commit; single lineage; no state anywhere names a proposer except the log's open markers | the Kleppmann class; dual-authority wedge |
-| M13d | Writer-roster boot check (CONSENSUS §6) | unclassified writer |
-| M13e | Fence check does zero crypto/allocation | fencing as hot-path tax |
-| M13f | Open-marker lineage monotone + gapless under nemesis fuzz; replay-derivable | fence divergence |
+| M13a–c | Leadership races: leader kill / pause-resume / transfer / partition-heal fuzz ⇒ stale-term records never commit; single version lineage; no state names a proposer except leadership itself | the Kleppmann class; the CRDB split class made unrepresentable |
+| M13d | Writer-roster boot check (CONSENSUS §6): merge proposer registered as leader-fused | unclassified writer |
+| M13e | Term check does zero crypto/allocation | fencing as hot-path tax |
+| M13f | Leadership-follows-the-unit: fortification preference holds; forced divergence ⇒ transfer-back within a derived bound; proposals pay at most one extra hop meanwhile | silent leadership drift |
 | M14a | No byte-bearing field compiles in increment types (trybuild) | inline content returning |
 | M14b | Same witnessed stream ⇒ identical ops-doc ContentRef, cross-platform | split-brain derivation |
 | M14c | Splice ≡ reference applier (differential) | descriptor path losing bytes |
@@ -368,8 +381,9 @@ with M12 restated for the two-pass shape: no IO inside either pure pass).
 5. Frontier state fully re-derivable; review claims + finding testaments are
    the only ledger objects the review pipeline creates.
 6. Conflict windows byte-exact; AST label-only.
-7. The proposer appears in the boot writer roster; generations monotone in
-   the log (M13d/M13f permanent).
+7. The proposer is leader-fused in the boot writer roster; no
+   generation/epoch state exists for it outside the Raft term (M13d/M13f
+   permanent; architecture test: grep-proof no second fence).
 8. No content byte rides the claims plane in any merge type; increments are
    constant-size (M14a/M14f permanent).
 9. The deriver is composed-net-ops with the never-diff clause as text
