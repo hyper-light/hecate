@@ -30,7 +30,7 @@ other classes are read against it.
 | PODS.md | presented (Br 6) | T1–T19 | 13 | yes (formula-derived) |
 | AGENTS_RUNTIME.md | presented (Br 7) | R1–R11 | 6 | not stated |
 | RANK.md | presented (Exch 8) | K1–K8 | 5 | not stated |
-| SCHEDULER.md | presented (§9b accepted inline) | SCH1–15 | 8 | yes (shard=1, SCH9) |
+| SCHEDULER.md | presented (§9b + heterogeneity amendment accepted inline) | SCH1–21 | 10 | yes (shard=1, SCH9 + SCH21) |
 | FOREST.md | presented + PROVISIONALLY DIRECTED ×2 | F1–F21 (no F20) | 6+4b | §5b "local", not named laptop |
 | SERVING.md | ACCEPTED 2026-08-16 | FS1–FS15 | 10 | yes (§6, AC-9) |
 | SESSIONS.md | ACCEPTED 2026-08-16 | SES1–SES13 | 8 | yes (§9, SES11) |
@@ -268,19 +268,20 @@ Architecture set (AGENTS/LEDGER/PLATFORM/SKILLS/SUMMONING + CONTEXT + ADRs
   posture; laptop degenerate (one pod = trivially consistent). Settle with
   FOREST.md's pending whole-spec verdict (D-4).
 
-- **D-13 Resource-kind vocabulary derivation pass — OWED (2026-08-18),
-  sequenced immediately before the SCHEDULER heterogeneity amendment
-  presentation.** The typed-resource law is accepted (consumed ⇒ typed
-  `(kind, type, quantity)` entries in the accounted vector; matched-only
-  ⇒ class attribute; discriminator: "can two pods exhaust it?"). The kind
-  vocabulary must be DERIVED from actual consumers, never invented: sweep
-  PODS.md (tiers, microVM overhead), OBJECT_TIER/SERVING (NVMe
-  capacity/bandwidth), VECTOR_INDEX + Branch 34 (accelerator candidates),
-  Branch 23 (memory class); mint exactly the kinds those specs demand,
-  each derivation at its definition site. Expected v1 shape: {cores, mem,
-  storage_cap, storage_bw}; the accelerator kind structurally provided
-  for but unminted until a Hecate-hardware consumer exists. Spec-readable
-  now (no code required); blocks the SCHEDULER §5/§6 amendment.
+- **D-13 Resource-kind vocabulary derivation pass — CLOSED 2026-08-18.**
+  Pass executed (PODS, OBJECT_TIER, SERVING, VECTOR_INDEX, Branch 23/34
+  charters swept); v1 vocabulary minted and written into SCHEDULER §5a:
+  `cores`, `mem` (PODS §2 role profiles + Branch 38(b) microVM overhead),
+  `storage_cap(nvme)` (Branch 37 summon budget charge + OBJECT_TIER
+  capacity formulas), `storage_write_bw(nvme)` (OBJECT_TIER endurance
+  budget — dual-reader: admission accounts, OT13 servo enforces).
+  Boundary calls recorded: repair/scrub IOPS NOT minted (fleet-plane
+  pacing, no summon-time consumer); accelerator kind structurally
+  provided for, UNMINTED until a Hecate-hardware consumer exists (none in
+  tree — agents use provider-side models; forest/vector are CPU/SIMD).
+  Matched-only attributes confirmed: cpu_gen/ISA, region, plane role.
+  Discriminator law ("can two pods exhaust it?") + no-label-beside-counter
+  now SCHEDULER §5a text, enforced by AC-9/SCH18.
 
 ## 3. Undesigned (open branches, charter only)
 

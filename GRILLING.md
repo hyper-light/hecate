@@ -1074,6 +1074,10 @@ CONSENSUS+FAULTS, OBJECT_TIER §9 (D-3).
   degenerate = the one-node join is the boot path itself. Original
   charter (cordon/drain semantics, Ceph noout, Borg maintenance, SMART
   receipts) stands as the research-first list. Ruthless mechanics.
+  CONSUMED-BY (2026-08-18): the SCHEDULER heterogeneity amendment
+  (§1/§5a) consumes the host-profile actuator (class rebind = a mini
+  node-join; convergence states in the inventory map) and the per-plane
+  repair-suppression scopes (noout class) — mechanics owned here.
 - **38 The laptop collapse (whole-system scale-down)** — ADDED 2026-08-18
   (user). The standing law — laptop = the DERIVED degenerate of the same
   code, no modes ever — has per-spec statements but no branch that works
@@ -2082,6 +2086,20 @@ immediately before the SCHEDULER amendment presentation. Item 4
 performance coefficients: ACCEPTED — slot-now-identity-matrix, activation
 gated on the first commissioning baseline (fit-before-influence, the
 FOREST AC-4 pattern).
+**Heterogeneous-placement amendment ACCEPTED 2026-08-18 ("accepted.")** —
+D-13 pass executed first as sequenced (v1 vocabulary {cores, mem,
+storage_cap(nvme), storage_write_bw(nvme)}; write-bw dual-reader call —
+admission accounts, OT13 servo enforces; repair/scrub IOPS not minted;
+accelerator slot reserved unminted; D-13 CLOSED in GAPS). SCHEDULER.md
+amended in-file: §1 node classes (registry equivalence key, meta-group
+membership, Branch-32 host-profile actuator), §2 intake gains map-state
+transitions + coefficient epochs, §5a typed vector + two-axis repulsion
+(three pure predicates; label change from presentation: coefficients
+section landed as §5b, not §5c — no gap minted), §5b epoch-frozen
+coefficients (identity until commissioning epoch 1), §6 typed-budget
+coherence clause, SCH16–21, AC-9/10, header status line. GAPS inventory
+row updated (SCH1–21, AC 10). The heterogeneous-placement item of the
+SCHEDULER whole-spec exchange is SETTLED.
 **Placement exchange NOW WORKED IN THE RESEARCH THREAD (2026-08-18)** —
 the thread verified the tree (Branch 28 secrets + Branch 35 hosting
 confirmed on-tree; GAPS §3 staleness re Branch 35 fixed this commit),

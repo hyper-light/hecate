@@ -1,6 +1,9 @@
 # SPEC: the scheduler — sharded deterministic spine, speculative planners
 
 Status: presented for acceptance (grilling Branch 21; direction ratified).
+Heterogeneity amendment (§1 node classes, §5a typed vector + two-axis
+repulsion, §5b epoch-frozen coefficients, §6 typed-budget coherence,
+SCH16–21, AC-9/10) ACCEPTED 2026-08-18.
 References: research on file (GRILLING.md) — Borg/Omega/Twine papers read directly,
 Nomad evaluation-broker + C1M/C2M numbers, K8s scheduling framework/QueueingHint/
 coscheduling record, Kueue/Volcano admission-gang lineage. Companions: `PODS.md`
@@ -14,6 +17,19 @@ coscheduling record, Kueue/Volcano admission-gang lineage. Companions: `PODS.md`
   own **totally-ordered evaluation log**. Placement in a shard is a pure function
   of that log's prefix; replay re-runs the log. Shards never share mutable state —
   cross-shard conflicts are unrepresentable, not resolved.
+- **Node classes.** Every node belongs to exactly one **class** — the
+  identical-machine equivalence key, declared in the registry. An unclassified
+  node fails fleet join at boot (chokepoint-coverage law); heterogeneity exists
+  *between* classes, never inside one. Class membership and class→purpose binding
+  are versioned meta-group state (entitlement shape: rebind is an explicit logged
+  event, proposed by the rebalancer or operator, never a discovered condition). A
+  class rebind applies the target class's **host profile** (kernel/sysctl/storage/
+  VMM settings — Twine Sidekick shape) through the Branch-32 actuator; a machine
+  mid-apply carries the `rebinding` map state and takes no work. Receipts: Twine
+  entitlements + host profiles (11% web-tier throughput from OS tuning;
+  per-pool customization — global hugepages "would lead to unusable memory");
+  Borg §5.2 (segregation costs 20–30% more machines — classes stay few,
+  membership stays fluid).
 - **Shard count is derived** (per-shard arrival rate and pure-function throughput
   against measured anchors); the formula yields **1 on a laptop** — the degenerate
   form, same code. Receipts: Twine shards to 1M machines/region (largest shard
@@ -37,7 +53,9 @@ The shard's evaluation log is fed by, in arrival order:
    is a projector; a stuck cursor is a health alarm). Guardian admission rides each
    summon claim as validations; the scheduler executes only claims whose admission
    validations passed.
-2. **Node telemetry deltas** — capacity, health, pool state (node-level, bounded
+2. **Node telemetry deltas** — capacity, health, pool state, **inventory-map
+   state transitions** (`cordoned`/`draining`/`rebinding`/`commissioning` — the
+   node repulsion axis), and **coefficient epochs** (§5b) (node-level, bounded
    fan-in per `PODS.md`).
 3. **Planner outputs** (§3) — plans stamped with the state version they saw.
 4. **Rebalancer proposals** (§8) — ordinary evaluations.
@@ -99,6 +117,56 @@ testament content) and the decision record. Properties:
   burst headroom), and colocation/spread constraints. Weights derived, with
   derivations at definition sites.
 
+## 5a. Requirements and feasibility
+
+- **Typed resource vector.** Every summon claim's requirements are
+  `(kind, type, quantity)` entries — v1 vocabulary from the D-13 derivation
+  pass: `cores`, `mem`, `storage_cap(nvme)`, `storage_write_bw(nvme)`;
+  derivations live at the consumer specs' definition sites (PODS §2,
+  OBJECT_TIER §5/§7, Branch 37). The discriminator is law: *consumed* (two
+  pods can exhaust it) ⇒ typed vector entry, budget-checked at admission and
+  fit-checked at placement — one bookkeeping system, never a label beside a
+  counter (the K8s DRA lesson taken at design time; Slurm GRES shape).
+  *Matched-only* (CPU generation/ISA, region, plane role) ⇒ class attribute,
+  feasibility predicate only. The accelerator kind is structurally provided
+  for and **unminted** — no consumer exists in the tree; minting follows a
+  consumer, never precedes one. `storage_write_bw` is a dual-reader value:
+  admission accounts it, OBJECT_TIER's OT13 endurance servo enforces it at
+  runtime — one derivation site, two readers.
+- **Feasibility is three pure predicates over logged inputs**, evaluated in
+  order: **class selection** (requirement vector + class attributes name the
+  candidate classes), **class repel** (registry-declared per-class `repel`
+  sets — the design-intent axis; admittance derives from consumption of the
+  class's protected resource, stamped by Guardian admission — never
+  hand-written), **map admit** (the operational axis: the fenced inventory
+  map's node state is the *only* per-node exclusion authority —
+  `cordoned`/`draining`/`rebinding`/`commissioning`; operator cordon is an
+  auto-disposed but epoch-bumped map proposal — the immediate escape hatch,
+  with fencing, reason, and lifecycle; free-floating per-node taints are
+  unrepresentable). No `NoExecute` exists on either axis: repel/state changes
+  emit rebalancer proposals → §8 consent moves. Receipts: K8s duality
+  doctrine + the dedicated-nodes three-part recipe; Nomad's node-pools
+  concession ("constraints… do not easily prevent other jobs"); K8s
+  production convergence — per-node taints are control-plane-authored from
+  conditions ("the Kubernetes control plane automatically creates taints
+  that match the conditions affecting the node"), cordon is the operator
+  hatch ("does not affect existing Pods").
+
+## 5b. Performance coefficients
+
+- **Epoch-frozen performance coefficients.** The scorer carries a
+  `(workload-class × node-class)` coefficient matrix as a versioned input on
+  the evaluation log (same channel as telemetry deltas); decisions after an
+  epoch's log position use it, replay sees the epoch it saw. **Activation is
+  gated** (fit-before-influence, the FOREST AC-4 pattern): the matrix is
+  identity (1.00) until the first commissioning campaign populates epoch 1
+  from the ratchet harness's per-class benchmarks — `commissioning`-state
+  nodes are where coefficient campaigns run. Hand-authored coefficients are
+  banned (constants-from-data); the native Paragon/Quasar classifier is
+  rejected on applier purity + SCH1 (receipts: 98%-vs-62% target attainment
+  and 62%-vs-15% utilization are the prize; online SGD in the placement path
+  is the banned form).
+
 ## 6. Admission and gangs
 
 - **Gang at admission, never at placement.** A session's core-service unit admits
@@ -114,7 +182,10 @@ testament content) and the decision record. Properties:
   (timeouts, thresholds, "we cannot support group preemption") cannot occur.
 - **Budgets are admission-time vector checks only** (Borg quota discipline) — the
   placement path never consults quota; a budget change takes effect at the next
-  admission, never mid-placement.
+  admission, never mid-placement. Budgets are checked against the **typed**
+  vector (§5a); admission and placement read the same entries, so an admitted
+  claim can never park `pool_empty` on a type the budget counted as fungible
+  (the K8s DRA two-bookkeeping drift, structurally excluded).
 - Saturation is loud: `budget_exhausted` is a counted outcome on the summon claim,
   never a silent queue.
 
@@ -211,6 +282,12 @@ tier/node] → binding → health_validating`, N-of-M sub-progress) → testamen
 | SCH10 | Pipeline unwind: crash injected at every step boundary ⇒ resume-at-missing-half or clean unwind; leak scan finds zero orphaned capacity/keys/volumes | half-summoned limbo |
 | SCH11 | Consent moves: rebalancer proposals ride the log; no unconsented assigned-pod kill; unconsented-loss path recovers via claim redelivery | a second authority; migration ghosts |
 | SCH12 | Admission/placement separation: no budget check exists in the placement path (architecture test); quota changes bind at next admission only | quota leaking into placement |
+| SCH16 | Class-scoped exactness: gang fit on a mixed fleet is exact within each class; memoization keys include class; SCH8's storm property holds per class | heterogeneous bin-packing regressions; wrong-class cache hits |
+| SCH17 | Repulsion axes: work declaring nothing never lands on a repelling class; cordon mid-gang ⇒ deterministic version-conflict rejection + replan; `commissioning` admits only benchmark-class claims; no eviction path exists (architecture test: no NoExecute analogue) | undeclared work filling protected capacity; taint sprawl; eviction sneaking in |
+| SCH18 | Typed-vector coherence: admission budget and placement fit read identical typed entries; a claim admitted on type X can never park `pool_empty` on X-typed exhaustion that admission saw as free | the K8s DRA two-bookkeeping drift |
+| SCH19 | Coefficient epochs: identity matrix ⇒ provably no-op vs pre-amendment scorer; epoch bump mid-log ⇒ decisions split exactly at the log position; replay epoch-pinned (SCH1 extension) | coefficients breaking determinism; silent activation |
+| SCH20 | Rebind lifecycle: class rebind ⇒ `rebinding` state repels all work, profile-apply converges or unwinds via map states, node re-enters placement only after commissioning passes | half-reshaped machines taking work |
+| SCH21 | Laptop degenerate (heterogeneity): one node, one class, identity coefficients; cordon on the only node ⇒ loud total refusal, counted | mode divergence; silent laptop stall |
 
 ## 11. Acceptance criteria
 
@@ -230,3 +307,8 @@ tier/node] → binding → health_validating`, N-of-M sub-progress) → testamen
    accuracy, locality hit rates, memoization hit rate; &gt;10% regression fails CI.
 8. The degenerate config (1 shard, inline planner) is a first-class CI target
    running the entire suite.
+9. The typed-vector discriminator is enforced structurally — no unaccounted
+   consumable, no accounted attribute (architecture test, with SCH18).
+10. Per-node exclusion has exactly one authority — architecture/grep gate: no
+    repel/taint field exists outside class definitions and inventory-map
+    states.
