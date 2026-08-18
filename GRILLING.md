@@ -33,9 +33,18 @@ specs are **on the table**; branches without specs are **open**.
 **Status-honesty correction (2026-08-17, C-7 audit)**: file headers are the
 single status authority; this table is an index. The audit found the table
 over-claimed — the following rows are **DIRECTION-SETTLED ONLY (whole-spec
-verdict owed; headers honestly say "presented")**: WAL (Br 2), PROTOCOL
+verdict owed; headers honestly say "presented")**: PROTOCOL
 (Br 3), MERGE (Br 4), VFS (Br 5), PODS (Br 6), AGENTS_RUNTIME (Br 7),
-RANK (Ex 8), SCHEDULER (branch mislabeled "21" — C-6). RUNTIME (Br 1):
+RANK (Ex 8), SCHEDULER (branch mislabeled "21" — C-6). WAL (Br 2):
+**ACCEPTED 2026-08-17** ("amend and accept" — five audit amendments:
+consensus-substrate clause (per-GROUP logical logs incl. meta tree, raft
+record kinds, entries-then-HardState by append order, prefix-truncation
+API w/ debt bound); FAULTS §2 disposition conformance
+(rebuild-from-quorum when replicated, refusal = N=1 disposition,
+universal-refusal path deleted); checkpoint ownership (WAL owns the floor
+API only; clients own cadence/format); hecate-wire payload law +
+CRC-is-transport-integrity-never-identity clause; cluster-SIM extension +
+Branch 25 encryption-at-rest interlock flagged; W9–W11, criteria 8–9). RUNTIME (Br 1):
 **ACCEPTED 2026-08-17** ("amend and accept" — five audit amendments: Driver
 cancellation surface w/ guaranteed-completion semantics; the NO-PANIC LAW
 (user: "we do NOT panic. Period. Ever." — clippy wall, typed errors

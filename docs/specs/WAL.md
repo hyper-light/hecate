@@ -1,6 +1,13 @@
 # SPEC: the ledger WAL — logical logs over derived-ω physical streams
 
-Status: presented for acceptance (grilling Branch 2). Ratified direction: per-session
+Status: ACCEPTED 2026-08-17 (whole-spec verdict "amend and accept" under the
+maximal audit — five amendments folded: consensus-substrate clause (logs for
+every group incl. the meta tree, raft record kinds, entries-then-HardState by
+append order, prefix-truncation API), FAULTS §2 disposition conformance
+(rebuild-from-quorum when replicated; refusal is the N=1 disposition),
+checkpoint ownership (WAL owns the floor API only), hecate-wire payload law +
+CRC-is-not-identity clause, cluster-SIM extension + Branch 25
+encryption-at-rest interlock flag). Ratified direction: per-group
 **logical logs** (one sequencer each — replay, watermark, and monotone-cut invariants
 untouched) multiplexed over **ω physical WAL streams** (durability only, never an
 ordering authority), CRDB/TiKV-lineage; **one durability policy: always-full**,
@@ -10,15 +17,32 @@ Pebble/etcd WAL discipline, TigerBeetle batching, fsync research on file
 
 ## 1. Model
 
-- **Logical log** = per-session ordered record stream, `log_seq` strictly monotonic,
-  written only by that session's sequencer task (the ledger core; under replication,
-  the Raft leader — locally a 1-replica group whose append self-acks through the
+- **Logical log** = per-group ordered record stream, `log_seq` strictly monotonic,
+  written only by that group's sequencer task. **A logical log serves every
+  consensus group** — session groups *and* the meta-tree groups (root,
+  per-region; `CONSENSUS.md` §1), which postdate this spec's first draft.
+  For a session, the sequencer is the ledger core (under replication, the
+  Raft leader — locally a 1-replica group whose append self-acks through the
   same call path).
 - **Physical stream** = an append-only segment chain on disk. Records from many
   logical logs interleave, each tagged `(log_id, log_seq)`. A stream has exactly one
   writer task (single-owner, per §Runtime); "multi-writer" is the MPSC front-end.
 - Artifact **content never enters the WAL** — content-addressed blob store; the log
   carries references. Log records stay small; flush batches stay dense.
+- **The consensus-substrate clause** (`CONSENSUS.md` §§2/5 consumer contract):
+  record kinds include the raft set — `entry`, `hard_state`, vote records.
+  **Entries-then-HardState holds by append order**: single-writer append-only
+  means a HardState can never be durable ahead of the entries it references —
+  same flush batch ⇒ atomically durable together; a cut between them loses
+  the HardState and retains the entries, the safe side. CS9 executes at this
+  layer (W9). A **prefix-truncation API** serves CONSENSUS §5's host-owned
+  truncation (watermark machinery of §6, with the raft consumer named and
+  the slow-vs-dead follower debt bound honored — W11).
+- **Payload encoding law**: record payloads are hecate-wire canonical
+  (`WIRE_FORMAT.md`), carrying the schema discipline. The header's CRC32C is
+  **transport integrity for the recovery scan, never content identity** —
+  BLAKE3 remains the only content hash in the tree (the one-hash law,
+  unbroken).
 
 ## 2. Derived-ω topology (constants from data)
 
@@ -50,12 +74,19 @@ never split across streams within an epoch (recovery locality; migration §6).
   then payload, zero-padded to alignment. `crc` is CRC32C **chained** — computed over
   (prev record's crc ‖ header-sans-crc ‖ payload) — so a valid-looking stale record
   in a recycled segment can never be accepted (ghost-record defense).
-- **Recovery** per stream: sequential scan, verify chain, **checksum-truncate** at
-  first invalid record — with etcd's torn-vs-corrupt discrimination: examine the
-  failed region in 512-byte-aligned sectors; all-zero sectors ⇒ torn write (truncate;
-  only unacked records lost — safe), any non-zero garbage ⇒ latent corruption ⇒
-  typed hard error naming stream/offset; refuse to start. **No doublewrite** —
-  append-only logs never overwrite acked bytes, so page-store machinery is waste.
+- **Recovery** per stream: sequential scan, verify chain, with etcd's
+  torn-vs-corrupt discrimination and **dispositions conforming to
+  `FAULTS.md` §2** (amended 2026-08-17 — the universal-refusal path is
+  deleted): examine the failed region in 512-byte-aligned sectors —
+  all-zero sectors ⇒ **torn write**: truncate, only unacked records lost,
+  safe by the witness discipline; non-zero garbage ⇒ **detected body
+  corruption**, typed disposition by replication state: a replicated log
+  ⇒ **rebuild-from-quorum** (fetch the committed entries from peers;
+  refuse to serve until repaired); N=1 or quorum-unavailable ⇒ **refuse
+  loudly** (typed, names stream/offset, operator-surfaced — never guess).
+  Never silent truncation of acked data; every disposition counted and
+  categorized. **No doublewrite** — append-only logs never overwrite acked
+  bytes, so page-store machinery is waste.
 
 ## 4. Commit path
 
@@ -88,6 +119,12 @@ shortcut exists.
   free when all resident records are below their logs' floors; long-lived stragglers
   are **rewritten forward** (raft-engine purge model) rather than pinning old
   segments.
+- **Checkpoint ownership**: the WAL owns **only the floor API**. Each
+  logical-log client owns its checkpoint cadence and format — the ledger
+  core per `LEDGER_CORE.md`'s replay discipline; consensus groups per
+  `CONSENSUS.md` §5's checkpoint-retention invariant (applied-state
+  checkpoints and log prefixes retire together; no prefix drops while any
+  recovery path needs it).
 - Session migration (colocation-unit move): snapshot at a sequence + tail export of
   `(log_id ≥ floor)` records; the receiving node opens the logical log at the same
   `log_seq` — physical stream identity is never exposed above the WAL API.
@@ -97,6 +134,14 @@ shortcut exists.
 The stream writer runs on hecate-rt; in SIM the disk is a simulated device with the
 fault matrix (torn write at arbitrary byte, reordered completions, EIO, ENOSPC,
 power-cut). WAL invariant oracles run under the same seeds as everything else.
+Replicated-log scenarios (A2's rebuild-from-quorum, W9–W11) run under the
+**cluster-SIM harness** (RUNTIME §2's cluster clause; FAULTS §4) — N nodes,
+one seed, same oracles.
+
+**Branch 25 interlock, flagged**: encryption-at-rest of WAL bytes is owned
+by Branch 25 (wire security / key hierarchy) — the D-3 settlement covers the
+content store, not ledger records on disk. Named here so it cannot be
+silently absent.
 
 ## 8. Test cases (failure each catches)
 
@@ -110,13 +155,17 @@ power-cut). WAL invariant oracles run under the same seeds as everything else.
 | W6 | Ack-durability property: any commit acked before a SIM power-cut survives recovery, across full seed sweep | the only unforgivable WAL bug |
 | W7 | Backpressure: saturated queue ⇒ typed retryable + counter increments; memory bounded under sustained overload | unbounded growth; silent drops |
 | W8 | Migration: snapshot+tail export then re-open on a fresh node; log_seq continuity and content identity preserved | migration losing or reordering a log |
+| W9 | Entries-then-HardState crash sweep: cut at every byte across entry/HardState batches ⇒ recovery never observes a HardState referencing missing entries (CS9 at the WAL layer) | the v3.5 watermark class at the log substrate |
+| W10 | Disposition conformance: injected body corruption ⇒ rebuild-from-quorum invoked when replicated, typed refusal at N=1, torn tail truncated — each counted and categorized | universal-refusal regression; silent truncation of acked data |
+| W11 | Truncation-vs-debt: prefix truncation held within the derived debt bound for a slow follower, released for a dead one (with CONSENSUS CN6) | truncating a live follower's tail; pinning segments forever |
 
 ## 9. Acceptance criteria
 
 1. **Zero acked-commit loss** under the SIM power-cut sweep (W1/W6) — CI-gated on
    every merge, permanently.
-2. Recovery never scans beyond the segment index + last checkpoint; recovery
-   throughput ≥ 0.5 × measured sequential-read bandwidth of the device.
+2. Recovery never scans beyond the segment index + the clients' last
+   checkpoints (§6's ownership split); recovery throughput ≥ 0.5 × measured
+   sequential-read bandwidth of the device.
 3. Throughput floors phrased against measured device numbers (constants-from-data),
    ratcheted from first CI baseline: sustained durable commits/s ≥ 0.8 × the ω-model
    prediction for that hardware; macOS ack p50 ≤ 1.5 × measured F_FULLFSYNC latency
@@ -127,3 +176,8 @@ power-cut). WAL invariant oracles run under the same seeds as everything else.
    anchors with the derivation at the definition site.
 6. Determinism: same (seed, trace) ⇒ byte-identical stream files in SIM.
 7. The consensus-group append path is the only commit path, at every replica count.
+8. The consensus-substrate obligations — raft record kinds,
+   entries-then-HardState by construction, the prefix-truncation API — exist
+   before any group commits through this WAL (W9 permanent).
+9. Recovery dispositions are FAULTS §2-conformant; no universal-refusal path
+   remains in the tree (W10).
