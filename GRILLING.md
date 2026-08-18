@@ -1326,3 +1326,38 @@ protocol (dead-declaration = root-quorum + terminal region epoch; heal =
 rejoin under NEW epoch; zombie unlanded work = fork branches only, never
 continuations). §7 REOPENED per the rider; six-amendment set presented
 for verdict.
+
+**Bulk-transport dossier LANDED (2026-08-17, the PROTOCOL class→transport
+exchange)** — four workstreams, primary receipts. Receiver-driven transports
+(Homa/NDP/pHost/Aeolus): TCP indictment is real but scoped to SHORT-message
+tail latency (Homa P99 7–83× better) — at large messages Homa/Linux loses
+2:1 to TCP+TSO in its own paper (10.0 vs 20.3 Gbps @500KB; "software
+congestion" binding; headers mimic TCP to steal TSO); receiver credits DO
+bound incast by construction (ToR ≤ overcommit×RTTbytes; ExpressPass
+near-zero buffer) with the first-RTT-unscheduled residue (Aeolus: one
+scheduled drop = 100× FCT); ZERO production deployments — hyperscaler
+TCP-escapes are hardware-coupled (Azure 65% RoCEv2; Google Snap→Falcon HW).
+QUIC: RFC9002 mandates loss-detection machinery not CC (Cubic default in
+every stack); HOL wins real on lossy paths (YouTube rebuffers −18%) but
+INVERTED on fast clean links (WWW'24: up to 45.2% slower, gap grows w/
+bandwidth); UDP throughput parity needs GSO/sendmmsg batching (Fastly 196
+vs 466 Mbps pre-optimization); stacks = 5–8yr multi-MB efforts; iroh (our
+closest relative) runs BLAKE3 verified streams over QUIC and built its own
+QUIC (noq) rather than raw UDP. Storage census: TCP-parallel is
+near-universal (S3 CRT saturates 100Gbps via parallel connections; HDFS/
+Ceph/MinIO/GridFTP; Meta QUIC = edge only); shipped UDP bulk = WAN niche
+(Aspera FASP, delay-based receiver-fed control). Incast/CC: collapse =
+RTO_min 200ms artifact (Vasudevan; DCTCP hard floor); Swift = production
+proof a host-side owned CC works at Google scale (O(10k) incasts,
+pacing-below-cwnd=1 ≈ our credit grants); WAN bar = Cubic-class (BBR bulk
+win ≈1%). Reconciliation math: 16 KiB group = 12 datagrams ⇒ (1−p)^12
+group-loss amplification (11.4% incomplete @1% loss; 12× retransmit
+amplification at group-granular recovery); UDP bulk envelope overhead 7.6%
+vs 0.46% TCP-framed; QUIC option collides w/ Guardian AAD-cleartext
+policing + HKDF key plane; laptop degenerate penalizes every UDP option
+(loopback MTU nit: §1.1's 1500 anchor must become per-path); SIM honesty:
+kernel TCP outside SIM — class-6 nemesis coverage tests above TCP, noted.
+Four architectures priced (TCP-parallel / Homa-shaped intra-DC / full UDP /
+sans-IO QUIC); per-work-class matrix grounded (ordered rows: semantics +
+census both say TCP; contested = intra-DC bulk + WAN replication; media
+playback-streaming = the one RFC9221-shaped unreliable-datagram fit, edge).
