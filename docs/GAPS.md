@@ -166,7 +166,14 @@ Architecture set (AGENTS/LEDGER/PLATFORM/SKILLS/SUMMONING + CONTEXT + ADRs
   to become consistent). Directed research before settlement: **peer-to-peer
   machine learning** (gossip/decentralized learning, convergence guarantees)
   and **consensus** (what, if anything, in the forest needs agreement vs
-  eventual convergence). Design tensions to resolve against receipts:
+  eventual convergence); **federated learning** added 2026-08-17, with the
+  stated preference (same date) to **eschew centralized coordination** — most
+  FL requires a coordinating server, so FL receipts serve as the priced
+  counter-case (what coordination buys) and as transferable aggregation math,
+  never the candidate architecture; decentralized candidates (gossip
+  learning, D-PSGD-class, stigmergy-native propagation) are the primary
+  class, and session membership/fencing already provides the membership
+  substrate gossip needs. Design tensions to resolve against receipts:
   per-pod replication vs FOREST.md's single field service + F10 determinism
   (note: the Z-set weight algebra is commutative and the input clock
   `(HLC64, stream_id, stream_seq)` already defines a total order — delta

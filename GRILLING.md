@@ -1540,3 +1540,33 @@ s2n-quic = tokio-native docs; neqo = NSS + server experimental. iroh
 trajectory = the own-it precedent (adopt quinn → fork → standalone noq
 only when TRANSPORT semantics diverged, never for crypto). Settlement
 exchange presented.
+**Forest-diet survey LANDED (2026-08-17, research thread; D-12 exchange
+evolved there, verdicts pending)** — Sylk's critical lesson: the rich
+forest diet (full claims-delta lifecycle, fabric observations,
+consume/resolve reinforcement) was DESIGNED AND IMPLEMENTED BUT NEVER
+WIRED in production (no ClaimsDeltaSubscriber set; MountFabricContextObserver
+zero callers; harvester = logging no-op, receipts at cmd/tui.go:938,
+core/forest/service.go:268, fabric_install.go:41) — shipped forest ate
+only content indexing + explicit outcomes. Hecate fix = doctrinal:
+**forest input streams enumerated in FOREST.md; boot FAILS if a mandatory
+stream has no live subscription** (chokepoint-coverage-at-boot applied to
+intake; dark stream = startup failure). Unified event inventory: Tier 1
+field deposits (order-independent fold, eager push) = claim/testament/
+artifact/validation lifecycles (validation idempotency-by-source-key
+discipline ported), consult resolutions, tool/LLM outcomes, precedent-
+flagged narration, consumption reinforcement, the three-way retrieval-label
+taxonomy (explicit/counterfactual/implicit-negative + ε-greedy — "the
+best-designed part of Sylk's forest", the GLM training signal), user
+interactions, warden telemetry; Hecate-only: MERGE verdicts (conflict
+windows = structural contradiction deposits, AcceptIdentical = independent
+convergence), Arbiter findings, rank snapshots, lineage events (landed =
+strongest utility label), Guardian refusals, scheduler/autoscaling climate
+carriers. Tier 2 exactly-once actions = claims machinery only (promotion→
+curation, outbreak→review, remediation via Architect, advisory publication,
+cluster naming, operator commands) — field suggests, claims decide. Tier 3
+exclusions carried w/ Sylk receipts (atomic telemetry; dual-source facts —
+ledger wins; SIR/SEIR; unflagged narration). NOTE: the thread's D-12
+mechanism EVOLVED beyond the v2 single-instance proposal → per-pod
+replicas + keyed OpSet fold + eager-push/anti-entropy + claims-for-unique-
+actions (CALM framing); supersession pending user verdict in-thread
+alongside the diet section and the still-open D-11 green-attach proposal.
