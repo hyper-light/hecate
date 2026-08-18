@@ -2117,3 +2117,21 @@ matrix as ordinary evaluation-log input; OPEN RULING: confirm
 slot-now-identity-matrix + activate-at-first-baseline (FOREST AC-4
 pattern). Four rulings + Branch-39 scope pending with the user in that
 thread; amendment text to be presented in-message there before any write.
+**Two-axis repulsion marriage PRESENTED in the research thread
+(2026-08-18; repo coherent through 79fa956 — reshaping/typed-resources/
+coefficients verdicts recorded there, D-13 vocabulary pass chartered)** —
+the key structural finding: **accepting reshaping made the node axis
+mandatory** (a machine mid-profile-apply must repel all work — class-only
+can't represent it); the free-floating K8s taint rejected on dual-
+authority + lifecycle-less sprawl; the receipt = K8s ITSELF converged to
+machine-authored condition-taints + cordon-as-the-human-residue with
+exactly our consent-move semantics. The marriage: class axis =
+registry-authored repel (design intent); node axis = CLOSED disposition
+vocabulary of the fenced inventory map ONLY (cordoned/draining/rebinding/
+commissioning; repair-suppression flags owed to Branch 32); operator
+cordon = auto-disposed proposal to the map (immediate hatch, but fenced +
+epoch-bumped + reasoned — the forgotten-taint failure structurally gone);
+feasibility = class_admit ∧ map_admit, two pure predicates over logged
+inputs; commissioning benchmarks = the coefficient campaign (items 1/2/4
+close into one loop). Ruling pending in-thread; SCHEDULER §5/§6 amendment
+to be drafted there after D-13.
