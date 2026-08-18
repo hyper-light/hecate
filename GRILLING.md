@@ -1967,3 +1967,16 @@ upload-only-what-the-server-lacks negotiation, primary text) + Sapling
 Commit Cloud (auto-upload on creation, hash-addressed) + CitC (server-side
 workspace materialization over the content store; noted: CitC's backend IS
 the cloud — a different point, recorded). VFS amended audit presented.
+**Heterogeneous placement item ADDED to the SCHEDULER whole-spec exchange
+(2026-08-18, user)** — a mechanism to steer specific work to specific node
+types/regions over heterogeneous compute/storage; the K8s taints analogy
+offered explicitly AS A PROMPT NOT A DESIGN ("Don't take this
+recommendation as is — research the maximally correct, robust, performant,
+efficient means"). Research dispatched: K8s taints/tolerations/affinity/
+topology-spread semantics + documented pain; Borg constraints (hard/soft);
+Twine entitlements + host profiles (machines RESHAPED per workload);
+Firmament min-cost-flow; Paragon/Quasar classification-based heterogeneity
+scheduling; device/GPU scheduling practice; interaction with our existing
+machinery (summon claims as the requirements carrier, content-locality
+scoring, Guardian admission, region colocation law). Exchange follows the
+dossier; VFS item-5's memory-wall half is unaffected (node-local classes).
