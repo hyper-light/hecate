@@ -1680,3 +1680,25 @@ ADR-0002 corrected, SIBYL grants→Branch 25 (D-8 CLOSED), TRANSFER §3/§4
 carriage wording, FAULTS §3 owned-recovery note. Owed-verdict queue now:
 MERGE, VFS, PODS, AGENTS_RUNTIME, RANK, SCHEDULER (+C-6 label fix),
 OBJECT_TIER whole-spec, FOREST (D-4), VECTOR_INDEX (D-9).
+**MERGE.md acceptance exchange IN PROGRESS (2026-08-18)** — user rejected
+the four-amendment summary as hand-waving; each amendment now worked at
+D-10 rigor, one at a time. **A1 SETTLED ("accepted.") in CORRECTED form**:
+the first draft's region-group grant was a REAL FLAW (second authority
+that can disagree with session-group leadership = wedge state that exists
+only because the mechanism was added; mis-applied epoch-scoping — the
+smallest domain containing every legal serializer holder is the SESSION
+group). Maximal form = **self-fencing through the log**: a new serializer
+instance's first act = committing SerializerOpen{generation} through the
+session group — the commit IS the leadership proof AND the fence
+(supersedes all prior generations as quorum-committed state; no side
+channel can disagree because it is the authoritative state); batches carry
+(term, generation), refused at the state machine on mismatch (two-integer
+compare, zero crypto); liveness = existing leader fortification +
+supervisor restart (Chubby-lease draft machinery DELETED — grant protocol,
+keepalives, fenced registry all gone); refs-not-content law (CAS writes
+unfenced-safe, only the log/refs carry authority); failure matrix all rows
+terminate in ONE authority; ZooKeeper-epoch-open pedigree; CONSENSUS §6
+roster records this as the writer's mechanism (meta-tree-lease shape
+remains for writers lacking a colocated group). Tests M13a–f incl. the
+single-authority property + open-marker lineage replay-derivability.
+NEXT: A2 (increment content carriage) at same depth.
