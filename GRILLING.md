@@ -2068,7 +2068,15 @@ conditions affecting the node" — with cordon as the operator hatch:
 "prevents the scheduler from placing new pods onto that Node but does
 not affect existing Pods"; structural note: item 1's accepted reshaping
 REQUIRES the node axis — a mid-rebind machine must repel work via map
-state). VERDICT PENDING. Item 3 typed resources: ACCEPTED; vocabulary
+state). Marriage ACCEPTED 2026-08-18 ("accepted"): class axis
+registry-authored; node axis = map-disposition-only, auto-disposed
+operator cordon as the immediate escape hatch (fenced, epoch-bumped,
+reason-carrying — never a free-floating taint); closed state vocabulary
+{cordoned, draining, rebinding, commissioning} with per-plane
+repair-suppression scopes (noout class) owed to Branch 32; no NoExecute
+anywhere — state changes emit rebalancer consent moves; interaction rows
+named for the amendment (cordon vs in-flight gang, draining session-core,
+commissioning = coefficient-campaign claims, laptop loud-refusal). Item 3 typed resources: ACCEPTED; vocabulary
 derivation pass added to the tree as D-13 (GAPS §2), sequenced
 immediately before the SCHEDULER amendment presentation. Item 4
 performance coefficients: ACCEPTED — slot-now-identity-matrix, activation
@@ -2135,3 +2143,14 @@ feasibility = class_admit ∧ map_admit, two pure predicates over logged
 inputs; commissioning benchmarks = the coefficient campaign (items 1/2/4
 close into one loop). Ruling pending in-thread; SCHEDULER §5/§6 amendment
 to be drafted there after D-13.
+**D-13 EXECUTED + SCHEDULER amendment PRESENTED in the research thread
+(2026-08-18)** — the derivation pass minted exactly four kinds from real
+consumers (cores, mem — PODS §2 + Branch 38's measured microVM overhead;
+storage_cap(nvme) — Branch 37/OBJECT_TIER §7; storage_write_bw(nvme) —
+OT13's endurance budget, admission-accounts/servo-enforces, one
+derivation two readers); repair/scrub IOPS NOT minted (fleet-plane
+pacing, no admission consumer); CPU-gen/ISA/region confirmed
+matched-only; accelerator slot reserved-unminted (zero consumers in the
+tree — minting follows a consumer). The full §1/§2/§5a/§5c/§6 amendment
+text + SCH16–21 + criteria 9–10 presented in-message there; awaiting the
+user's word to write. Orchestrator remains off SCHEDULER.md.
