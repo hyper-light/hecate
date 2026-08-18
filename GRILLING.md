@@ -1361,3 +1361,14 @@ Four architectures priced (TCP-parallel / Homa-shaped intra-DC / full UDP /
 sans-IO QUIC); per-work-class matrix grounded (ordered rows: semantics +
 census both say TCP; contested = intra-DC bulk + WAN replication; media
 playback-streaming = the one RFC9221-shaped unreliable-datagram fit, edge).
+Dossier register updates (2026-08-17, user-driven): Tectonic transport = TCP
+**user-attested** (public papers silent; no primary URL exists) — census
+hardened: every named production blob plane now sits on TCP by primary
+source or attestation, hyperscaler escapes being infra-coupled custom
+transports. Falcon disambiguation PENDING user confirmation (dossier's
+Falcon = Google's 2023 hardware transport, UDP/IP-encapsulated per unfetched
+OCP slides; CrowdStrike Falcon sensor = TLS/TCP telemetry agent, different
+product — its heartbeat-vs-report split independently corroborates our
+class-0-UDP (lost heartbeat is never retransmitted; the next supersedes) vs
+class-3-TCP design). Transport verdict (A1–A7-revised per-row hybrid)
+awaiting user ruling.
