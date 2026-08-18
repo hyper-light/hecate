@@ -1001,6 +1001,24 @@ CONSENSUS+FAULTS, OBJECT_TIER §9 (D-3).
   out-vs-down distinction, Borg maintenance windows, Backblaze drive
   lifecycle stats, SMART predictive receipts (Google disk-failure
   paper — SMART's weak predictivity).
+- **35 Git-compatible hosting of code** — ADDED 2026-08-18 (user). Hecate
+  serves lineages as git-compatible repositories: clone/fetch/push against
+  lineage heads and green state, backed by the object tier + lineage
+  machinery — never a cloud-provider dependency (the no-cloud-pairing law;
+  we host). Decisions to work: the object-model bridge (git SHA-1/SHA-256
+  object identity vs our BLAKE3 CAS — mapping layer or dual-addressed
+  store; pack-file generation from manifests), lineage↔ref mapping
+  (lineage nodes as branches; landing vs push semantics — is a push a
+  landing with conflict values? materialization as the fetch view?),
+  wire protocols (smart HTTP + SSH, pack protocol v2), auth via the
+  identity plane (enrollment identities, WIRE_SECURITY terminal path),
+  where the git surface terminates (host-side service, never in pods),
+  laptop degenerate (local repo = local materialization target, already
+  law). RESEARCH FIRST: Sapling/EdenSCM (Meta's git-compatible
+  client+server over EdenFS — THE lead reference), jj/jujutsu's git
+  backend (already in our landing-engine lineage), gitoxide (Rust git
+  implementation), Gitaly architecture, git pack protocol v2 +
+  SHA-256-transition docs, GitLab/Forgejo hosting architectures.
 - **33 Cross-node shared-volume attach (D-11)** — ADDED 2026-08-17
   (user: "have we even discussed the mechanics — we haven't"). Pods on
   different nodes attaching to the post-merge shared VFS volume:
@@ -1618,3 +1636,12 @@ wall-clock, broker argument in-spec, bulk-exemption guard
 (name-verify-before-use + envelope truncation/reorder detection),
 split-queues-no-indirect + purpose-built guest parser, seal-off-event-loop
 + EVENT_IDX batching. WIRE_SECURITY.md presented in-message.
+
+**WIRE_SECURITY.md ACCEPTED + WRITTEN (2026-08-18)** — D-10(a) fully
+closed: the presented mechanics spec accepted verbatim ("Accepted.") and
+written to docs/specs/WIRE_SECURITY.md with all seven dossier obligations
+as law (compiler-proof copy-once + lint, GMAC nonce law, counter epochs,
+in-spec broker argument, bulk-exemption guard, split-queues + purpose-built
+guest parser, seal-off-event-loop). NEXT: D-10(b) adopt-vs-own transport
+state machine (research banked); then (c)/(d)/(e); then PROTOCOL.md
+whole-spec re-presentation with A1–A6 + the D-10 amendments folded.

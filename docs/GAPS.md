@@ -132,8 +132,11 @@ Architecture set (AGENTS/LEDGER/PLATFORM/SKILLS/SUMMONING + CONTEXT + ADRs
   for consensus votes/membership/fencing probes/liveness/telemetry/gossip
   (Raft = UDP; placement map/membership = UDP). The user is protocol-wise an
   agent like any other — no separate edge stack. Open reconciliations, each a
-  blocking sub-decision: (a) **SETTLED 2026-08-18 ("accepted.") after a
-  six-round grilling arc** (per-pod-QUIC → host-terminated → in-guest-seal
+  blocking sub-decision: (a) **CLOSED 2026-08-18** — settled ("accepted.") after a
+  six-round grilling arc, mechanics verified (dossier on file), and
+  **`docs/specs/WIRE_SECURITY.md` written** (staging device, copy-once
+  invariant, flow keys, hop classes, guest path, boot classifier,
+  P-a1..P-a5 plan) (per-pod-QUIC → host-terminated → in-guest-seal
   three-leg → seal-once lanes → warden-seals-what-it-inspected →
   ingress-tamper audit → generalized five-layer default). The settled form:
   **Handshake**: Noise-IKpsk2 owned handshake in QUIC CRYPTO frames (nQUIC
