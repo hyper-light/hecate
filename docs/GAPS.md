@@ -199,9 +199,24 @@ Architecture set (AGENTS/LEDGER/PLATFORM/SKILLS/SUMMONING + CONTEXT + ADRs
   nemeses; coverage-matrix boot check permanent; one-seal-one-unseal
   structural audit; pre-seal inspection ordering instrumented; escalation-
   decrypt audit trail zero-on-fast-path;
-  (b) owned QUIC-class implementation vs adopted sans-IO state machine
-  (quinn-proto/quiche-shape) driven by hecate-rt — "own wire protocol" doctrine
-  vs 5–8-year loss-recovery maturity; (c) per-core throughput work items
+  (b) **SETTLED 2026-08-18 ("accepted.")**: **owned `hecate-quic`** — pure
+  core written to the RFC 9000/9002 dialect as exemplar (the consensus-core
+  2a/2b pattern verbatim: dialect named, quinn-proto/quiche = reference
+  implementations for READING, exemplars never dependencies); scope = the
+  archetype subset only (streams, loss recovery, Cubic-class CC + pacing,
+  dual-level flow control, datagrams, connection migration, WIRE_SECURITY
+  keying hooks — no TLS, no h3, no public-QUIC interop); conformance suite
+  = RFC 9002 pseudocode as executable reference tests + quinn/quiche/mvfst
+  documented-bug checklist as named regressions + interop-runner scenario
+  shapes adapted to the private version + loss-recovery property fuzz
+  THROUGH the transport under cluster-SIM nemeses. Adoption rejected on
+  law-compliance (no-panic, lint wall/Bytes-Arc in hot path, IO-as-data,
+  conformance obligation) + the packet-layer divergence voiding adopted
+  maturity exactly where we change it (sealed-payload class, GMAC lanes,
+  Noise handshake); fork-quinn = dominated middle (iroh/noq trajectory as
+  receipt). Ledger: loss-recovery/CC subtlety = the one genuine risk,
+  mitigated by pseudocode-as-tests + seed-replayable SIM (the owned-
+  consensus-core posture); wheel count +1 acknowledged; (c) per-core throughput work items
   (sendmmsg/GSO batching, ACK-frequency tuning — Fastly parity receipt) as
   acceptance gates; (d) whether any TCP fallback survives for UDP-hostile
   networks (robustness question, not convenience); (e) TRANSFER.md §3/§8,

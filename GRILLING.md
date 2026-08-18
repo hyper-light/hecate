@@ -1645,3 +1645,13 @@ in-spec broker argument, bulk-exemption guard, split-queues + purpose-built
 guest parser, seal-off-event-loop). NEXT: D-10(b) adopt-vs-own transport
 state machine (research banked); then (c)/(d)/(e); then PROTOCOL.md
 whole-spec re-presentation with A1–A6 + the D-10 amendments folded.
+**D-10(b) SETTLED (2026-08-18, "accepted.")** — owned `hecate-quic`: pure
+core, RFC 9000/9002 dialect-as-exemplar, executable conformance (9002
+pseudocode as reference tests, field bug-record as named regressions,
+interop scenarios adapted, loss-recovery fuzz THROUGH the transport in
+cluster-SIM — a first for any QUIC impl); scope = archetype subset, no
+TLS/h3/interop; quinn-proto/quiche = reading references never deps.
+Rejected: adopt (fails no-panic law, lint wall — Bytes=Arc in hot path,
+IO-as-data shape, conformance obligation), fork (dominated middle, iroh→
+noq receipt). Risk to ledger: loss-recovery subtlety, mitigated
+consensus-core-style. D-10(c) folds in as hecate-quic ratchet gates.
