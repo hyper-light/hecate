@@ -1702,3 +1702,17 @@ roster records this as the writer's mechanism (meta-tree-lease shape
 remains for writers lacking a colocated group). Tests M13a–f incl. the
 single-authority property + open-marker lineage replay-derivability.
 NEXT: A2 (increment content carriage) at same depth.
+**Merge-path throughput receipts LANDED (2026-08-18)** — BLAKE3 0.49
+cpb/core ≈ 6.1 GB/s @3GHz (paper Fig.3, c5.metal AVX-512; threads level
+off >16 on memory bandwidth); memcmp/memcpy ~15 GB/s/core DRAM (Lemire
+Ice Lake), 50–200 GB/s cache-resident (Agner port throughput — THIN
+assembled, no single canonical bench); FastCDC ~2.1 GB/s/core (ATC'16
+Table 6 cycles, i7-4770 — 10.3× Rabin); borsh/postcard decode 0.2–1.6
+GB/s class (rust_serialization_benchmark EPYC 9V74 — mesh 1.61/1.15 GB/s,
+log ~0.5/0.4); fixed-stride cast-and-validate precedent CONFIRMED
+(Cap'n Proto no-decode, FlatBuffers 0s-vs-220s decode bench, Arrow O(1)
+fixed-width + 64B/AVX-512 alignment, LMDB mapped pages — THIN on LMDB
+refetch). Key demonstration: a 10k-op doc DECODED at borsh-class rates =
+0.4–1.3 ms (breaks the sub-ms bar); CAST at memcmp rates = ~20 µs — the
+fixed layer is load-bearing, now receipted. Deleted seal-hash pass worth
+~0.33 ms per 2MB increment (BLAKE3 receipt). A2 final presentation next.
