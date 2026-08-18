@@ -1229,3 +1229,40 @@ to deterministic whole-cluster simulation (FDB ~1 trillion CPU-hours;
 TigerBeetle VOPR; mutually reinforcing with the pure-core IO-as-data shape).
 Full dossier with ~35 primary sources in-conversation; re-presentation =
 the pending exchange.
+
+**Cross-region receipts verification LANDED (2026-08-17, the CONSENSUS §7
+rider)** — A Physalia CONFIRMED verbatim (P(Av|Ai) placement, same-side-of-
+partition, blast radius; precision note: intra-AZ system, region-level is our
+extrapolation of the same argument); B Chubby CONFIRMED exact (global cell =
+mirrored ACLs/refs/directory, "five replicas... widely-separated," 250ms
+antipodes vs <1ms local — the meta-tree precedent verbatim); C Spanner
+CONFIRMED (F1 leader re-placement quote; witness replicas in OSDI'12 §2.2
+itself; placement driver = minutes cadence; honest caveat: Spanner IS the
+sync-WAN counterexample pole); D async pole CONFIRMED (S3 CRR async, RTC =
+15-min SLA — quantifies exposure_window; DynamoDB MREC async/LWW default
+with opt-in MRSC nuance; f4 §5.2 XOR-across-regions of sealed immutable
+volumes = the exact pattern; Tectonic datacenter-scoped); E non-failover
+CONFIRMED on Borg ("A job runs in just one cell") + K8s (replacement-not-
+migration, region loss out of cluster scope) + F1 (Shard Manager/actor
+practice THIN). F FlexiRaft **CORRECTED — rejection survives, reason wrong**:
+enforced commit/election quorum intersection makes region failure
+UNAVAILABILITY not loss ("(data loss)" appears only for the violated-
+intersection hypothetical); correct two-branch argument = (1) fencing
+authority unavailable exactly when most needed, (2) permanent destruction ⇒
+forced reconfiguration abandons committed tail ⇒ monotonicity break as
+operator consequence; and only DYNAMIC mode is rejected — static
+multi-region FlexiRaft is the same species as the meta tree's own groups.
+G scoping-law precedents CONFIRMED (Clark fate-sharing verbatim, Chubby
+lock-delay + sequencers, K8s cluster-scoped Leases, Dynamo surfaced-
+conflicts vs global-tables-LWW anti-pattern, CRDB region-survival pricing);
+zombie-region safety argument **CORRECTED — three holes**: (H1) pre-
+partition materialization lease = safety-by-waiting not construction (root
+re-grant must wait lease expiry + derived clock-drift margin; Chubby
+lock-delay precedent); (H2) fencing protects only token-checking
+chokepoints — externalization channels (git push, external APIs) must be
+landing-class fenced chokepoints or safety covers archive state only;
+(H3) fate-sharing covers death not resurrection — need explicit rejoin
+protocol (dead-declaration = root-quorum + terminal region epoch; heal =
+rejoin under NEW epoch; zombie unlanded work = fork branches only, never
+continuations). §7 REOPENED per the rider; six-amendment set presented
+for verdict.

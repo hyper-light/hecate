@@ -218,16 +218,17 @@ is needed.
 
 ## 7. Cross-region
 
-**Evidence provenance (honest, per doctrine)**: FlexiRaft's region-local
-commit window is PRIMARY (CIDR'23, on file in the Branch-20 dossier); the
-Physalia placement principle, Spanner leader-placement practice, Chubby's
-global-cell shape, and the async geo-replication pole (S3 CRR, DynamoDB
-global tables) are established literature **not re-verified this session**;
-the epoch-scoping law and the no-session-failover derivation are OWN
-SYNTHESIS from those principles plus our accepted loss formula. A
-verification research pass is in flight (2026-08-17); a refuting finding
-reopens this section — until it lands, §7 is ratified direction with
-receipts pending confirmation.
+**Evidence provenance**: the verification pass LANDED 2026-08-17 (dossier in
+GRILLING.md research index). Physalia, Chubby, Spanner, the async pole
+(S3 CRR/RTC, DynamoDB MREC, f4 §5.2, Tectonic), and the non-failover norm
+(Borg, K8s, F1) are CONFIRMED on primary text; the epoch-scoping law's
+precedents are CONFIRMED (Clark fate-sharing, Chubby lock-delay, K8s
+cluster-scoped Leases). Two arguments were CORRECTED — the FlexiRaft
+rejection reason (unavailability, not loss; dynamic mode only) and the
+zombie-region safety argument (three holes: lease shadow, externalization
+fencing, rejoin protocol). **§7 is REOPENED per the acceptance rider; the
+six-amendment set is presented for verdict and this section is not
+re-settled until it is accepted.**
 
 - **Session groups never span regions** (§1 colocation law). Intra-session
   durability is region-interior quorum; cross-region durability is the
