@@ -2067,3 +2067,26 @@ law; operator query surface; non-scope = HEALTH judgment/Branch 30
 declaration/Branch 14 math; research-first OTel-as-pattern, Monarch,
 Gorilla). Orchestrator standing off SCHEDULER while that thread drafts;
 VFS amend-and-accept remains open in the main line.
+**Placement four-item presentation DELIVERED in the research thread
+(2026-08-18; Branch 39 chartered there, 4f05dbb — verified coherent)** —
+each mechanism walked against the concrete class-a/b/c fleet: (1) classes
+as the identical-machine equivalence key restoring §6 exactness + SCH8
+memoization (class joins the plan-shape key); dynamic membership via
+meta-group events (Twine entitlement receipt; Borg's 20-30% segregation
+tax); OPEN RULING: recognition vs reshaping actuator. (2) Repulsion:
+the Monday-morning GPU-starvation walk (matching working-as-specified IS
+the failure); per-class repel + derivable tolerations (consuming a
+protected typed resource implies admittance) + Guardian as the stamp
+point; per-node repel REJECTED as a second authority competing with
+Branch 30's inventory map; drain-never-kill. (3) Typed resources: the
+budget/placement-drift walk (32 fungible "gpus", 12 free, all wrong
+model — admission passes, placement parks forever; the documented DRA
+retrofit); the law = (kind, type, quantity) with the "can two pods
+exhaust it?" discriminator; OPEN RULING: authorize the PODS/OBJECT_TIER/
+SERVING/VECTOR_INDEX/Br-23 vocabulary derivation pass (v1 read: cores/
+mem/storage_cap/storage_bw, accelerator slot unminted). (4) Coefficients:
+the slow-serializer walk (locality-blind 30% forever); epoch-frozen
+matrix as ordinary evaluation-log input; OPEN RULING: confirm
+slot-now-identity-matrix + activate-at-first-baseline (FOREST AC-4
+pattern). Four rulings + Branch-39 scope pending with the user in that
+thread; amendment text to be presented in-message there before any write.
