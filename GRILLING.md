@@ -1949,3 +1949,21 @@ effects (per-node reservations don't compose alone: incast bounded by
 receiver-driven credits at fan-in; a transfer's own generated maintenance
 — staging leases, GC, scrub — is opportunistic by the purpose rule, so a
 transfer cannot promote its own cleanup into anyone's critical path).
+**VFS audit receipts LANDED (2026-08-18)** — all three CONFIRMED:
+(1) per-class memory budgets w/ typed refusal = shipped practice at three
+levels (Seastar static per-shard partitioning + bad_alloc; Scylla
+reader-permits — "1 count + 128K memory resource on admission," kill-limit
+throws typed; cgroups v2 memory.min hard protection); nuance recorded:
+Scylla's intra-shard subsystem budgets are ELASTIC controller targets, the
+hard walls are shard boundary + permits — both points in the space named.
+(2) infinite attr/entry caching for immutable layers = the
+libfuse-RECOMMENDED shape verbatim ("if attributes only change as a
+result of requests that come through the kernel, this should be set to a
+very large value") + EdenFS ships it ("Eden returns an infinite expiry"
++ explicit invalidation only) + virtiofsd cache=always — our
+per-attachment pinned-validity model IS the documented practice.
+(3) terminal→fleet ingestion = git haves/wants (the exact
+upload-only-what-the-server-lacks negotiation, primary text) + Sapling
+Commit Cloud (auto-upload on creation, hash-addressed) + CitC (server-side
+workspace materialization over the content store; noted: CitC's backend IS
+the cloud — a different point, recorded). VFS amended audit presented.
