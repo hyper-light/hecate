@@ -30,6 +30,19 @@ specs are **on the table**; branches without specs are **open**.
 
 ## SETTLED (spec shown + accepted)
 
+**Status-honesty correction (2026-08-17, C-7 audit)**: file headers are the
+single status authority; this table is an index. The audit found the table
+over-claimed — the following rows are **DIRECTION-SETTLED ONLY (whole-spec
+verdict owed; headers honestly say "presented")**: RUNTIME (Br 1), WAL
+(Br 2), PROTOCOL (Br 3), MERGE (Br 4), VFS (Br 5), PODS (Br 6),
+AGENTS_RUNTIME (Br 7), RANK (Ex 8), SCHEDULER (branch mislabeled "21" —
+C-6). Also verdict-owed outside this table: OBJECT_TIER (presented; §9 +
+two-planes ratified), FOREST (provisionally directed; D-4), VECTOR_INDEX
+(header over-claims ACCEPTED — the one reverse mismatch; D-9). Genuinely
+accepted with user verdicts on record: SERVING, SESSIONS, LEDGER_CORE,
+AUTOSCALING, REGISTRY v2, SKILLS_API, HEALTH, SIBYL, WIRE_FORMAT+TRANSFER,
+CONSENSUS+FAULTS, OBJECT_TIER §9 (D-3).
+
 | Spec | Content anchor |
 |---|---|
 | `docs/specs/RUNTIME.md` | own sharded async runtime, deterministic-by-construction, SIM driver, no-Arc/arena doctrine, io_uring day-one, lint wall |
