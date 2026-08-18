@@ -80,6 +80,31 @@ The Designer's volumes are work-volume-role in isolation but never enter merge; 
 disk path is the Guardian-staged overflow flow with a threshold derived from the
 volume's budget.
 
+## 3b. The volume lifecycle — claims, attachments, access modes
+
+(Added 2026-08-18 — the cloud-shape correction: volumes are first-class
+objects with a lifecycle, never ambient shared mounts.)
+
+- **A volume is a declared object**: identity, role (§3), version domain,
+  access mode. **A pod never sees a volume it didn't claim**: the summon
+  manifest declares the pod's volume claims (volume + access mode + version
+  policy); the scheduler reads claims for content-locality placement.
+- **The attachment** is the unit of control — one per (pod, volume), created
+  at bind, destroyed at teardown: it pins the version, holds the lease,
+  wires the warden's scope entries for the mount, runs the declared
+  prefetch of the template's hot set (the cold-miss answer), and carries
+  per-attachment accounting. Re-bind is a re-attach — an explicit lifecycle
+  event; **a pod's view never changes without one**.
+- **Access modes by role**: work volume = RWO (one pod, one node, witnessed
+  journal — the mutable case, never shared); green = written by no mount
+  (the writer is the merge log; MERGE §2) with readers holding per-pod
+  attachments to immutable versions — the container-image-by-digest sharing
+  pattern, never a shared live mount; tools = ROX (immutable manifests);
+  scratch = pod-local ephemeral; Designer = RWO.
+- Cross-node access is the read-through fill (SERVING §0): mount-anywhere
+  with locality as caching. RWX does not exist in the system; nothing
+  mutable is ever shared.
+
 ## 4. Budgets
 
 All derived at boot from physical anchors (system memory, summon allocations):

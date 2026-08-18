@@ -28,6 +28,13 @@ Vocabulary: **"workspace" is retired**; the concepts are **lineage**,
   **Born template-stamped, never bare** (Capsule's admission-stamping, not HNC's
   async propagation): quota, SafetyPolicy posture, daemon-office set, budgets
   arrive atomically with creation.
+- **A session spans nodes** (clarified 2026-08-18): pods place on any machines
+  the scheduler chooses; the colocation unit is the session's HOME SERVICES
+  only (ledger core, merge proposer, frontier, field service — one node,
+  logs replicated across the session group); volumes attach from any node
+  (SERVING §0's single-surface law). Nothing in this spec's isolation story
+  depends on physical adjacency — isolation is keys + fencing + brokered
+  grants, never machine boundaries.
 - **Everything identity- or work-bearing is per-session**: colocation unit, ledger,
   services, key root (pod keys derive from it; blast radius = one session), pods,
   wardens, work volumes. Nothing inside is reachable from another session absent a

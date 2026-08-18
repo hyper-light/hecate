@@ -5,6 +5,26 @@ individually, spec accepted whole). Research on file: EdenFS internals,
 CitC/Piper, virtio-fs/DAX/virtiofsd/libkrun, sharded CAS + placement functions.
 Companion to `VFS.md` (chunk store, manifests, volume roles) — this spec is the
 machine that serves those volumes into pods and witnesses what comes back.
+Amended 2026-08-18: §0 (the single-surface law) added; green-chain extension
+gains the placed-before-referenced requirement (MERGE §5).
+
+## 0. The single-surface law
+
+**No API in the system names a machine.** Volumes, content, peers, sessions,
+and services are addressed by identity — version, hash, participant UID,
+lineage node. **A session spans nodes**: its pods place on any machines the
+scheduler chooses; its home services (ledger core, merge service, frontier —
+the colocation unit) sit together on one node with their log replicated
+across the session group; its volumes mount from any node. Any pod on any
+node may attach any volume version — locality is a property of caching,
+never of availability. The fleet presents as one runtime with one namespace;
+the laptop is that same surface with one machine under it. (Receipts: the
+K8s image-by-digest model for immutable content; EdenFS's lazy local
+projection, its own four-tier read order — kernel cache → in-memory LRU →
+local store → network — adopted verbatim here; Nix/OSTree
+pull-by-name-verify-by-hash. Coherence machinery is absent because every
+shared object is immutable; the mutable work volume is single-pod,
+single-node by law — our RWO — and is never shared.)
 
 ## 1. The two-representation law
 
@@ -52,10 +72,16 @@ Any state that is neither is a spec violation (architecture test, AC-1).
 
 ## 4. Green (the manifest chain)
 
-- Green is a chain of immutable manifests over CAS content. A merge-gate commit
-  appends `{version, manifest_hash, increment_refs}` — green's only WAL touch;
-  content is already CAS-resident from seal. Merkle manifests share unchanged
-  tree nodes: chain cost is O(changed paths).
+- Green is a chain of immutable manifests over CAS content — **the session's
+  shared CoW staging volume**, attachable from any node (§0). A merge-gate
+  commit appends `{version, manifest_hash, increment_refs}` — green's only
+  WAL touch; content is already CAS-resident from seal. Merkle manifests
+  share unchanged tree nodes: chain cost is O(changed paths).
+- **A version is placed before it is referenced** (amended 2026-08-18, MERGE
+  §5): the chain record does not commit until the version's new blobs are
+  replicated to the session-group members and acked — the OT14 ladder
+  applied to green, so a promoted merge-service applier holds log, state,
+  and bytes, and the chain can never point at content nobody has.
 - The merge gate **extends, never writes**; nothing mutates in place (MERGE.md's
   fix-forward, made physical). Green serving instances are compiled with no
   write path: `FUSE_WRITE` and WRITE-flagged `SETUPMAPPING` answer `EROFS`.

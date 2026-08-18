@@ -41,8 +41,14 @@ The fork tree over a body of work — baseline manifests, fork relations, and it
 _Avoid_: workspace, repo binding
 
 **Session**:
-The isolation and namespace unit: an independent workstream attached to a lineage node, born template-stamped (never bare) with its own colocation unit, key root, and pods — nothing inside a session is reachable from another absent a brokered grant. Forkable, mergeable via landing, disposable; proof outlives it in the archive.
+The isolation and namespace unit: an independent workstream attached to a lineage node, born template-stamped (never bare) with its own colocation unit, key root, and pods — nothing inside a session is reachable from another absent a brokered grant. **A session spans machines**: its pods place on any nodes; only its home services colocate; its volumes attach from anywhere. Forkable, mergeable via landing, disposable; proof outlives it in the archive.
 _Avoid_: workspace, environment
+
+**Colocation unit**:
+The session's home services — ledger core, merge service proposer, frontier, field service — placed together on one node for locality, with their logs replicated across the session group. The unit is the services, never the session: pods are not in it and place anywhere.
+
+**Attachment**:
+The per-(pod, volume) control object created at bind: pins the version, holds the lease, wires warden scopes, runs prefetch, carries accounting. A pod's view of a volume changes only through a re-attach. No claim, no attachment, no mount.
 
 **Summon**:
 A claim requesting allocation of a workload — pods, VFS volumes, permissions, network endpoints, agent assignment, health validation. Issued by an orchestrating agent (the Guide, the autoscaler as system participant), **executed by the scheduler**, gated by Guardian admission validations on the same claim, and monitored and evaluated by its issuer like any work. No agent allocates directly.

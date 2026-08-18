@@ -208,8 +208,12 @@ make that true rather than aspirational:
   single-replica consensus group (`LEDGER.md` §8), and single-node placement are the
   *same code* as their distributed forms with smaller parameters. No local-only
   shortcuts, no distributed-only modules bolted on later.
-- **Colocation units.** The session truth plane — ledger home, merge serializer, green,
-  disk flusher — is one colocation unit, placed whole on one node. Each pod colocates
+- **Colocation units.** The session truth plane — ledger home, merge proposer,
+  green-head authority, disk flusher — is one colocation unit, placed whole on one
+  node **for locality, not for existence**: its logs replicate across the session
+  group, warm applier instances run at every group member, green versions are
+  placed to the group before they are referenced, and failover is promotion, not
+  reconstruction (MERGE §§2/5, 2026-08-18). Each pod colocates
   with its own volume server. Pods otherwise place anywhere: cross-pod interaction is
   already exclusively network protocol (claims plane + MCP), and the streaming merge
   gate is distribution-native by construction — increments travel as ledger artifacts

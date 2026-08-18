@@ -1,153 +1,385 @@
-# SPEC: the merge engine — canonical rebase, deterministic verdict, Arbiter gate
+# SPEC: the merge engine — canonical rebase, deterministic verdict, distributed staging volume
 
-Status: presented for acceptance (grilling Branch 4; direction ratified, ADR-0005).
-References: OT correctness research on file (GRILLING.md); Jupiter/Wave serializer
-topology; ProseMirror rebase precedent; Pijul conflict-as-first-class; MongoDB Realm
-model-based testing; Sylk merge fault family (F2/F3/F4/F6/F9/F10).
+Status: ACCEPTED 2026-08-18 (whole-spec rewrite through the six-exchange
+grilling arc: writer self-fencing (A1, corrected), descriptor increments +
+fixed-layer ops documents (A2, corrected twice under maximal audit),
+replicated-state-machine merge service, green version replication, the
+volume-object model, and the submission transaction — all receipted; dossiers
+in GRILLING.md). References: OT correctness research; Raft §5.3 (follower
+apply); ZooKeeper/Zab epochs, Kafka KIP-101, BookKeeper fencing (fence-in-log
+precedents); K8s image-by-digest + EdenFS lazy projection (volume model);
+FastCDC/BLAKE3/memcmp/decode throughput receipts; Sylk merge fault family.
+
+## 0. How it works — the human picture
+
+**Every machine in the fleet looks the same:**
+
+```
+┌─ machine (any node) ────────────────────────────┐
+│  host process                                   │
+│  ├─ blob store (RAM + local disk)               │
+│  │    immutable blobs, each named by its hash.  │
+│  │    Never edited, only added. On a miss, the  │
+│  │    store PULLS the blob by name from any     │
+│  │    machine that has it, verifies, keeps it.  │
+│  ├─ file server (the EdenFS role)               │
+│  │    projects volumes to THIS machine's pods,  │
+│  │    served from the local store + pull-on-miss│
+│  └─ pods (VMs) — agents live here               │
+└─────────────────────────────────────────────────┘
+```
+
+**Two rules govern all data movement**: bytes move machine-to-machine only
+as *pull-these-named-blobs* transfers, verified on arrival; everything else
+is tiny notes (refs, ~100 bytes). Machines appear in no API — pods, volumes,
+and services are addressed by identity; placement is the scheduler's private
+concern (the single-surface law, SERVING §0).
+
+**Green — the session's shared staging volume — demystified**: green is the
+session-wide copy-on-write VFS volume where merged work stages before the
+Arbiter-gated disk commit (Sylk's global session VFS, matured). It is *not a
+disk anywhere*: it is a numbered series of **tables of contents**
+(manifests). Version 43 is a small document naming blobs; it shares every
+unchanged blob with version 42 by name — that structural sharing *is* the
+copy-on-write. Any pod on any node attaches to any version (§6); readers
+attach to immutable versions; **no mount writes green — its writer is the
+log** (§2).
+
+**The merge service is a replicated state machine with one baton:**
+
+```
+        the replicated merge log (session group: 3 machines, identical copies)
+        ┌──────────┬──────────┬──────────┐
+        │  B: copy │  D: copy │  E: copy │
+        └────▲─────┴────▲─────┴────▲─────┘
+             │ appends   │ applies  │ applies
+        ┌────┴─────┐ ┌───┴────┐ ┌───┴────┐
+        │ PROPOSER │ │applier │ │applier │   ← merge service, 3 instances
+        │ (baton)  │ │ (warm) │ │ (warm) │
+        └──────────┘ └────────┘ └────────┘
+```
+
+All three instances apply every committed merge record (that is what a Raft
+state machine *is* — paper §5.3); exactly one holds the **baton**: a
+generation number written into the log itself. Only the baton-holder may
+append — decide verdicts, advance the version number. If its node dies, an
+applier writes "I take the baton, generation g+1" and continues — no replay,
+because it was never behind; and it already holds the bytes (§5).
+
+**One edit, three machines, walked** (pod on A edits `main.rs`; session home
+= B; reader pod on C):
+
+```
+ A (worker)                B (home)                    C (reader)
+ 1. pod saves file
+ 2. A's host seals it: new
+    blobs c1,c3 → A's OWN
+    store + a small change
+    description
+         │ 3. note (~100 B): "merge desc=D,
+         │    result=M, base=green v42"
+         ├────────────────────►
+         ◄──"send D,c1,c3"─────┤ 4. B pulls the new bytes BY NAME
+         ├──── ~24 KB ────────►     (unchanged blobs never move)
+         │                  5. conflict check (byte ranges vs
+         │                     merges since v42)
+         │                  6. B builds ToC v43; PLACES v43's new
+         │                     blobs on D and E; awaits acks (§5)
+         │                  7. appends "v43 = ToC #abc" to the log;
+         │                     D and E apply; head hashes compared
+         │                          │ 8. note: "green is now v43"
+         │                          ├──────────────────────►
+         │                          ◄──"send c1,c3"─────────┤ 9. C pulls only what
+         │                          ├──── ~24 KB ──────────►    it lacks, by name
+         │                          │                     10. pod on C re-attaches
+         │                          │                         to v43, reads locally
+```
+
+Nobody wrote to a shared disk; there isn't one. The 24 KB of genuinely new
+bytes crossed the network at seal-pull and reader-pull; everything else was
+notes. The formal sections below are details of this picture.
 
 ## 1. Model
 
-Per session: one **merge serializer** — a single-owner task (hecate-rt) that totally
-orders all merges into green. Inputs are **increments**:
+Per session: one **merge service**, run as a replicated state machine on the
+session group's member nodes (§0 diagram). Inputs are **increments** —
+constant-size descriptor messages (never bytes; §4):
 
-```
+```rust
 Increment {
   claim: ClaimRef,                 // the work this increment belongs to
   base: GreenVersion,              // declared, never inferred
-  ops: Vec<FileOp>,                // the actual operations, hecate-wire encoded
-  basis: Option<Lease>,            // disjointness fast-path evidence
+  post_state: ManifestRef,         // the sealed final volume state (in the store)
+  ops_doc: ContentRef,             // the derived op-description document (in the store)
 }
-FileOp = Edit { path, ops: Vec<ByteOp> }        // ByteOp = Insert{at, bytes} | Delete{range}
-       | Create { path, content } | Remove { path }
-       | Rename { from, to } | Mkdir { path }
 ```
 
-Pipeline per increment, all inside the serializer, all deterministic:
+Pipeline per increment, inside the proposer, deterministic end to end:
 
 ```
-map:     position-map ops through canonical deltas (base..head], one-directional
-verdict: pure fn(canonical history, mapped increment) -> Accept | AcceptIdentical | Conflict(windows)
-apply:   splice accepted ops into green (chunk-granular, VFS.md §5); bump green version
-record:  merge-log record + apply commit atomically — a merge that cannot be
-         recorded never applies (Sylk F6 closed)
+dedup:   increment identity = hash(claim, base, post_state, ops_doc);
+         seen-in-log ⇒ ack-without-reapply (retries always safe)
+fetch:   pull ops_doc (+ ranges as needed) by name — outside the pure core
+map:     position-map ops through canonical deltas (base..head]
+verdict: two pure passes (§3)
+apply:   splice accepted ops into a new manifest (chunk-granular, VFS §5)
+place:   push the version's new blobs to the session-group members; await acks
+commit:  merge record {id, verdict, version, manifest_hash, (term,gen)}
+         through the session group — a merge that cannot be recorded never
+         applies; a version that is not placed is never referenced
 ```
 
-## 2. Position mapping
+## 2. Writer authority — the baton (self-fencing through the log)
 
-- One-directional only: increment ops map **through canonical history**, never
-  against each other. Mapping is per-path over the intervening deltas' byte effects:
-  inserts shift positions, deletes contract them; an op whose anchor falls inside a
-  concurrently deleted range is not mapped — it is a conflict class (§3).
-- Mapping composes: `map(d1..d3) = map(d2..d3) ∘ map(d1..d2)` — a proven property
-  (test M4), which is what makes batching and replay coherent.
-- File-level ops map by path identity through renames; concurrent rename+edit maps
-  the edit to the new path; concurrent rename+rename of one path is a conflict.
+The merge log is a per-session logical log on the WAL substrate, committed
+through the session group like every log. **Content-addressed writes need no
+fencing — only the log does**: a stale instance writing blobs produces
+orphans GC sweeps; authority lives entirely in log append.
 
-## 3. The verdict
+- **Open marker**: a new proposer instance's first act is committing
+  `SerializerOpen { generation }` (prior generation + 1, derived from the
+  log it just applied). The commit is simultaneously the leadership proof
+  (only the current leader's client commits anything) and the fence (every
+  prior generation is superseded as quorum-committed state). No side channel
+  exists to disagree, because the fence *is* the authoritative state.
+- **Carriage + enforcement**: every merge record carries `(term, generation)`;
+  the session group's state machine refuses mismatches pre-apply — one
+  lexicographic integer compare, zero crypto.
+- **Liveness**: leader fortification on the node-liveness fabric + the
+  ownership-tree restart (RUNTIME task-lifecycle law). No separate lease
+  machinery exists.
+- **Precedents (receipted)**: the fence-in-the-log pattern is Raft's own
+  term, BookKeeper's fence op, Kafka's KIP-101 leader epoch, and Zab's
+  epoch-in-zxid — four independent production instances.
+- **Failure matrix**: task crash ⇒ restart, apply-to-head, open gen+1; node
+  death ⇒ an applier promotes (one commit — failover at election-timeout
+  scale, not replay); zombie node ⇒ cannot commit (quorum) and is
+  generation-stale besides; pause-and-resume ⇒ the resumed instance's
+  batches carry a superseded generation, refused at apply (the case the
+  generation exists for).
+- **Log invariant**: generations are monotone non-decreasing in log order —
+  scannable; violation is structural corruption (FAULTS §2 disposition).
 
-A **pure, deterministic function** — no clock, no randomness, no IO, no model — of
-(canonical history since `base`, mapped increment). Classes:
+## 3. The verdict — two pure passes
 
-| Verdict | Condition | Consequence |
-|---|---|---|
-| Accept | all mapped ranges disjoint from intervening effect ranges | splice |
-| AcceptIdentical | op content-identical to an intervening change (same range, same bytes) | no-op accept via content identity — diff3's "false conflict" class, auto-cleared |
-| Conflict | range overlap or containment; edit anchored inside a concurrent delete; same-position concurrent inserts; concurrent rename/rename; create/create on one path with differing content | reject with windows |
+A deterministic function of (canonical history since `base`, mapped
+increment, referenced immutable content). Classes: **Accept** (all mapped
+ranges disjoint from intervening effect ranges) · **AcceptIdentical**
+(same-range concurrent inserts with identical bytes — recognized, not
+resolved) · **Conflict** (overlap/containment; edit anchored in a concurrent
+delete; same-position differing inserts; rename/rename; create/create
+differing).
 
-- Detection is **byte-exact interval overlap on declared operations** — sweep-line
-  over base-coordinate effect ranges, O((n+m) log(n+m)). No diff inference exists
-  anywhere in the engine (the diff3 pathology family — phantom conflicts,
-  instability, non-idempotence — is structurally unreachable).
-- **Leases fast-path, never guard**: a valid basis proving path-disjointness from all
-  intervening deltas skips map+verdict for those paths. A stale lease changes cost,
-  never correctness.
-- Verdict purity is the engine's central theorem: same (history, increment) ⇒ same
-  verdict, on any shard, any platform, any replay, any seed.
+- **Pass one (pure)**: sweep-line interval overlap on declared ops,
+  O((n+m) log(n+m)); emits verdicts plus the list of same-range insert
+  overlaps needing identity checks. No diff inference exists anywhere — the
+  diff3 pathology family stays structurally unreachable.
+- **Fetch (between passes, outside the pure core)**: read the candidate
+  source ranges — immutable, content-addressed, typically local.
+- **Pass two (pure)**: memcmp results in hand, finish the verdicts.
+  Common path: zero content reads. Rare path: one range-compare
+  (memory-speed; receipts on file). The always-paid seal-time hashing of an
+  earlier draft is deleted.
+- Position mapping is one-directional through canonical history and
+  composes: `map(a..c) = map(b..c) ∘ map(a..b)` (M4). Leases fast-path,
+  never guard.
+- Verdict purity is the engine's central theorem — and under the RSM (§5),
+  appliers recomputing the verdict at apply *is* deterministic apply, the
+  definitional SMR shape.
 
-## 4. Conflict windows and the corrective path
+## 4. Increments and the ops document — descriptors, never bytes
 
-- A `Conflict` carries **windows**: per path, the byte ranges of both sides' ops plus
-  the refs of the claims/deltas that produced the intervening changes — evidence, not
-  markers. Detection granularity is bytes; **presentation** granularity is line runs,
-  optionally labeled with the enclosing tree-sitter node — labeling only, never
-  AST-based auto-resolution (measured false-merge record).
-- **Fast path** (first conflict on a region, single author): corrective claim to the
-  authoring Engineer — rebase against the window, resubmit. Seconds, no agent
-  adjudication.
-- **Escalation** (repeated conflict on a region, or cross-engineer): the **Arbiter**
-  adjudicates with full claims context and authors the corrective routing — who
-  rebases, what gets rescoped, or a specified unified change implemented by an
-  Engineer. Escalation thresholds are derived from observed conflict recurrence, not
-  constants.
-- Rejects are **non-blocking**: the serializer emits the verdict and proceeds; the
-  corrective is asynchronous. No head-of-line stall.
+By the time an increment exists, seal already chunked, named, and stored
+every changed byte (SERVING §2). Increments therefore carry **no content**:
 
-## 5. The Arbiter gate flow
+- **The deriver emits the composed net op set**: witnessed ops compose by
+  pure interval algebra (Insert-then-overlapping-Delete cancel and split) —
+  the M4 composition law applied intra-increment. Every surviving insert's
+  bytes exist in the sealed post-state *by construction*. **Composition of
+  declared ops is arithmetic on facts; reconstructing ops by comparing file
+  states is the banned diff inference.** The deriver does only the first.
+- **The ops document** is content-plane, content-addressed, and uses the
+  **fixed-layer discipline** (the second lawful encoding form, per the
+  PROTOCOL §1 envelope precedent — `repr(C)`, explicit-endian, compile-time
+  asserts, canonical by construction): a hecate-wire header + a flat array
+  of 32-byte records `{kind, path_idx, at, len, src_off}`. Receipts: decode
+  of compact varint formats measures 0.2–1.6 GB/s; bounds-checked in-place
+  cast runs at memory speed — the fixed layer is load-bearing for the §12
+  latency budget, and the pattern is Cap'n Proto/FlatBuffers/Arrow/LMDB
+  shipped practice.
+- No byte-bearing field compiles in any increment type (refs and hashes
+  only — the WF8 derive machinery). Message size is invariant in op count
+  and content size.
+- **Retention**: merge-log-referenced manifests and ops documents are
+  OBJECT_TIER §7 GC liveness roots until log truncation (tested, M14e).
 
-- **Frontier service** — a deterministic harness service in the session's colocation
-  unit, beside the serializer. Consumes the **merge log** (VFS-subsystem state, not
-  the ledger); owns the reviewed-through cursor and the scope→findings working index
-  as its own re-derivable state; batches contiguous green versions into
-  scope-coherent review units; **issues review claims** as a system participant; and
-  serves hot-context queries ("prior findings for scope X") to Arbiter replicas over
-  the protocol — Arbiter replicas are separate microVMs; their shared context is this
-  service, by construction.
-- **The ledger carries only its four things**: review claims (at-most-once dispatch,
-  lease-expiry redelivery across replicas) and closing testaments whose finding
-  artifacts are the evidence. History flows to the Archivalist through normal record
-  paths.
-- **Streaming analysis**: Arbiter replicas review as-it-merges, so the whole-work
-  verdict at claim close is largely precomputed.
-- **Gate**: on the work claim's closing testament, the **Arbiter evaluates** the
-  whole-work validations (quality, coherence, adherence to user directives,
-  robustness, efficiency, performance, correctness — Architect joining on design
-  questions; Guardian safety and SafetyPolicy user disk-approval alongside). The gate
-  itself is a chokepoint where the verdict's structural consequence fires — validated
-  ⇒ per-descriptor disk commit unlocks — never an evaluator.
+## 5. Apply, placement, and version replication
 
-## 6. Contention control and tripwires
+- **Splice**: accepted ops rewrite only the chunks their mapped ranges touch
+  (VFS §5 seam); source bytes come from the sealed post-state through the
+  store. New chunks + the new manifest land in the proposer's local store.
+- **Placed strictly precedes referenced — applied to green** (the OT14
+  ladder instantiated here): the merge record referencing manifest `#abc`
+  **does not commit until the version's new blobs are replicated to the
+  session-group members and acked**. The replica set *is* the session
+  group: the nodes holding the log also hold the bytes, so a promoted
+  applier has log + applied state + content — failover with zero
+  unreachable refs. Cost: one intra-region replication round trip per
+  commit (~1–2 ms class, pipelined across increments) — the durability the
+  chain requires. The durable-plane copyset placement proceeds
+  asynchronously behind this as the archival tier (the ladder's later
+  rungs, unchanged).
+- **Warm appliers**: every session-group member applies each committed
+  record — advancing its green head, verdict bookkeeping, frontier cursor.
+  Records are refs and verdicts (~100s of bytes); applying is cheap
+  everywhere; content arrived at placement time.
+- **Continuous divergence detection, free**: replicas compare green-head
+  manifest hashes per log index as they apply — O(1), because the state IS
+  a hash (versus etcd's periodic CORRUPT ALARM and CRDB's 24-hour SHA-512
+  cycle). Divergence is **fatal-and-loud** (alarm + refuse), never silently
+  reconciled — the disposition every precedent agrees on.
 
-- Same-scope work is serialized **above** the engine: claims scope entries +
-  `depends_on` sequencing + lease ordering. The engine's rejects are the residue
-  after three prevention layers.
-- Ledger-visible tripwires (derived thresholds, measured baselines):
-  - sustained rebase-retry rate on a region ⇒ Arbiter adjudication escalates and
-    scoping is revisited (livelock guard);
-  - p99 intervening-deltas-per-merge ⇒ reopens the eg-walker branch (ADR-0005) with
-    data in hand.
+## 6. Green as a volume — objects, claims, attachments
 
-## 7. Test matrix (failure each catches)
+Green is a **first-class volume object** under the volume lifecycle
+(VFS §3b): pods declare volume claims in their summon manifests; at bind the
+node's serving layer creates an **attachment** — a per-(pod, volume) object
+pinning the version, holding the lease, wiring the warden's scope entries,
+running the declared prefetch, and carrying the accounting. Readers attach
+to **immutable versions** (the container-image-by-digest sharing pattern —
+per-pod instantiation from the local store, never a shared live mount);
+version advance is the pod's next re-attach, an explicit lifecycle event.
+**No mount writes green**: the writer is the log (§2); "write access" is the
+baton, not a filesystem mode. Cross-node access is the read-through fill of
+§0 — mount-anywhere with locality as caching (receipts: K8s images, EdenFS's
+own four-tier read path, Nix/OSTree).
+
+## 7. The submission transaction
+
+An agent submitting work is making a network transaction. The sequence,
+with its governing settlements:
+
+```
+ agent pod P        host A            proposer (B)        session group      frontier→Arbiter
+ 1. "submit" ─ring─► warden inspects (claim scope), then host-side:
+ 2.                  SEAL: drain, compose net ops, chunk to A's store
+ 3.                  ── Increment ~100 B (claims lane, request_id) ──►
+ 4.                  ◄─ pull ops_doc + new blobs by name (bulk lane) ─  [dedup first]
+ 5.                                    verdict (two-pass) + splice
+ 6.                                    ── place new blobs ──► acks (D, E)
+ 7.                                    ── commit record ────► appliers apply,
+                                                              head hashes compared
+ 8. ◄────────────── Verdict response: Accept{v} | Conflict{windows} ──
+                                       └── merge log ──► frontier batches versions,
+                                           issues REVIEW CLAIMS via the ledger;
+                                           Arbiter pods review asynchronously
+```
+
+- The agent **parks** on submit (long-op turn shape) and resumes with the
+  verdict. **The Arbiter never receives the submission** — it receives
+  review claims derived from the merge log; the gate (§9) fires at work-claim
+  close, not in this pipe.
+- **Failure semantics**: timeout ⇒ resubmit (identity dedup makes retries
+  always safe); home-node failover ⇒ resolver re-points to the promoted
+  applier, resubmit lands there, at-most-once holds; submitter dies after
+  commit ⇒ the claim's state shows the increment applied — the handoff
+  successor resumes from the claim, not a lost ack; source node dies before
+  fetch ⇒ typed failure, claim redelivers (the priced seal-to-land loss
+  window, OBJECT_TIER §3's formula).
+- **Latency**: seal (local) + claims RTT + bulk fetch + placement acks +
+  commit + response ≈ single-digit ms intra-region, pipelined; invisible
+  under an agent turn. Laptop: identical sequence, in-process, µs.
+
+## 8. Conflict windows and the corrective path
+
+Unchanged in substance: a `Conflict` carries per-path byte windows plus the
+refs of the colliding claims — evidence, not markers; presentation in line
+runs with optional tree-sitter labels (labeling only, never AST
+auto-resolution). Fast path: corrective claim to the authoring Engineer —
+rebase against the window, resubmit (a rebased increment has a new identity;
+dedup never blocks it). Escalation at derived recurrence thresholds: the
+Arbiter adjudicates and authors corrective routing. Rejects are
+non-blocking; the proposer never stalls.
+
+## 9. The Arbiter gate flow
+
+Unchanged in substance: the **frontier service** (colocated with the session
+home; state fully re-derivable from the merge log) batches contiguous green
+versions into review units, issues review claims (at-most-once, lease-expiry
+redelivery), and serves hot-context queries to Arbiter replica pods over
+directed request/response. The ledger carries only review claims and finding
+testaments. Streaming analysis makes the whole-work verdict largely
+precomputed; the gate itself is a chokepoint where the verdict's structural
+consequence fires — validated ⇒ per-descriptor disk commit unlocks — never
+an evaluator.
+
+## 10. Contention control and tripwires
+
+Unchanged: same-scope work serializes above the engine (claim scopes,
+`depends_on`, lease ordering); the engine's rejects are the residue. Ledger-
+visible tripwires with derived thresholds: sustained rebase-retry rate on a
+region ⇒ Arbiter escalation + rescoping; p99 intervening-deltas-per-merge ⇒
+reopens the eg-walker branch (ADR-0005) with data in hand.
+
+## 11. Laptop degenerate
+
+One node: the session group is one replica (self-ack), placement is a local
+write, every arrow in §7 is an in-process call, attachments project from the
+one local store. Same code, same sequence, no modes.
+
+## 12. Test matrix
+
+M1–M12 as before (purity; oracle fuzz; replay equivalence; mapping
+composition; AcceptIdentical; apply/record atomicity under power-cut;
+deterministic ordering; rename matrix; frontier at-most-once; TLA+ model;
+diff3 calibration reported-never-gated; no-LLM/no-IO architecture test —
+with M12 restated for the two-pass shape: no IO inside either pure pass).
 
 | # | Test | Catches |
 |---|---|---|
-| M1 | Verdict purity: same (history, increment) ⇒ identical verdict across shards, platforms, replays, seed sweeps | nondeterministic rejection — racy conflicts |
-| M2 | Oracle fuzz: random op sets vs an independent brute-force interval checker — zero false accepts (overlap merged) and zero false rejects (disjoint refused) | silent interleaving; phantom conflicts |
-| M3 | Replay equivalence: green state is a pure function of the merge log — replay from any snapshot reproduces byte-identical green | hidden serializer state |
-| M4 | Mapping composition property: `map(a..c) == map(b..c) ∘ map(a..b)` over generated histories | incoherent batching/replay |
-| M5 | AcceptIdentical: concurrent identical edits auto-clear via content identity; near-identical do not | false-conflict regression; sloppy identity |
-| M6 | Apply/record atomicity under SIM power-cut sweep: no applied-but-unrecorded merge exists at any cut point | the Sylk F6 orphan-merge class |
-| M7 | Deterministic ordering: merge-log records, paths, and window lists identically ordered across runs | map-iteration nondeterminism (Sylk F10) |
-| M8 | Rename matrix: rename+edit, rename+rename, create/create, edit-in-delete — each lands in its specified class | file-op edge cases |
-| M9 | Frontier at-most-once: replica crash/lease-expiry fuzz — every green version reviewed exactly once; cursor re-derivation from merge log reproduces identical service state | duplicate/lost review; unrecoverable frontier |
-| M10 | TLA+ serializer model + model-based test generation against the implementation (Realm pattern) | protocol-level ordering bugs the unit tests can't reach |
-| M11 | diff3/git corpus calibration: verdicts compared, divergences *reported* (never gated) | drift from human merge intuition, without inheriting the unstable oracle |
-| M12 | Architecture test: the serializer crate has no provider/LLM dependency; no await on any agent in map/verdict/apply/record | judgment leaking into the hot path |
+| M13a–c | Baton races: restart / pause-resume / colocation-move + zombie-heal fuzz ⇒ stale generations refused pre-commit; single lineage; no state anywhere names a proposer except the log's open markers | the Kleppmann class; dual-authority wedge |
+| M13d | Writer-roster boot check (CONSENSUS §6) | unclassified writer |
+| M13e | Fence check does zero crypto/allocation | fencing as hot-path tax |
+| M13f | Open-marker lineage monotone + gapless under nemesis fuzz; replay-derivable | fence divergence |
+| M14a | No byte-bearing field compiles in increment types (trybuild) | inline content returning |
+| M14b | Same witnessed stream ⇒ identical ops-doc ContentRef, cross-platform | split-brain derivation |
+| M14c | Splice ≡ reference applier (differential) | descriptor path losing bytes |
+| M14d | Identical concurrent edits: one range-compare on overlap path, zero content reads on common path (instrumented) | false conflicts; regression of the lazy check |
+| M14e | Log-referenced content survives GC until truncation | replay reaching for collected bytes |
+| M14f | Increment message size invariant | constant-size erosion |
+| M14g | Write-then-revise fuzz: every net `src_off` valid; net-apply ≡ raw replay; composition deterministic | dangling provenance |
+| M14h | Merge-path p99 latency ratchet from first-light baseline | sub-ms property decaying |
+| M15a | Kill proposer at every point splice→announce ⇒ version fully readable via promotion; chain never dangles | unreachable-head loss |
+| M15b | No merge record commits before R placement acks (OT14-for-green, structural) | reference-before-placed |
+| M15c | Applier convergence: green-head hashes identical at every index under nemesis; divergence ⇒ fatal-loud | silent split-brain green |
+| M15d | Promotion latency ≈ election-timeout scale, no replay on critical path (measured) | cold-failover regression |
+| M16a | Attach-denied: undeclared volume claim refused at bind | ambient-mount regression |
+| M16b | Version stability: a pod's view never changes without re-attach, fuzzed across concurrent merges | ground shifting under mounts |
+| M16c | Re-attach anywhere: kill node, re-summon, attach same version elsewhere, byte-identical | locality masquerading as availability |
+| M17 | Submission-transaction fuzz: kill any party at any step ⇒ exactly-once apply, agent resumes with a truthful verdict or claim-driven redelivery | the transaction's failure table |
 
-## 8. Acceptance criteria
+## 13. Acceptance criteria
 
-1. M1/M2 CI-gated permanently: verdict purity and zero-false-accept/reject against
-   the oracle across the standing seed sweep.
-2. M6 power-cut sweep: apply and record are atomic — no cut point yields divergence.
-3. No silent interleave path exists: every overlap class terminates in Conflict;
-   grep-proof: no code path applies overlapping mapped ops.
-4. No LLM, clock, RNG, or IO in map/verdict — enforced by the runtime lint wall plus
-   M12.
-5. Frontier service state is fully re-derivable (delete state, replay merge log,
-   byte-identical index and cursor).
-6. Review claims and finding testaments are the only ledger objects the review
-   pipeline creates (standing ledger-scope rule).
-7. Conflict windows are byte-exact; AST appears only in presentation labels.
-8. Throughput floors ratcheted from first CI baseline (merges/sec at fixed increment
-   size; verdict µs p99); regression >10% fails CI.
-9. Tripwire metrics emitted from day one; thresholds derived, with derivations at the
-   definition sites.
+1. M1/M2 permanent (verdict purity; zero false accepts/rejects vs oracle).
+2. M6 + M15a/b permanent: apply/record atomic; placed-before-referenced for
+   every green version; no crash point yields a dangling head.
+3. No silent interleave path; every overlap class terminates in Conflict.
+4. No LLM/clock/RNG/IO in either pure pass (lint + M12).
+5. Frontier state fully re-derivable; review claims + finding testaments are
+   the only ledger objects the review pipeline creates.
+6. Conflict windows byte-exact; AST label-only.
+7. The proposer appears in the boot writer roster; generations monotone in
+   the log (M13d/M13f permanent).
+8. No content byte rides the claims plane in any merge type; increments are
+   constant-size (M14a/M14f permanent).
+9. The deriver is composed-net-ops with the never-diff clause as text
+   (M14g permanent).
+10. Green-head hash comparison runs at every applier continuously;
+    divergence is fatal-and-loud (M15c permanent).
+11. Volume access is attachment-only: no undeclared claim mounts anything;
+    no pod's view changes without a re-attach event (M16a/b permanent).
+12. Throughput and latency floors ratcheted from first CI baseline
+    (merges/sec; verdict µs p99; merge-path p99 incl. placement; promotion
+    latency); regression >10% fails CI.
+13. Tripwire metrics emitted from day one; thresholds derived at definition
+    sites.

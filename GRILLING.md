@@ -1762,3 +1762,25 @@ divergent node) — per-entry semantic validation exceeds precedent.
 Hecate elegance: cross-replica check = compare green-head manifest hashes
 per log index — O(1) continuous, free (state IS a hash) vs CRDB's
 expensive snapshot SHA-512. Consolidated re-presentation next.
+**MERGE ARC WRITTEN TO THE CORPUS (2026-08-18, user directive: "you NEED
+to make sure this is written in hecate's documentation… NUMEROUS documents
+get the merge systems, the session-wide VFS volume, the per-pod mechanics
+WRONG… sessions being one-node-only BLATANTLY wrong")** — MERGE.md fully
+rewritten and ACCEPTED (submission-transaction verdict "That matches"):
+§0 human picture w/ diagrams (per-machine anatomy, RSM+baton, one-edit
+walk), A1 self-fencing w/ four precedents, two-pass verdict, A2 descriptor
+increments + fixed-layer ops docs + composed-net-ops law, §5 apply/place/
+replicate (OT14-for-green: version blobs placed to session-group members
++acked BEFORE the record commits; warm appliers; free continuous
+green-head hash comparison, divergence fatal-loud), §6 green-as-volume
+(attachment model), §7 the submission transaction (sequence + failure
+table; Arbiter explicitly NOT in the submit path), M13–M17 test families,
+13 criteria. SERVING.md: §0 single-surface law added (no API names a
+machine; sessions span nodes; EdenFS four-tier read order adopted;
+work-volume=RWO carve-out) + §4 placed-before-referenced for green.
+VFS.md: §3b volume lifecycle (claims → attachments → access-mode table;
+RWX does not exist). CONTEXT.md: Session glossary corrected ("A session
+spans machines"), Colocation unit + Attachment entries added.
+SUMMONING.md: truth-plane clause corrected (one node "for locality, not
+for existence"; failover is promotion). MERGE exchange CLOSED; A3/A4
+folded (laptop degenerate = §11; carriage = §7's lanes).
