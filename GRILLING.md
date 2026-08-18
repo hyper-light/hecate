@@ -1878,3 +1878,15 @@ PURPOSE (needed-for-quorum vs opportunistic). etcd N=1 = same code path,
 quorum=1, self-ack; the fragile transition is GROWING 1→2 (feeds Branch
 38's laptop-to-fleet growth path). Re-audits presented one at a time, A1
 first.
+**A1 RE-AUDIT SETTLED ("Accepted.", 2026-08-18)** — the settled baton
+design OVERTURNED by the fusion receipts: MERGE §2 rewritten — **the
+proposer is a role of the session-group Raft leader; the term is the only
+fence; SerializerOpen and the generation are DELETED** (succession = the
+Ongaro term-opening no-op; promotion = election/transfer; intra-process
+races killed by runtime ownership, not distributed fencing;
+leadership-follows-the-unit now load-bearing spec text). Rejected-
+alternative record = CRDB pre-fortification leaseholder (the split class),
+in-spec. M13a–f re-targeted to term semantics + the transfer-back bound;
+criterion 7 = grep-proof no second fence. One concept, one message, one
+promotion step, one failure class deleted. NEXT: A2 re-audit
+(submission topology + record content).
