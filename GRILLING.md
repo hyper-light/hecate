@@ -1980,3 +1980,35 @@ scheduling; device/GPU scheduling practice; interaction with our existing
 machinery (summon claims as the requirements carrier, content-locality
 scoring, Guardian admission, region colocation law). Exchange follows the
 dossier; VFS item-5's memory-wall half is unaffected (node-local classes).
+**Heterogeneous-placement dossier LANDED (2026-08-18)** — the four
+mechanisms answer four DIFFERENT questions: attribute matching = "which
+machines CAN run declared work" (irreducible base; universal; costs =
+declaration quality — Quasar's Twitter receipt: <20% utilization vs 80%
+reservations, 70% of workloads over-declare up to 10× — sprawl, and the
+opaque-integer ceiling that forced K8s's DRA; Slurm's typed GRES
+gpu:a100:2 = the cheap fix, type INSIDE the accounted resource);
+repulsion (taints) = the one question matching can't answer: "how does a
+NODE protect itself from work that declared NOTHING" (authored node-side,
+defaults closed; K8s docs: dedicated capacity needs taint+affinity+
+admission-webhook TOGETHER — the ergonomics tax; Nomad independently
+rediscovered the gap and built node pools); profile pools (Twine) =
+"how FEW machine shapes can the fleet have" — entitlements as abstract
+quota dynamically bound to machines + HOST PROFILES reshaping machines on
+pool rebind (kernel/sysctl/storage/NIC; 11% web-tier throughput from
+tuning — NOT '11% picky jobs', that Borg citation doesn't exist, the
+constraint-cost source is Sharma SoCC'11; segregation costs 20-30% more
+machines per Borg §5.2; twshared 15%→56% of fleet); performance-model
+placement (Paragon/Quasar) = "which feasible machine is BEST, measured
+not declared" — the biggest numbers in the space (91% vs 3-7% QoS; 62%
+vs 15% utilization) but native form = online SGD classifiers, fights
+determinism; the extraction = EPOCH-FROZEN data-derived coefficients fed
+to the deterministic scorer. Locality = a scoring family we have (graded
+ladder w/ fixed score-discounts replacing wall-clock delay-scheduling
+waits — its preconditions don't hold for us; Dragonfly/Kraken = the
+move-bytes-not-work boundary, locality weight derived from measured
+transfer cost). Convergent stack across all surveyed end-states:
+pools → hard feasibility (requirements + repulsion, pure predicates) →
+deterministic scoring → quota-at-admission → gang. Determinism red flags:
+online classifiers + NoExecute eviction (⇒ drain-not-kill only).
+Predicate-cost mitigation = equivalence classes + SEEDED sampling (Borg:
+hundreds of seconds vs >3 days). Exchange presented.
