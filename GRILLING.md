@@ -1074,6 +1074,36 @@ CONSENSUS+FAULTS, OBJECT_TIER §9 (D-3).
   degenerate = the one-node join is the boot path itself. Original
   charter (cordon/drain semantics, Ceph noout, Borg maintenance, SMART
   receipts) stands as the research-first list. Ruthless mechanics.
+- **38 The laptop collapse (whole-system scale-down)** — ADDED 2026-08-18
+  (user). The standing law — laptop = the DERIVED degenerate of the same
+  code, no modes ever — has per-spec statements but no branch that works
+  the whole-system collapse ruthlessly. Charter: (a) **the collapse map,
+  end to end** — meta tree → one group (root ≡ region, depth-1
+  failure-domain tree); session groups → 1-replica self-ack (WAL path
+  unchanged); placement/copysets → R_eff=1 LOUD; green placement acks →
+  self-ack; node-liveness fabric → self-support; hecate-quic → loopback
+  sessions for terminal attach + in-process short-circuit for local
+  delivery (router law); bare-UDP plane → loopback; **microVMs + wardens
+  stay REAL** (the VM boundary is the isolation guarantee, not fleet
+  machinery — never collapsed); serving → one store, arena + local pack;
+  scheduler shard=1; autoscaler floors; forest/KG/vector local; single
+  binary per ADR-0004. (b) **the resource envelope, derived** — pod/
+  session capacity from machine anchors (RAM/cores/disk); per-pod microVM
+  overhead measured per platform (libkrun/HVF/WHP); exhaustion = typed
+  refusals, never swap/spill. (c) **process topology per platform** —
+  what runs in which process on Linux/macOS/Windows; the cross-platform
+  constraint as first-light gate. (d) **boot = the one-node join**
+  (Branch 32's degenerate — same path, no special case). (e) **the
+  no-modes validation discipline** — architecture test: no code path
+  branches on scale, only on derived parameters; differential tests
+  laptop ≡ fleet observable semantics (the CN9 pattern generalized
+  system-wide); every spec's laptop-degenerate statement becomes a NAMED
+  test — and the GAPS inventory's "not stated" column (PROTOCOL, MERGE
+  pre-rewrite, VFS, AGENTS_RUNTIME, RANK, SKILLS_API, HEALTH) gets swept
+  and filled as part of this branch. (f) **first-light budgets** —
+  boot-to-serve on a reference laptop, ratcheted (OT15's discipline made
+  system-wide). Ruthless mechanics; settles alongside the walking
+  skeleton's P0.
 - **Walking skeleton** — final branch; re-presents against completed tree
   (P0 wire → P1 runtime → P2 spine → P3 pod leg → P4 first agent → P5 first
   merged change; now must thread Sibyl/home-session/lineage into first light;
