@@ -1935,3 +1935,17 @@ bar (per-class IO queues, Scylla shape); permanent test = the 2GB walk:
 p99 latency curves of every other class FLAT across an upload-size sweep
 — object size appearing in any curve is a structural failure, not
 degradation. Written into PROTOCOL §3.
+**Scale walk strengthened (2026-08-18, user: "We need to survive
+multi-petabyte walks")** — the independence test renamed and re-scoped:
+sweep spans MB→TB in real CI tiers + PB-class in the deterministic
+cluster-SIM (simulated bytes free; a PB walk costs seeds not days — the
+SIM's reason to exist); flat curves required in latency AND memory. Three
+PB-only failure modes named into the walk: rekey-in-flight (AEAD
+invocation limits crossed mid-transfer ⇒ hop-key rotation without pause
+or cross-class perturbation), duration-invariance (multi-day transfers
+survive leadership/epoch/node churn by missing-set resume — the TRANSFER
+scoping theorem asserted at PB duration under nemeses), fleet-aggregate
+effects (per-node reservations don't compose alone: incast bounded by
+receiver-driven credits at fan-in; a transfer's own generated maintenance
+— staging leases, GC, scrub — is opportunistic by the purpose rule, so a
+transfer cannot promote its own cleanup into anyone's critical path).

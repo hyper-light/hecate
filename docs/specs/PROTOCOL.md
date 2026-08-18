@@ -158,14 +158,42 @@ maximum occupancy is one frame-cap quantum, independent of object size):
 | Store disk IO | **The owed instantiation, now with its structural form named**: per-class IO queues at the pack store with reservation arbitration (the Seastar/Scylla scheduling-group shape; io_uring submission partitioning) — ingest staging writes and archival bulk cannot occupy the WAL-flush or placement-read queues. Owed to OBJECT_TIER/RUNTIME as a named rider, with THIS table's invariant as its acceptance bar |
 | Store memory/arena | Per-class/per-volume budget charges (existing budget doctrine) — bulk fill cannot evict or starve another class's arena share |
 
-The 2 GB walk, as the permanent test: a saturating multi-GB upload runs
-while control frames, claims traffic, and merge placement proceed —
-**their p99 latencies must be flat across a sweep of upload sizes**
-(the independence proof: if object size appears in any other class's
-latency curve, the guarantee is broken, structurally, and the test fails
-— not "degraded acceptably"). CPU-instantiation of the law
-(scheduling-group shares for maintenance vs serving work on hecate-rt)
-rides the same rider. Tests: the starvation pair
+**The scale walk, as the permanent test — megabytes to petabytes** (the
+invariant is scale-free by statement: *no size term, period* — so the
+proof must span the range we run at, laptop to Meta scale): saturating
+transfers run while control frames, claims traffic, and merge placement
+proceed — **their p99 latencies AND memory footprints must be flat across
+a sweep of transfer sizes spanning MB → GB → TB in real CI tiers, and
+PB-class in the deterministic cluster-SIM**, where simulated bytes are
+free and a petabyte walk costs seeds, not days (the SIM's reason to
+exist). Any size term appearing in any other class's latency or memory
+curve is a structural failure, not degradation.
+
+Three failure modes that exist only at the top of the range, named so the
+walk exercises them rather than discovering them:
+
+1. **Rekey-in-flight**: a PB at line rate crosses the derived AEAD
+   invocation limits mid-transfer — key rotation (hop-session key update)
+   must proceed without pausing the transfer or perturbing any other
+   class (tested at the SIM tier with limits scaled down to force
+   rotations).
+2. **Duration-invariance**: a multi-day transfer WILL see leadership
+   changes, epoch bumps, node deaths, and its own lease renewals — and
+   must resume by missing-set from wherever it was, never restart-from-
+   zero, because its only state is content addressing (the TRANSFER
+   scoping theorem, now asserted at PB duration under the nemesis matrix).
+3. **Fleet-aggregate effects**: per-node reservations do not compose into
+   fleet guarantees by themselves — a PB rebalance saturates the
+   opportunistic class on MANY nodes at once, and destination incast is
+   bounded by receiver-driven credit admission (already the design, now
+   asserted at fan-in under aggregate load); the maintenance work a PB
+   transfer *generates* (staging leases, GC of unreferenced staged
+   content, scrub of the new content) is itself opportunistic-class by
+   the purpose rule — a transfer must not be able to promote its own
+   cleanup into anyone's critical path.
+
+CPU-instantiation of the law (scheduling-group shares for maintenance vs
+serving work on hecate-rt) rides the same rider. Tests: the starvation pair
 (opportunistic saturation ⇒ quorum-critical latency within derived budget;
 quorum-critical bursts never delay control) + catch-up membership (a
 quorum-needed member's snapshot joins the critical class and completes
