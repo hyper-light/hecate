@@ -142,11 +142,19 @@ specs are **on the table**; branches without specs are **open**.
   content-only cross-region durability + no-session-failover priced by the
   OBJECT_TIER §3 formula, FlexiRaft rejected for the meta plane, CN13/CN14
   + F7 region-heal). **SETTLED 2026-08-17** — both specs accepted and
-  written ("accepted." ×2). OPEN RIDER: §7 cross-region receipts under
-  verification (user: "Is that cross-region solution backed by research?" —
-  provenance note in the spec separates PRIMARY/unverified/own-synthesis;
-  research in flight; refuting finding reopens §7 only, incl. the
-  zombie-region heal scenario probed in F7).
+  written ("accepted." ×2). RIDER CLOSED 2026-08-17: verification dossier
+  landed (research index), §7 reopened per the rider, six-amendment set
+  presented and ACCEPTED ("accepted") — FlexiRaft rejection rewritten
+  (two-branch unavailability/forced-reconfig argument, dynamic mode only,
+  static mode = same species as the root group), lease-shadow law
+  (Chubby lock-delay; rate-derived margin; CN15), externalization-fencing
+  law (every external side-effect channel = landing-class chokepoint
+  carrying root-scoped epoch; CN16 + acceptance 10b), region rejoin
+  protocol (terminal epoch on dead-declaration; rejoin under new epoch;
+  fork-only ingestion; F7 extended a–d), async-pole honesty note
+  (MRSC/Spanner/CRDB as the deliberate sync pole), receipts strengthened
+  (RTC 15-min SLA quantifies exposure_window; Dynamo surfaced-siblings vs
+  LWW anti-pattern; Physalia intra-AZ precision note). §7 RE-SETTLED.
 - **21 FS implementation (the serving machine)** — **SETTLED 2026-08-16**:
   spec `docs/specs/SERVING.md` accepted whole; decision record below stands
   as history. OPENED 2026-08-16; user

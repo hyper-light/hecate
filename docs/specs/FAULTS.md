@@ -124,7 +124,7 @@ rows:
 | F4 | Obligation-matrix coverage check: no subsystem × fault cell unstated | silent scope holes |
 | F5 | Byzantine non-goal boundary: a forged-message attempt dies at the key layer, never reaches the core (negative test) | scope confusion |
 | F6 | Disk-swap-on-reboot: node with stale/foreign disk is detected (epoch/identity mismatch) and refuses to vote | the FAST'18 disk-swap class |
-| F7 | Region-heal fuzz: partition a region (not kill), let both sides run, heal ⇒ safety holds; overlapping descendants of one lineage node surface as ordinary parallel workstreams (landing carries conflict values; materialization impossible on the cut side for lack of the root-scoped lease) | zombie-region resurrection |
+| F7 | Region-heal fuzz: partition a region (not kill), let both sides run, heal ⇒ safety holds under the full §7 protocol: (a) inside the lease-shadow window the root refuses re-grant/re-summon-with-materialization while the cut side may still legally materialize (CN15's window, exercised from the fault side); (b) after dead-declaration the region epoch is terminal — on heal the region rejoins under a new epoch, no pre-partition epoch resumes authority or renews a lease; (c) zombie sessions' unlanded work ingests as fork branches only, never continuations — overlapping descendants of one lineage node surface as parallel workstreams carrying conflict values; (d) zombie externalization attempts during and after the partition are refused at the fenced egress chokepoints (CN16 from the fault side) | zombie-region resurrection; the lease shadow; un-fenced externalization |
 
 ## 7. Acceptance criteria
 

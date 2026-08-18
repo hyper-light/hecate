@@ -218,17 +218,22 @@ is needed.
 
 ## 7. Cross-region
 
-**Evidence provenance**: the verification pass LANDED 2026-08-17 (dossier in
-GRILLING.md research index). Physalia, Chubby, Spanner, the async pole
-(S3 CRR/RTC, DynamoDB MREC, f4 §5.2, Tectonic), and the non-failover norm
-(Borg, K8s, F1) are CONFIRMED on primary text; the epoch-scoping law's
-precedents are CONFIRMED (Clark fate-sharing, Chubby lock-delay, K8s
-cluster-scoped Leases). Two arguments were CORRECTED — the FlexiRaft
-rejection reason (unavailability, not loss; dynamic mode only) and the
-zombie-region safety argument (three holes: lease shadow, externalization
-fencing, rejoin protocol). **§7 is REOPENED per the acceptance rider; the
-six-amendment set is presented for verdict and this section is not
-re-settled until it is accepted.**
+**Evidence provenance**: verified on primary text 2026-08-17 (dossier in
+GRILLING.md research index; §7 re-settled with the six-amendment set,
+accepted). Physalia's placement principle (P(Av|Ai), same-side-of-partition
+— an intra-AZ system; the region-level application is our extrapolation of
+the same argument, stated as such); Chubby's per-DC cells + one global cell
+(mirrored ACLs/refs/directory pointers; <1ms local vs 250ms antipodes) as
+the meta-tree precedent verbatim; Spanner's leader placement, witness
+replicas (OSDI'12 §2.2), and minutes-cadence placement driver; the async
+pole (S3 CRR, f4 §5.2's XOR-across-regions of sealed immutable volumes,
+Tectonic's datacenter scope); the non-failover norm (Borg "a job runs in
+just one cell"; K8s replacement-never-migration; F1's leader re-placement).
+Clark's fate-sharing, Chubby's lock-delay, and K8s cluster-scoped Leases
+ground the epoch-scoping and lease-shadow laws. Dynamo's surfaced-siblings
+model is the named precedent for landing-with-conflict-values; DynamoDB
+global tables' last-writer-wins is the named anti-pattern (silent loss of
+one side).
 
 - **Session groups never span regions** (§1 colocation law). Intra-session
   durability is region-interior quorum; cross-region durability is the
@@ -236,9 +241,13 @@ re-settled until it is accepted.**
 - **Cross-region durability is asynchronous and content-only**: sealed
   immutable content replicates cross-region per root placement policy
   (copysets against the failure-domain tree) — no consensus per chunk,
-  verification intrinsic to content addressing (the S3-CRR/global-tables
-  pole, which is correct precisely because our cross-region objects are
-  immutable).
+  verification intrinsic to content addressing (the S3-CRR/f4 pole, correct
+  precisely because our cross-region objects are immutable; S3 RTC's
+  15-minute SLA is the industry quantification of the exposure-window term
+  in the loss formula below). **Honesty note**: async is the dominant
+  default, not the only practice — DynamoDB's opt-in MRSC mode and
+  Spanner/CRDB multi-region quorums are the deliberate synchronous-WAN
+  pole, rejected here for the stated colocation-law reasons, not ignored.
 - **Sessions do not fail over across regions.** A region loss kills its
   sessions; sealed/landed work survives in the durable plane; sessions
   re-summon from lineage + archive elsewhere. Unlanded work in the lost
@@ -248,13 +257,57 @@ re-settled until it is accepted.**
   agent effort, user-visible, never existential. Live cross-region failover
   is rejected: it would put WAN in the hot path to defend against an event
   the loss formula already prices.
-- **FlexiRaft-style flexible quorums are rejected for the meta plane**: a
-  region-local commit window on epoch state can lose the latest mints on
-  region failure, and fencing safety rests on epoch monotonicity. The
-  epoch-scoping law makes them unnecessary: state only region-local actors
+- **FlexiRaft's dynamic (single-region-commit) quorum mode is rejected for
+  the meta plane** — on the corrected two-branch argument (the original
+  "could lose the latest epoch mints" claim was wrong as a protocol
+  statement: FlexiRaft's enforced commit/election quorum intersection makes
+  region failure *unavailability*, not loss). Branch 1: an epoch authority
+  whose liveness dies with the fenced region is unavailable exactly when it
+  is most needed — during that region's failure, when the rest of the
+  system must mint replacement epochs (note the deliberate inversion: for
+  *session* groups this fate-sharing is exactly what we want; for the meta
+  plane it is disqualifying — that distinction IS the epoch-scoping law).
+  Branch 2: permanent region destruction leaves no legal quorum ever;
+  restoring availability requires operator-forced reconfiguration that
+  abandons the committed tail — *there* monotonicity breaks, as an
+  operational consequence. FlexiRaft's *static* multi-region mode is not
+  rejected — it is the same species as this spec's own root group (a WAN
+  quorum for low-rate authority state). The epoch-scoping law makes
+  flexible quorums unnecessary regardless: state only region-local actors
   touch is region-scoped to begin with; genuinely global state commits on
   a global quorum at human cadence. (Recorded as compatible future work
   only if a latency-sensitive, genuinely-global write class ever appears.)
+- **The lease-shadow law**: the root may not re-grant a lineage/
+  materialization lease — nor re-summon a replacement session with
+  materialization authority — until the prior lease's remaining validity
+  has expired **plus a clock-drift margin derived from the stated maximum
+  clock-rate divergence** (constants-from-data; Chubby's lock-delay is the
+  precedent, and Chubby's own caveat — leases tolerate skew and pauses but
+  not long-term rate divergence — is why the margin is rate-derived, never
+  hand-picked). Inside that window, a partitioned-but-alive holder may
+  legally act on its lease; safety there is by waiting, and the wait is
+  law (CN15).
+- **The externalization-fencing law**: fencing tokens protect only effects
+  that pass a token-checking chokepoint — so **every external side-effect
+  channel is a landing-class chokepoint carrying the root-scoped epoch**:
+  source-control pushes, external API calls, messaging, any egress with
+  effects beyond the archive. These already route through the
+  Guardian/warden egress chokepoints; this law adds the epoch check to
+  that boundary. Without it, the §7 safety argument covers archive state
+  only — a zombie region's un-fenced externalizations cannot be
+  retroactively conflict-valued (CN16, architecture test).
+- **The region rejoin protocol** (fate-sharing covers death, not
+  resurrection — Clark's model licenses losing state when the entity is
+  lost; a partitioned region did not die): dead-declaration is a
+  root-quorum decision, taken only after the lease-shadow window, and is
+  **terminal for the region epoch**. On heal, the region rejoins under a
+  **new** region epoch; no pre-partition epoch resumes any
+  authority-bearing role or renews any lease; surviving sessions'
+  unlanded work enters the archive **as fork branches only, never
+  continuations** — overlapping descendants of one lineage node surface
+  as ordinary parallel workstreams carrying conflict values (Dynamo's
+  surfaced-siblings model; the LWW alternative is the named anti-pattern),
+  adjudicated like any parallel work (F7).
 - Region partition consequences are enumerated and closed: everything
   region-local is unaffected (that is the point of §§1/6/7); root-group
   operations from a minority region stall (cross-region placement changes,
@@ -310,6 +363,8 @@ Named, permanent, seed-replayable in SIM; each cites its source:
 | CN12 | Stale-epoch actor: any actor holding a superseded epoch (map version, lease token, key epoch) has every write refused at every resource; fuzzed across all epoch kinds | topology split brain |
 | CN13 | Region partition: every session-local operation unaffected; the root stall list exactly matches §7's closed enumeration (architecture test) | WAN leaking into hot paths |
 | CN14 | Region loss: unlanded-work loss ≤ the OBJECT_TIER §3 formula's bound at measured replication lag; sessions re-summon from lineage + archive with sealed work intact | the loss class drifting from its price |
+| CN15 | Lease-shadow fuzz: re-grant/re-summon-with-materialization attempted at every instant inside the shadow window (prior validity + derived clock margin) is refused; at every instant after, granted; under injected clock-rate divergence up to the stated maximum | the dual-materialization window |
+| CN16 | Externalization fencing: every external side-effect path carries and checks the root-scoped epoch (architecture walk); a stale-epoch egress attempt is refused at the chokepoint under partition fuzz | zombie externalization outrunning fencing |
 
 ## 11. Acceptance criteria
 
@@ -332,5 +387,8 @@ Named, permanent, seed-replayable in SIM; each cites its source:
    dynamic form).
 10. No synchronous WAN round-trip on any session hot path (CN13 permanent);
     epoch authorities placed per the §6 scoping law, boot-validated.
+10b. No external side-effect path exists without a root-scoped epoch check
+    (CN16 architecture walk, permanent); the lease-shadow margin is
+    rate-derived with its derivation at the definition site (CN15).
 11. Meta-tree depth is derived from the failure-domain tree; no
     region/laptop mode flag exists anywhere (architecture test).

@@ -62,10 +62,12 @@ Architecture set (AGENTS/LEDGER/PLATFORM/SKILLS/SUMMONING + CONTEXT + ADRs
   fabric-is-liveness-only law; actor-architecture position; cross-region —
   failure-domain tree, meta tree, epoch-scoping law, async content-only
   cross-region durability, FlexiRaft rejected for the meta plane).
-  **One open rider**: CONSENSUS §7's cross-region receipts are under
-  verification (research in flight; provenance note in the spec) — a
-  refuting finding reopens §7 only. Branch 27 narrows to the §6
-  writer-roster audit at build time. Consumed by: WAL §5 (the only commit
+  **Rider closed 2026-08-17**: the cross-region verification dossier landed
+  (A–E confirmed on primary text; F+G corrected), §7 was reopened per the
+  rider and re-settled with the accepted six-amendment set (FlexiRaft
+  two-branch rewrite, lease-shadow law, externalization-fencing law, region
+  rejoin protocol, async-pole honesty, receipts strengthening; CN15/CN16 +
+  F7a–d). Branch 27 narrows to the §6 writer-roster audit at build time. Consumed by: WAL §5 (the only commit
   path "at every replica count"), SERVING §6 inventory map, SCHEDULER §1 meta
   group, REGISTRY §5 replicated revision (which dangles a reference to the
   nonexistent `CONSENSUS.md`), OBJECT_TIER §4 placement map, LEDGER_CORE §2
