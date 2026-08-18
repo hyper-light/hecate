@@ -81,10 +81,15 @@ Architecture set (AGENTS/LEDGER/PLATFORM/SKILLS/SUMMONING + CONTEXT + ADRs
   class-assignment, content-type verification, EXIF hygiene, parser
   sandboxing, the per-class chunk-policy table, media descriptor documents —
   it inherits a settled transport.
-- **D-3 Encryption × dedup (OBJECT_TIER §9).** OPEN with recommendation
-  recorded (scope-salted convergent); AC-6 blocks the durable plane's first
-  user content. Interlocks with Branch 25 (key hierarchy) and Branch 28
-  (secrets storage substrate).
+- **D-3 Encryption × dedup — CLOSED 2026-08-17** ("approved."): OBJECT_TIER
+  §9 settled — scope-salted convergent encryption validated against the
+  full attack literature, four hardenings as law (256-bit random salt +
+  BLAKE3 keyed mode; write-closed global domain + possession-proof IDs;
+  chunk-size hygiene w/ the eprint 2025/558 caveat; crypto-erase hierarchy
+  killing derivability), RCE split recorded as tripwire option, DupLESS +
+  no-dedup rejected with receipts, OT16–OT19 added, AC-6 lifted (gate now
+  practical: hardenings implemented + tests green). Branch 25 inherits the
+  wrap structure; Branch 28 sits above, untouched.
 - **D-4 FOREST whole-spec verdict.** Retention + retrieval hybrids
   PROVISIONALLY DIRECTED; full acceptance gated on reconciliation against
   ECOLOGY/EMERGENT_FOREST/EMERGENT_AGENCY — **files that live in the Sylk
@@ -254,6 +259,7 @@ PODS §2/AC-4: WHP/HVF DAX is in-scope fork work, tracked.
    C-7's status authority) →
 4. First code: runtime + SIM + wire (P0/P1), turning §0 from fact into
    history and §5/§6's baselines into numbers →
-5. D-5 (Branch 14), D-3 (encryption×dedup), Branch 25 — before agents run
+5. D-5 (Branch 14), ~~D-3~~ (closed — §9 hardenings must be *implemented* +
+   OT16–OT19 green per the practical gate), Branch 25 — before agents run
    against real providers with real content →
 6. Everything else per the branch tree; this ledger re-audits at each rung.

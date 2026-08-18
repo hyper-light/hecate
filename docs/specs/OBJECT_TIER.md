@@ -242,16 +242,80 @@ objects (generation segments, packs) is ranged reads over manifest chunk
 lists. Wire additions ride hecate-wire's append-only evolution rules;
 `WIRE_FORMAT.md` precedes codec implementation.
 
-## 9. Encryption × dedup (OPEN — recommendation recorded, own settlement required)
+## 9. Encryption × dedup (SETTLED 2026-08-17 — D-3 ratified; AC-6 lifted)
 
-Recommendation: **scope-salted convergent encryption** — chunk key =
-`f(content hash, dedup-domain salt)`, domain = the legitimate sharing scope
+**Scope-salted convergent encryption, validated against the full attack
+literature** (Perttula 2008; BKR13's MLE formalization; DupLESS;
+Harnik–Pinkas–Shulman-Peleg side channels; eprint 2025/558). Chunk key =
+`f(content, dedup-domain salt)`; domain = the legitimate sharing scope
 (lineage / user / global) = the isolation line. Dedup survives within the
 domain exactly (same content ⇒ same key ⇒ same ciphertext); the salt
-defeats confirmation-of-file attacks across domains; crypto-erase per
-domain is preserved. The attack pricing (DupLESS/Tahoe-LAFS lineage) is
-carried from the branch note, not re-verified — **this decision MUST be
-settled before the durable plane accepts its first user content** (AC-6).
+defeats cross-domain confirmation; crypto-erase per domain is preserved
+(§7's f4-style composition, now live). The construction survives
+structurally: **every attack class requires either an attacker who can
+evaluate the key derivation, or mutually untrusting co-writers inside one
+dedup domain — and no Hecate domain has either.** Lineage scope:
+co-writers mutually trusting by construction. User scope: one principal
+(the Borg/restic/Tarsnap per-repo pole, isomorphic to scope-salting).
+Global scope: vendor content is public — confirmation reveals nothing.
+Tahoe-LAFS has run this exact construction ("convergence secret" per
+dedup domain) in production since 2008.
+
+**Four hardenings, as law:**
+
+1. **Salt = 256-bit random key, never name-derived.** Chunk identity in
+   private scopes = **BLAKE3 keyed mode** (`keyed_hash(domain_salt,
+   content)`), never plain hash — a plain hash gives a compromised
+   operator the O(|dictionary|) attack BKR13 proves unavoidable for
+   predictable content, and code files are maximally predictable.
+   (`WIRE_FORMAT.md` §3b's keyed-mode `ContentRef.root` clause is this
+   hardening's wire face.)
+2. **The global domain is write-closed**: membership by vendor-signed
+   chunk-ID manifest, never by content-that-happens-to-match — otherwise
+   the shared-salt domain becomes a fleet-wide existence oracle salting
+   cannot fix. **An ID is never a bearer capability** (the
+   Dropbox/Dropship lesson): every ID-based claim carries possession-proof
+   semantics (`TRANSFER.md` §2's bao root-only proofs are the mechanism).
+3. **Chunk-size hygiene**: randomized chunk→pack placement (restic
+   0.18.0's mitigation) and/or padding buckets, derived per class. Any
+   chunker seed is *obfuscation, not a security boundary* — eprint
+   2025/558 broke the keyed chunkers of all five shipped systems (Borg,
+   Bupstash, Duplicacy, restic, Tarsnap).
+4. **Crypto-erase hierarchy**: the per-scope master key wraps both the
+   salt *and* chunk-key material — scope deletion destroys decryptability
+   **and derivability** (kill only chunk keys and an adversary holding
+   content copies re-derives them). Erasure granularity is the scope;
+   per-object erase requires ref-counted rewrap and is built only if
+   compliance demands it (Branch 25 inherits this wrap structure).
+
+**Tripwire option, recorded not built**: RCE-style split (random
+per-chunk data key + deterministic keyed dedup *tag*, data key wrapped for
+domain members) upgrades "salt stolen ⇒ full within-domain CE exposure"
+to "salt stolen ⇒ confirmation ability, not decryption," at key-wrap
+plumbing cost. Adopt if a dedup domain with weaker internal trust ever
+appears; lineage domains' mutual trust makes it v1-unnecessary.
+
+**Rejected with receipts**: DupLESS-style key service (defends
+untrusted-co-writer predictable content — a problem no current domain
+has; online key service violates local-first; zero production adoption in
+13 years). Storj-style no-dedup (forfeits the core cross-session dedup
+goal against attackers absent from this trust model).
+
+**Thin spots, carried honestly**: Tahoe-LAFS is the only production
+deployment of tenant-scoped CE (the middle path is otherwise
+patents-only; the per-repo-key pole has more mileage); the Dropbox
+dedup-shutdown date is secondary-sourced.
+
+**Tests**: OT16 — cross-domain dedup isolation: identical content written
+in two domains produces distinct ciphertext/identity; within one domain,
+identical ciphertext/identity (both directions property-fuzzed). OT17 —
+crypto-erase completeness: after scope-key destruction, neither
+decryption nor key re-derivation succeeds given full pack access + known
+plaintext. OT18 — global-domain closure: a non-manifest chunk matching
+vendor content is refused membership; an ID presented without possession
+proof is refused (negative vectors). OT19 — placement-randomization
+effectiveness: chunk-size-sequence fingerprinting across packs stays at
+chance under the 2025/558 attack model (measured bound, ratcheted).
 
 ## 10. Laptop degenerate
 
@@ -295,8 +359,9 @@ classes. Same formulas, no modes.
    definition site from measured/physical anchors; zero literals.
 5. The durability number ships with its own Cidon-instantiated derivation;
    no figure is borrowed from another system's cluster.
-6. §9 (encryption × dedup) is settled before the durable plane accepts
-   user content; until then the plane serves shipped/registry content only.
+6. §9 SETTLED 2026-08-17 (D-3): the gate is lifted — the durable plane may
+   accept user content once the four §9 hardenings are implemented and
+   OT16–OT19 are green; hardenings ship wired or the gate stays practical.
 7. OT1, OT5, OT9, OT10, OT11, OT14 are permanent CI gates.
 8. External cloud storage appears only as an optional, registry-declared
    import source behind Guardian staging — never a tier either plane

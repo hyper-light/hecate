@@ -523,7 +523,11 @@ specs are **on the table**; branches without specs are **open**.
   on hecate-wire (extends the SERVING additions), streaming large objects
   (packs, generation segments); (h) metadata — volume→location index,
   placement-map epoch consumption (Branch 20 API), namespace/tenancy via
-  registry-style scopes; (i) **encryption × dedup reconciliation** — the
+  registry-style scopes; (i) **encryption × dedup reconciliation** —
+  **SETTLED 2026-08-17 as D-3** ("approved."): scope-salted convergent
+  encryption + four hardenings landed in OBJECT_TIER §9, AC-6 lifted to
+  practical gate, OT16–OT19 added (see GAPS.md D-3); original tension
+  record follows as history. The
   open tension: encrypt-always + per-session keys breaks cross-session
   chunk dedup ('shared below the isolation line'); candidates: convergent
   encryption (hash-derived keys — dedup survives; known
