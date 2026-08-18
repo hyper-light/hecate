@@ -1716,3 +1716,24 @@ refetch). Key demonstration: a 10k-op doc DECODED at borsh-class rates =
 0.4–1.3 ms (breaks the sub-ms bar); CAST at memcmp rates = ~20 µs — the
 fixed layer is load-bearing, now receipted. Deleted seal-hash pass worth
 ~0.33 ms per 2MB increment (BLAKE3 receipt). A2 final presentation next.
+**GOVERNING FRAME RECORDED (2026-08-18, user)**: "kubernetes-like
+abstractions *with the underlying advantages of the scheduler,
+Eden/Tectonic FS's, distributed knowledge graph and forest machinery,
+etc." — crystallized as the law: **Kubernetes sets the abstraction bar;
+our substrates are the mechanism — never the reverse.** Deliver K8s-proved
+ergonomics (declare-don't-place, mount-anywhere, identity-not-location,
+reconcile-to-desired) implemented by strictly-stronger native machinery,
+zero K8s componentry imported. Correspondence table drawn (volume→
+immutable manifests over two planes w/ coherence/locking/snapshot/dedup
+wins; scheduler→deterministic optimism + content locality; controllers→
+summon-as-claim + ratio autoscalers; service→participant UIDs; etcd→meta
+tree; kubelet/CNI/CSI→host runtime+warden+native protocol+store, no
+plugin seams; namespaces→sessions w/ VM isolation; CRDs→registry kinds;
+plus KG/forest as first-class platform services K8s has no analogue for).
+Volume verdict reframed: the dossier's mechanism must CLEAR THE PV BAR
+(mount-anywhere ergonomics) while exploiting substrate advantages; the
+mutable work volume flagged as the one candidate needing its own
+treatment outside the immutable story. Frame governs: MERGE §0 picture,
+single-surface law (to become spec text — currently folklore across five
+specs), Branch 17 (presentation plane), Branch 33/34, walking skeleton.
+Volume/SMR receipts dossier still in flight.
