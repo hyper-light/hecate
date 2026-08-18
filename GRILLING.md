@@ -1737,3 +1737,28 @@ treatment outside the immutable story. Frame governs: MERGE §0 picture,
 single-surface law (to become spec text — currently folklore across five
 specs), Branch 17 (presentation plane), Branch 33/34, walking skeleton.
 Volume/SMR receipts dossier still in flight.
+**Volume-model + SMR receipts dossier LANDED (2026-08-18)** — A:
+read-through local cache WINS decisively for immutable content-addressed
+volumes: K8s PV access modes are per-node ATTACH constraints for the
+mutable case (CSI = detach/reattach choreography), while K8s's own
+immutable case (container images) is pull-by-digest to local store,
+IfNotPresent, cache-forever — our side; EdenFS CONFIRMED on primary text
+as lazy local projection ("lazily fetching file data… only for portions
+actually used") with the exact layering kernel-VFS-cache → in-memory LRU
+→ local RocksDB store → network; AFS/NFS/Ceph coherence machinery exists
+ONLY because files mutate (caps/callbacks/close-to-open); GFS no-cache =
+streaming-workload rationale, opposite of a coding pod (cite-and-dismiss);
+Nix/OSTree = substitute-from-any-peer-verify-by-hash; caveat: cold-miss
+latency real (EdenFS admits it) → manifest-driven prefetch of hot sets.
+B: warm follower apply = DEFINITIONAL Raft (§5.3 verbatim); failover =
+promotion ≈ election timeout (etcd 100ms/1000ms defaults; graceful
+transfer sub-timeout via TimeoutNow); epoch-in-the-log fencing = FOUR
+production precedents (Raft term, BookKeeper fence op, Kafka KIP-101
+leader epoch, Zab epoch) — SerializerOpen now receipted; verify-on-apply
+CORRECTED: shipped shape = deterministic apply (replicas recompute
+transitions — definitional SMR) + PERIODIC cross-replica hash comparison
+w/ fatal-loud divergence (etcd CORRUPT ALARM; CRDB SHA-512 checker kills
+divergent node) — per-entry semantic validation exceeds precedent.
+Hecate elegance: cross-replica check = compare green-head manifest hashes
+per log index — O(1) continuous, free (state IS a hash) vs CRDB's
+expensive snapshot SHA-512. Consolidated re-presentation next.
