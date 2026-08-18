@@ -1035,6 +1035,45 @@ CONSENSUS+FAULTS, OBJECT_TIER §9 (D-3).
   (telemetry, bare UDP) split, Raft involvement for authoritative forest
   state (UDP control plane), retention locality, laptop degenerate.
   Settle with D-4 (FOREST whole-spec verdict). Inherits D-10 carriage.
+- **36 Pod↔volume attachment lifecycle mechanics** — ADDED 2026-08-18
+  (user; "digging into the mechanics ruthlessly"). The attachment object
+  (VFS §3b, CONTEXT.md) worked to exact mechanics: the bind sequence step
+  by step (claim validation → serving-layer instantiation → version pin →
+  lease acquisition → warden scope-entry wiring → prefetch execution →
+  virtio-fs mount handoff → accounting open); the attachment state machine
+  (binding/bound/re-binding/draining/detached + failure states — bind
+  refused, lease lost, version withdrawn, node evacuating); re-attach
+  mechanics at increment boundaries and at pod migration; detach ordering
+  vs pod teardown (what flushes, what drops, what survives); concurrent
+  attachment limits + budgets (derived); attachment↔handoff interplay
+  (context/performance handoff = re-attach under new epoch?); laptop
+  degenerate. Every step gets its message flow, failure rows, and tests.
+- **37 Volume provisioning lifecycle (both planes)** — ADDED 2026-08-18
+  (user). How a volume comes to EXIST, per role, across the serving
+  (EdenFS) and durable (Tectonic) planes: work volume provisioning at
+  summon (journal allocation, extent index, budget charge); green
+  provisioning at session create (chain genesis, session-group placement
+  set); tools/Designer/scratch provisioning; the volume object's registry/
+  directory home (who records that a volume exists — session directory?);
+  version retention + withdrawal policy (which green versions stay
+  attachable; interaction with merge-log truncation + GC roots); volume
+  deletion/teardown across both planes (crypto-erase interplay, D-3);
+  quotas + accounting rollup; provisioning failure modes (budget refusal,
+  placement failure). Ruthless mechanics: exact allocation sequences,
+  message flows, crash points.
+- **32 Node lifecycle — WIDENED 2026-08-18** (user): now explicitly owns
+  **node provisioning and abstraction expansion**: how a machine JOINS the
+  fleet (enrollment identity mint, meta-tree/region-group registration,
+  host stack bring-up order — store, wardens, QUIC endpoint, bare-UDP
+  plane, boot classifiers — and what validates before the node accepts
+  work); how the abstractions EXPAND over a new node (HRW weight
+  introduction + movement bounds, copyset membership, scheduler shard
+  assignment, cache warm-up policy); drain/decommission (attachment
+  evacuation per Branch 36, journal-ship, lease handoff, copyset repair);
+  node identity vs disk identity (the FAULTS disk-swap class); laptop
+  degenerate = the one-node join is the boot path itself. Original
+  charter (cordon/drain semantics, Ceph noout, Borg maintenance, SMART
+  receipts) stands as the research-first list. Ruthless mechanics.
 - **Walking skeleton** — final branch; re-presents against completed tree
   (P0 wire → P1 runtime → P2 spine → P3 pod leg → P4 first agent → P5 first
   merged change; now must thread Sibyl/home-session/lineage into first light;

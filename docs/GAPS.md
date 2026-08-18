@@ -274,6 +274,8 @@ Architecture set (AGENTS/LEDGER/PLATFORM/SKILLS/SUMMONING + CONTEXT + ADRs
 no spec anywhere) · 18 continuity/conversation · 23 document DB ·
 25 wire security · 26 multi-modal media · 27 leader-election revisit ·
 28 secrets · 30 fleet fault detection/recovery · 31 replica handling ·
+36 attachment lifecycle mechanics · 37 volume provisioning (both planes) ·
+32-WIDENED node provisioning + abstraction expansion ·
 32 node lifecycle · walking skeleton (final).
 
 **Unbranched gap found by this pass**: the **provider gateway** — LLM request
