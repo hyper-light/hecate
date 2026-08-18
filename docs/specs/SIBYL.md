@@ -2,7 +2,7 @@
 
 Status: ACCEPTED 2026-08-16 (name ratified by the user; spec shown in-message and
 accepted with three revisions folded). The tenth role. Companions: `SESSIONS.md`
-(lineages, landing, review), `SCHEDULER.md` (summon flow), `PROTOCOL.md` (grants).
+(lineages, landing, review), `SCHEDULER.md` (summon flow), Branch 25 (grants — owed; home assigned by D-8, 2026-08-18).
 
 ## 1. Role
 

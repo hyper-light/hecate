@@ -24,7 +24,7 @@ other classes are read against it.
 |---|---|---|---|---|
 | RUNTIME.md | presented (Br 1) | T1–T8 | 7 | implicit (shard formula) |
 | WAL.md | presented (Br 2) | W1–W8 | 7 | implicit (1-replica group) |
-| PROTOCOL.md | presented (Br 3) | P1–P13 | 9 | not stated |
+| PROTOCOL.md | ACCEPTED 2026-08-18 | P1–P19 | 14 | yes (per-path MTU, P18) |
 | MERGE.md | presented (Br 4) | M1–M12 | 9 | not stated |
 | VFS.md | presented (Br 5) | V1–V11 | 8 | not stated |
 | PODS.md | presented (Br 6) | T1–T19 | 13 | yes (formula-derived) |
@@ -107,15 +107,13 @@ Architecture set (AGENTS/LEDGER/PLATFORM/SKILLS/SUMMONING + CONTEXT + ADRs
   (embedded-lib vs session worker vs KG-service pod) and the upstream patch
   list (Manifest::from_entries, content-source hook, xxh3 I3, scoped-interner
   R1, knob parameterization).
-- **D-7 Branch 25 ↔ existing wire-security text.** LEDGER.md §7.3 (per-message
-  PSK-derived keys, "mTLS beneath") and PROTOCOL.md §2 (per-pod summon-minted
-  HKDF keys, HELLO pinning, no mTLS) describe different key models; ADR-0002
-  still says the protocol spec "lives in LEDGER.md §7". Branch 25 must
-  reconcile all three (PROTOCOL.md is the ratified baseline).
-- **D-8 Biscuit grant machinery has no home spec.** SESSIONS §2 and SIBYL §5
-  depend on it; SIBYL's status line cites "`PROTOCOL.md` (grants)" but
-  PROTOCOL contains no grants material. Assign a home (likely Branch 25 or a
-  SESSIONS rider).
+- **D-7 — CLOSED 2026-08-18**: LEDGER.md §7.3 rewritten (PSK/mTLS text
+  deleted; defers to PROTOCOL.md + WIRE_SECURITY.md), ADR-0002 corrected —
+  in the PROTOCOL acceptance commit. Branch 25 keeps rotation cadence,
+  at-rest encryption, padding/traffic-shaping, grants.
+- **D-8 — CLOSED 2026-08-18**: home assigned = Branch 25 (grants are
+  authn/authz material, not envelope machinery); SIBYL's citation corrected
+  in the PROTOCOL acceptance commit.
 - **D-9 VECTOR_INDEX.md status confirmation.** The design was approved
   in-message and the spec written on "do it" — but standing rule 2 (specs
   shown in-message before file write) was not literally followed for the

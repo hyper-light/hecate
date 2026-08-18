@@ -63,7 +63,10 @@ kill of a full subtree) · `wan-inflate` (WAN latency ×10–100).
 
 Every class has at least one CI scenario; composite scenarios
 (pause + partition + clock jump; region-partition + fabric-fault) are
-seed-generated, not hand-enumerated. New fault classes enter by amending
+seed-generated, not hand-enumerated. The omit/dup/reorder/wan-inflate
+classes exercise **owned hecate-quic loss recovery through the transport**
+(D-10(b)) — for the first time in any QUIC implementation, recovery itself
+is seed-replayable under the nemesis matrix, not just the layers above it. New fault classes enter by amending
 this section, never by an ad-hoc test.
 
 ## 4. The deterministic whole-cluster simulation (amendment 5a)

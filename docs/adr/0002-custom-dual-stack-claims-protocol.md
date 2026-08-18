@@ -15,8 +15,9 @@ being emulated above a general-purpose RPC layer.
 
 We own framing, reliability, and versioning end to end — including the parts a standard
 stack would have given us for free (flow control, congestion behavior, TLS integration).
-The protocol specification lives in `docs/specs/PROTOCOL.md` (`LEDGER.md` §7 is the
-architecture-level summary; where they differ, PROTOCOL.md's ratified directions
-govern — e.g., per-pod summon-minted HKDF keys, pending Branch 25's security
-settlement) and is grounded in the hyperscale survey; interop with anything external
-happens at the MCP boundary, never by exposing the claims protocol.
+The protocol specification lives in `docs/specs/PROTOCOL.md` (accepted
+2026-08-18: two planes over UDP — header-encrypted control datagrams +
+owned hecate-quic sessions; no TCP in the mesh) with the security pipeline
+in `docs/specs/WIRE_SECURITY.md`; `LEDGER.md` §7 is the architecture-level
+summary and defers to both. Interop with anything external happens at the
+MCP boundary, never by exposing the claims protocol.

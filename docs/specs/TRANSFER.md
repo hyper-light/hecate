@@ -76,9 +76,11 @@ parts force boundary-dependent composite checksums — a decade-long repair. Our
    load-bearing: for duplicate content **this reply is the entire upload**.
    Dedup is the fast path, not a bolt-on — the primitive none of S3/GCS/tus
    possesses.
-3. Missing chunks stream in parallel on bulk-class streams, each verified on
-   arrival per the class-aligned law. A failed chunk rejects that chunk, not
-   the transfer.
+3. Missing chunks stream in parallel on bulk-class hecate-quic streams
+   (SEALED_FRAME/bulk lane — D-10; a stalled stream is a scheduling event:
+   re-request by identity on a healthy stream, the missing-set HOL escape),
+   each verified on arrival per the class-aligned law. A failed chunk
+   rejects that chunk, not the transfer.
 4. **One atomic commit**: the ref/manifest CAS (`set_ref_if`). A failed
    conditional commit **orphans nothing** — chunks are content-addressed and
    global; the retry re-references them (versus S3, where parts die with the
@@ -99,7 +101,9 @@ OPEN ──► STAGING ──► COMMITTING ──► COMMITTED
 ```
 
 Messages (control = class 3 Directed; records = class 6 StreamData under
-credit; canonical shapes + vectors in `WIRE_FORMAT.md` §6):
+credit, carried on hecate-quic streams per D-10 — the credit clauses are
+implemented natively in the owned transport, one flow-control law;
+canonical shapes + vectors in `WIRE_FORMAT.md` §6):
 
 ```rust
 TransferOpen {

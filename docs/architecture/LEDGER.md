@@ -272,17 +272,26 @@ declared, no runtime fallback, no size-based switching (hyperscale's honest less
 
 ### 7.3 Security
 
-- **Encrypt-always, both stacks, at the application layer**: AES-256-GCM with a
-  per-message HKDF-derived key from a pre-shared secret — no handshake, works
-  identically on datagrams and streams, rotation = try-previous-secret on decrypt,
-  weak-secret denylist hard-fails. (Hyperscale's best primitive, kept whole.)
-- **Integrity and replay live in the envelope parser**, not behind any type-registration
-  lookup — hyperscale's replay guard was well-built, well-tested, and never once
-  executed on the wire path because a decorator erased the annotations that gated it.
-  In Hecate the parser itself enforces AEAD integrity, timestamp windows, and a
-  bounded seen-window before any dispatch decision exists.
-- mTLS beneath the application layer for any off-host transport; the Guardian's
-  network policing at the host stack applies regardless.
+(Reconciled 2026-08-18 — the former per-message-PSK/mTLS text described a
+superseded key model; `PROTOCOL.md` §§1–2 and `WIRE_SECURITY.md` are the
+ratified authorities. Summary only:)
+
+- **Encrypt-always, both planes**: header-encrypted AES-256-GCM datagrams on
+  the control plane (cleartext = the key-finding prologue only); the
+  Noise-IKpsk2/private-QUIC session plane with the seal-once pipeline —
+  one payload seal at the origin warden, one unseal at the destination;
+  per-pod summon-mint roots with labeled derivations, atomic key_epoch
+  rotation at handoff. No mTLS layer exists; there is no TCP in the mesh.
+- **Integrity and replay live in the envelope parser at every acceptance
+  point** — hyperscale's replay guard was well-built, well-tested, and never
+  once executed on the wire path because a decorator erased the annotations
+  that gated it. In Hecate the parser-resident order (length → prologue →
+  key lookup → AEAD → fencing → replay window → admission → decode) is
+  enforced and instrumented at host parsers, guest unseal paths, and
+  terminal clients alike, before any dispatch decision exists.
+- The Guardian's policing runs at endpoints (the warden seals what it
+  inspected; verdicts are metadata-complete); network policing at the host
+  stack applies regardless.
 
 ### 7.4 Admission and scheduling
 

@@ -1663,3 +1663,20 @@ recommendation overruled, recorded); provider-egress h2/1.1 unaffected
 (external plane); (e) accepted — PROTOCOL.md re-presentation is the
 execution vehicle. **D-10 IS FULLY SETTLED.** PROTOCOL.md amended spec
 presented in-message next.
+**PROTOCOL.md ACCEPTED + REWRITTEN (2026-08-18, "accepted.")** — Branch 3
+SETTLED. The D-10(e) execution: full rewrite — two planes over UDP, NO TCP
+in the mesh (P14 structural); §1.1 HEADER-ENCRYPTED control datagrams (the
+user's in-exchange revision: the AAD-cleartext posture was a fossil of
+deleted on-path policing — cleartext shrinks to the key-finding prologue
+{ver, key_hint, len}; full envelope encrypted+authenticated; enforcement
+order gains key-lookup-before-crypto drop; "cleartext is only what is
+needed to find the key" = cross-plane law, criterion 14); hecate-quic
+session plane w/ four frame classes; archetype-determines-carriage +
+metadata-completeness as §3 law; credit clauses implemented natively in
+the owned transport (one flow-control law); A1–A6 folded (minting
+authorities, HLC liveness-only, no-panic P7, cluster-SIM); P1–P19,
+criteria 1–14. SAME-COMMIT RIDERS: LEDGER §7.3 rewritten (D-7 CLOSED),
+ADR-0002 corrected, SIBYL grants→Branch 25 (D-8 CLOSED), TRANSFER §3/§4
+carriage wording, FAULTS §3 owned-recovery note. Owed-verdict queue now:
+MERGE, VFS, PODS, AGENTS_RUNTIME, RANK, SCHEDULER (+C-6 label fix),
+OBJECT_TIER whole-spec, FOREST (D-4), VECTOR_INDEX (D-9).
