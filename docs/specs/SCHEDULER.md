@@ -103,7 +103,11 @@ testament content) and the decision record. Properties:
 
 - **Gang at admission, never at placement.** A session's core-service unit admits
   as **one atomic transaction**: whole-unit feasibility (colocated ⇒ a single-node
-  fit check on homogeneous nodes — exact), reserve all or none against derived
+  fit check — exact *because every candidate node is identical*; this exactness is
+  load-bearing, and the pending heterogeneous-placement amendment must preserve it
+  by scoping the fit check to a single identical-node class selected before the
+  check, never by admitting per-node variance inside it — open item, GRILLING
+  heterogeneous-placement exchange), reserve all or none against derived
   budgets, then place. Spreadable pods commit incrementally afterward (Omega:
   incremental default; all-or-nothing only at gang granularity). Partial
   reservations are unrepresentable — the coscheduling Permit-wait pathology class
