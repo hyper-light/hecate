@@ -1890,3 +1890,17 @@ in-spec. M13a–f re-targeted to term semantics + the transfer-back bound;
 criterion 7 = grep-proof no second fence. One concept, one message, one
 promotion step, one failure class deleted. NEXT: A2 re-audit
 (submission topology + record content).
+**A2 RE-AUDIT SETTLED ("accepted.", 2026-08-18)** — two corrections
+applied to MERGE.md: (1) §5 — **inputs authoritative, appliers recompute
+the full two-pass verdict from placed content** (deterministic apply, the
+input-logging canon); recorded verdict/manifest-hash = cross-checks only,
+mismatch fatal at the index — the output-poison hole (proposer lies
+replicated verbatim) made unrepresentable BY the placed-before-referenced
+rule (appliers hold the bytes); the trust-the-fence/attested-results
+variants deleted. (2) §7 — submission = resolver-cached direct-to-leader
+w/ piggyback NACK (TiKV shape), single-flight resolver refresh + directory
+fallback as named storm guards (CRDB #23543/#22837 as receipts);
+etcd-forwarding = rejected alternative. M15e (lying proposer) + M17b
+(resolver storm) added. Unchanged: descriptors, fixed layer, composed net
+ops, dedup identity, GC roots. NEXT: A3 (one-line confirmation) + A4
+(placement QoS class) exchange.

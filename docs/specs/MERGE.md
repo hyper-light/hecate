@@ -243,15 +243,27 @@ every changed byte (SERVING §2). Increments therefore carry **no content**:
   chain requires. The durable-plane copyset placement proceeds
   asynchronously behind this as the archival tier (the ladder's later
   rungs, unchanged).
-- **Warm appliers**: every session-group member applies each committed
-  record — advancing its green head, verdict bookkeeping, frontier cursor.
-  Records are refs and verdicts (~100s of bytes); applying is cheap
-  everywhere; content arrived at placement time.
-- **Continuous divergence detection, free**: replicas compare green-head
-  manifest hashes per log index as they apply — O(1), because the state IS
-  a hash (versus etcd's periodic CORRUPT ALARM and CRDB's 24-hour SHA-512
-  cycle). Divergence is **fatal-and-loud** (alarm + refuse), never silently
-  reconciled — the disposition every precedent agrees on.
+- **Appliers recompute — inputs are authoritative** (re-audited
+  2026-08-18): every session-group member applies each committed record by
+  **recomputing the full two-pass verdict from the record's inputs** — the
+  refs, whose bytes it holds because placement preceded commit. This is
+  deterministic apply, the definitional SMR shape (Schneider, Calvin,
+  TigerBeetle — the input-logging canon). The recorded verdict and
+  manifest hash are **cross-checks only, never an apply path**: a mismatch
+  between an applier's recomputation and the record is fatal-and-loud at
+  that index, before any downstream read. Output-logging's poison — a
+  wrongly computed output replicating verbatim so every replica agrees on
+  the wrong answer — is thereby unrepresentable: a proposer lying about a
+  verdict, a memcmp, or a manifest hash trips every applier's own
+  recomputation. Records stay small (~100s of bytes of refs + checksums);
+  applying stays cheap (µs-class recompute + local reads of placed
+  content).
+- **Continuous divergence detection, free**: beyond the per-record
+  cross-check, replicas compare green-head manifest hashes per log index —
+  O(1), because the state IS a hash (versus etcd's periodic CORRUPT ALARM
+  and CRDB's 24-hour SHA-512 cycle). All divergence is **fatal-and-loud**
+  (alarm + refuse), never silently reconciled — the disposition every
+  precedent agrees on.
 
 ## 6. Green as a volume — objects, claims, attachments
 
@@ -289,6 +301,18 @@ with its governing settlements:
                                            Arbiter pods review asynchronously
 ```
 
+- **Submission topology (re-audited 2026-08-18)**: resolver-cached direct
+  submission to the session-group leader, with the **piggyback rule**: any
+  NACK from a non-leader carries the current leader identity and term, so
+  one retry suffices (the TiKV shape). Storm guards, named: resolver
+  refresh is **single-flight per session** (concurrent submitters share
+  one refresh — the CRDB NotLeaseholder-storm class, issue #23543, closed
+  by construction); a NACK without leader info falls back to the session
+  directory with backoff (the redirect ping-pong class, #22837). Rejected
+  alternative: etcd-style server-side forwarding — hides the leader at
+  the cost of a permanent extra hop and a silent latency intermediary;
+  with the resolver already in the architecture, the piggyback costs
+  nothing.
 - The agent **parks** on submit (long-op turn shape) and resumes with the
   verdict. **The Arbiter never receives the submission** — it receives
   review claims derived from the merge log; the gate (§9) fires at work-claim
@@ -370,6 +394,8 @@ with M12 restated for the two-pass shape: no IO inside either pure pass).
 | M16b | Version stability: a pod's view never changes without re-attach, fuzzed across concurrent merges | ground shifting under mounts |
 | M16c | Re-attach anywhere: kill node, re-summon, attach same version elsewhere, byte-identical | locality masquerading as availability |
 | M17 | Submission-transaction fuzz: kill any party at any step ⇒ exactly-once apply, agent resumes with a truthful verdict or claim-driven redelivery | the transaction's failure table |
+| M15e | Lying-proposer injection: a corrupted recorded verdict, memcmp result, or manifest hash trips every applier's recomputation at that index, fatal-loud, before any downstream read | output-poison replication — the wrong answer agreed everywhere |
+| M17b | Resolver-storm fuzz: leadership churn under concurrent submitters ⇒ bounded retries, no ping-pong, single-flight refresh observed (instrumented) | the CRDB retry-storm class |
 
 ## 13. Acceptance criteria
 
