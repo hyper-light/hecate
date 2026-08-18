@@ -1,7 +1,13 @@
 # SPEC: hecate-rt — the sharded deterministic async runtime
 
-Status: presented for acceptance (grilling Branch 1). Direction ratified: async
-everywhere on our own runtime; deterministic by construction; zero refcounting.
+Status: ACCEPTED 2026-08-17 (whole-spec verdict "amend and accept" under the
+maximal audit — five amendments folded: Driver cancellation surface, the
+no-panic law (user correction: "we do NOT panic. Period. Ever." — supersedes
+the drafted catch-and-convert; LEDGER_CORE reconciled same commit),
+task-lifecycle law, cluster-SIM clause, provider-egress boundary corrected to
+ALPN h2-primary/1.1-fallback on the Bedrock-receipt pushback). Direction
+ratified: async everywhere on our own runtime; deterministic by construction;
+zero refcounting.
 References: actix-web's shard model (pinned current-thread workers, `!Send` tasks, no
 work stealing), TigerBeetle/FDB determinism discipline, hyperscale's
 admission-before-task-creation, S2/Polar Signals leak reports as the anti-checklist.
@@ -19,6 +25,15 @@ admission-before-task-creation, S2/Polar Signals leak reports as the anti-checkl
 - **Every stateful component is one task** owning its state, fed by its mailbox:
   ledger core, claims-graph monitor, merge serializer, protocol endpoint, WAL stream
   writer, VMM controller. Effects leave as messages or as returned effect values.
+- **The task-lifecycle law — no untracked tasks.** Every task has exactly one
+  owner (a component task or the shard root); spawn returns a handle the owner
+  retains; the ownership tree is acyclic. Teardown is ownership-tree-ordered:
+  the owner cancels its children (via the §2 cancellation surface), awaits
+  their terminal states, then dies — deterministic teardown order derives from
+  the tree; shard shutdown = root teardown. PROTOCOL §5's ordered listener
+  shutdown, AUTOSCALING's drain, and session teardown stand on this law.
+  Per-component task counts are derived caps, admission-checked at spawn —
+  admission-before-task-creation as spec law, not a references-line citation.
 
 ## 2. The driver seam
 
@@ -28,8 +43,17 @@ pub trait Driver {
     fn rng(&mut self) -> u64;                               // seeded in SIM, OS entropy in REAL
     fn submit(&mut self, op: IoOp, waker: TaskRef) -> IoId; // completion-shaped API
     fn timer(&mut self, at: Tick, waker: TaskRef) -> TimerId;
+    fn cancel(&mut self, id: IoId) -> CancelRequested;      // op STILL completes:
+    fn cancel_timer(&mut self, id: TimerId) -> CancelRequested; // Cancelled | its result if it raced
 }
 ```
+
+- **Cancellation is a request with guaranteed completion** (io_uring's
+  ASYNC_CANCEL semantics, the only shape that stays deterministic in SIM — a
+  cancel racing a completion is a seed-ordered event, never a coin flip). Law:
+  **every wait site handles `Cancelled` as a typed outcome.** Consumers: lease
+  expiry (CONSENSUS §7's lease shadow), credit stalls (TRANSFER TR7),
+  park/resume, transfer abort, and §1's ownership-tree teardown.
 
 - The API is **completion-shaped** on all platforms (an op is submitted and completes),
   so io_uring is the native fit and readiness backends emulate completion.
@@ -46,6 +70,12 @@ pub trait Driver {
   reorder, duplicate, corrupt, torn write, ENOSPC, EIO, power-cut at arbitrary byte),
   and seeded cross-shard delivery order. Component code is identical under REAL and
   SIM; the driver is the only substitution point.
+- **The cluster-SIM clause** (`FAULTS.md` §4 is the consumer contract): the SIM
+  driver hosts **N simulated nodes in one process under one seed** over a
+  simulated failure-domain tree — network edges carrying the FAULTS §3 nemesis
+  vocabulary (including WAN latency distributions on inter-region edges),
+  per-node simulated storage. Single-node SIM is the depth-one degenerate;
+  component code is unchanged either way.
 
 ## 3. Determinism contract
 
@@ -74,10 +104,54 @@ pub trait Driver {
 - Buffers transfer by move; within a shard, loans (`&[u8]`) are fine; across shards,
   ownership moves or an owner-mediated handle is sent.
 
-## 5. Provider egress
+## 4b. The no-panic law — we do not panic. Period. Ever.
 
-Blocking rustls HTTP/1.1 client on a dedicated thread pool (LLM streams: long-lived,
-low-count; SSE supported). No async-ecosystem HTTP dependency anywhere in the tree.
+- **Statically enforced, same wall as `Arc`** (CI-fatal across every crate):
+  `clippy::unwrap_used`, `expect_used`, `panic`, `unreachable`, `todo`,
+  `unimplemented`, `indexing_slicing` (`.get()` or it doesn't compile),
+  `arithmetic_side_effects` (checked/saturating/wrapping, explicitly chosen).
+  Assertions live in test and SIM-harness code only. Every fallible operation
+  returns a typed error — errors-as-artifacts as compile-time shape: failures
+  are evidence values, never exceptions.
+- **Allocation exhaustion is typed by construction**, never a panic source:
+  budget-charged arena allocation (§4 + the VFS budget doctrine) surfaces
+  exhaustion as the typed retryable error; budgets derived from physical
+  anchors keep OOM unreachable by design.
+- **The residue** (dependency internals; compiler-inserted paths lints cannot
+  see): **`panic = "abort"` in every profile** — unwinding does not exist in
+  any binary. An abort is a crash, and crash-at-any-instruction is already in
+  the accepted fault scope (`FAULTS.md` §1) with the witness/WAL discipline
+  guaranteeing nothing acked is lost. Every production abort is a named
+  defect: counted, root-caused, surfaced through the crash-recovery forensics
+  path. The ratified fault model is the backstop — no recovery plumbing
+  exists for an event that must not happen.
+- **No `catch_unwind` exists anywhere in the tree.** There is nothing to
+  catch. (LEDGER_CORE's former "catch_unwind → failure testament" clause is
+  superseded and reconciled in that spec: failure testaments are produced
+  from typed error values; the mechanism never needed unwinding.)
+- **Enforcement beyond lints**: release-binary panic-symbol scan in CI — no
+  code path in our crates reaches `core::panicking`; per-dependency residue
+  documented in the same reviewed allowlist that governs FFI `Arc`.
+
+## 5. Provider egress (the external boundary)
+
+hecate-wire is the only protocol between Hecate components; HTTP exists
+solely at the egress edge to third-party provider APIs whose wire we don't
+control. Transport: **ALPN-negotiated HTTP/2 primary, HTTP/1.1 fallback**
+(the negotiated degenerate and the proxy-compatibility path — the field
+pattern, incl. the Bedrock SDK's h2-default receipt), over rustls on the
+dedicated tracked egress pool. The h2 client is **owned**: client-side-only
+HPACK + framing + stream-level flow control — the same flow-control
+discipline PROTOCOL §4 specs, applied to a wire we consume instead of
+author; no tokio/hyper enters the tree; rustls stays the sole TLS. SSE and
+streaming bodies ride h2 streams identically. Connection/stream counts and
+window sizes derive from measured per-node concurrent-stream anchors (a
+multi-agent node runs dozens-to-hundreds of concurrent provider streams —
+the multiplexing case, not the CLI's low-count shape) at the definition
+site. All provider traffic routes through the provider-gateway chokepoint
+(Guardian-gated, epoch-checked per CONSENSUS §7's externalization-fencing
+law). No HTTP type crosses into component state; no HTTP client usage exists
+outside the egress module (architecture test).
 
 ## 6. Test cases (failure each catches)
 
@@ -91,6 +165,11 @@ low-count; SSE supported). No async-ecosystem HTTP dependency anywhere in the tr
 | T6 | Stale-handle: arena slot reuse + old handle → typed generation error, never data | use-after-free-by-index |
 | T7 | io_uring linked-SQE vs emulated path produce identical results on shared test corpus | Linux fast path semantically diverging |
 | T8 | Boot probe below minimum kernel/OS → loud failure naming requirement | silent degraded mode |
+| T9 | Cancellation determinism: cancel-vs-completion race under seed sweep ⇒ per-seed deterministic outcome; no lost wakeups; every wait site's `Cancelled` arm exercised | nondeterministic cancel races; unhandled cancellation |
+| T10 | Panic-freedom wall: clippy gate red on every panic source (negative fixtures, trybuild-style); abort profile verified in every build; release-binary symbol scan reaches no `core::panicking` from our crates (residue = the existing kill-at-any-instruction nemesis — no separate coverage needed) | panic sources compiling; unwinding reappearing |
+| T11 | Teardown order: ownership-tree teardown deterministic under seed sweep; no task survives its owner (leak check at shard shutdown) | orphan tasks; nondeterministic teardown |
+| T12 | Cluster-SIM smoke: N simulated nodes over a simulated failure-domain tree, partition+heal, bit-reproducible under seed | the FAULTS §4 harness drifting from the runtime |
+| T13 | h2/1.1 differential: the same provider exchange over negotiated h2 and forced-1.1 fallback produces identical component-visible results (streams, errors, retries); fallback exercised in CI, not theorized | fallback rot; h2-path semantic divergence |
 
 ## 7. Acceptance criteria
 
@@ -104,7 +183,19 @@ low-count; SSE supported). No async-ecosystem HTTP dependency anywhere in the tr
 6. Performance floors are **ratcheted from first measured baseline** on pinned CI
    hardware (constants-from-data): baseline run establishes shard wake→poll
    throughput and bounded-channel p99 latency; any regression >10% fails CI.
-   Provisional expectations pending baseline: ≥1M wake→poll cycles/s/shard;
-   channel send→recv p99 ≤ 1µs.
+   Provisional expectations pending baseline (≥1M wake→poll cycles/s/shard;
+   channel send→recv p99 ≤ 1µs) are pre-baseline placeholders that **die on
+   the first baseline run** — the measured ratchet replaces them.
 7. Every derived constant (shard count, pool sizes, queue bounds) carries its
-   derivation at the definition site; bare tuning literals fail review.
+   derivation at the definition site; bare tuning literals fail review. T2's
+   seed count derives from the ratcheted seed-budget floor, not a literal.
+8. No task without an owner; the ownership tree is acyclic; teardown is
+   deterministic (T11 permanent).
+9. `Cancelled` is a typed outcome at every wait site (audit + T9); the
+   cancellation surface exists from the first Driver implementation.
+10. The SIM driver hosts the FAULTS §4 whole-cluster harness with zero
+    component-code changes (T12).
+11. No panic source compiles in any non-test crate; no unwinding exists in
+    any binary (`panic = "abort"`, every profile); the LEDGER_CORE
+    catch_unwind reconciliation landed in the same commit as this criterion
+    (T10 permanent).

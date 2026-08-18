@@ -106,10 +106,14 @@ apply to arenas, assign sequence → build deltas (deterministic order) → emit
   composition, not any single layer.
 - **Services**: a boot-time handler registry, harness-side. Invocation in tracked
   scopes with bounded queues; overflow → durable `receipt_failed` + backpressure
-  artifact; **handler panic → `testament_generation_failed` + error-trace
-  artifact** (`catch_unwind` at the boundary — a panicking validator is evidence,
-  never a crash). Synchronous handlers may compress lifecycle states into one
-  commit; the wire-visible sequence is unchanged.
+  artifact; **handler failure → `testament_generation_failed` + error-trace
+  artifact, produced from typed error values** — every handler is fallible by
+  type (errors-as-artifacts; RUNTIME §4b's no-panic law: panic sources don't
+  compile, `catch_unwind` does not exist — reconciled 2026-08-17, superseding
+  this spec's former catch_unwind clause; a slipped dependency panic is an
+  abort handled by the crash-recovery fault scope, never evidence plumbing).
+  Synchronous handlers may compress lifecycle states into one commit; the
+  wire-visible sequence is unchanged.
 - **Validation evaluation**: receipt validations auto-pass in-core (pure).
   Programmatic validators run as service handlers, results committed as artifacts
   (replay replays the artifact, never the validator). Errored validators fall back
@@ -166,7 +170,7 @@ watermark return archival continuations.
 | L7 | Rank refuse at commit (with RANK.md K1): override shapes refused purely from local snapshot state | authority checks leaving the core |
 | L8 | Retirement under load: hot bounds hold; every retired object retrievable by hash; crash mid-sweep fast-forwards; archival continuations typed | unbounded growth; lossy cooling; half-retired limbo |
 | L9 | Projector discipline: kill/lag/resume projectors ⇒ cursor recovery + RESYNC; architecture test: no outbox structure exists | a second delivery structure growing back |
-| L10 | Service dispatch: panic ⇒ failure testament + trace artifact; overflow ⇒ receipt_failed + backpressure artifact; compression wire-identical | crashing validators; silent overload |
+| L10 | Service dispatch: typed handler error ⇒ failure testament + trace artifact; overflow ⇒ receipt_failed + backpressure artifact; compression wire-identical | crashing validators; silent overload |
 | L11 | Accumulator: bounded, flush-on-close, suppressed-on-yield | testimony floods; premature testimony |
 | L12 | Modulation snapshots: rank verdicts identical under snapshot-delivery reordering within a window; replay identical | score coupling breaking purity |
 | L13 | Effective-state checks: racing mutation fuzz through the pending window vs a serial oracle — zero divergence between checked-against state and applied-onto state; the update-on-terminal class unrepresentable | the pipelined-affordance race |
