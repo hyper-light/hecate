@@ -1372,3 +1372,32 @@ product — its heartbeat-vs-report split independently corroborates our
 class-0-UDP (lost heartbeat is never retransmitted; the next supersedes) vs
 class-3-TCP design). Transport verdict (A1–A7-revised per-row hybrid)
 awaiting user ruling.
+**Per-system transport determinations LANDED (2026-08-17, dossier addendum)**
+— 13 systems ruled, all resolving to FOUR shared mechanisms (TCP frames;
+UDP control datagrams; owned granted-flight UDP bulk; TCP-k-parallel WAN
+bulk — a fifth would be an owned surface with no receipt). DETERMINED:
+registry = TCP frames + delta streams, blobs delegate; harness = split by
+signal class (directed TCP / telemetry UDP-superseding); agent↔agent
+consults = TCP (Homa's 100× is µs-RPC, our floor is the LLM turn);
+agent↔system = per-use split incl. **same-node pairs = no wire at all**
+(mailbox; anti-mode-creep); secrets = TCP structurally NEVER UDP
+(amplification/reflection — RFC 9000 §8.1's 3× machinery vs TCP handshake
+by construction; stale-epoch dies at connect); object tier = THE split:
+placement/consensus unchanged, **intra-DC chunk movement (landing, repair,
+EC reconstruction, scrub, cache-fill) = owned granted-flight UDP bulk**
+(incast-shaped by construction: N→1 repair, k-of-n EC; zero unscheduled
+bytes; riders = batching + leaf-granular recovery + jumbo-where-offered +
+Swift delay term in grant pacing), **WAN async replication = TCP-k kernel
+Cubic**; serving plane = node-local by design, peer cache-fill JOINS the
+UDP bulk plane (agent blocked on FUSE_READ = the latency-critical bulk
+instance; hedge = second grant); KG/vector = queries TCP, generations =
+bulk plane, no bespoke paths; forest = mailbox/gossip-datagrams (lost
+emission ≡ slightly faster decay)/TCP retrieval/bulk archive; Designer
+media = TRANSFER's own §3/§4 seam — addressed uploads = bulk flights,
+**unaddressed ingest parts STAY TCP** (offset==watermark is
+ordered-by-meaning; moving it = owning ordering for traffic the spec made
+sequential); ledger/delta = TCP closed. TWO CONDITIONALS, triggers named:
+roaming-client QUIC-shaped carriage (iff mobile attach ships as product);
+Aspera-class delay-based WAN UDP (iff measured cross-region goodput on
+lossy high-BDP paths becomes binding). Net: class 6 splits by LEG not
+wholesale. Awaiting user ruling on the consolidated A1–A7 set.
