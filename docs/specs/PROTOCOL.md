@@ -116,8 +116,34 @@ shed — issuer is parked on it), `6 StreamData` (credit-governed, §4).
 
 **Every message kind declares exactly one traffic archetype**
 (supersession / idempotent-fenced-control / ordered-log /
-directed-request-response / bulk); the archetype — never the subsystem —
-determines carriage and lane. **The metadata-completeness law** governs
+directed-request-response / **quorum-critical transfer** / bulk); the
+archetype — never the subsystem — determines carriage and lane.
+
+**The traffic non-interference law** (elevated to system law 2026-08-18,
+user directive: "different types of traffic for different work should NOT
+block one another with the scheduler, and our scheduler needs to be smart
+enough to know the difference"): the transport's bandwidth scheduler
+arbitrates **by declared class with reservation + weight + limit** (the
+Ceph-mClock shape, implemented natively in hecate-quic — a D-10(b) crate
+obligation): every class holds a guaranteed minimum share, may borrow idle
+capacity, and can never be starved by another class. **Class membership is
+by purpose, never by volume** — the Kafka KIP-73 lesson as law: bulk-shaped
+traffic that a commit or quorum is waiting on is quorum-critical, not bulk.
+Quorum-critical transfer membership, enumerated closed: green placement
+pushes (MERGE §5); consensus snapshot/log catch-up to a member whose
+currency quorum needs. Opportunistic bulk: cache-fill, prefetch,
+durable-plane archival replication. The control-latency law is untouched
+in both directions: control frames never queue behind any bulk class, and
+reservations arbitrate bandwidth among bulk-shaped flows, never priority
+over control. Reservations derive at definition sites (e.g. the
+quorum-critical reservation = target merges/sec × p99 placement bytes per
+merge). The same law's disk-IO and CPU instantiations (store IO classes,
+Seastar-style scheduling groups) are owed to OBJECT_TIER/RUNTIME as a
+named rider — recorded, not silently absent. Tests: the starvation pair
+(opportunistic saturation ⇒ quorum-critical latency within derived budget;
+quorum-critical bursts never delay control) + catch-up membership (a
+quorum-needed member's snapshot joins the critical class and completes
+within the failover budget under full background load). **The metadata-completeness law** governs
 every admission decision in the system: no verdict anywhere may require
 payload plaintext (payload sight is the minting authority's deliberate,
 logged escalation, never fast-path). Classification is boot-validated via

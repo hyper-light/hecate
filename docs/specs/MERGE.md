@@ -126,7 +126,9 @@ fetch:   pull ops_doc (+ ranges as needed) by name — outside the pure core
 map:     position-map ops through canonical deltas (base..head]
 verdict: two pure passes (§3)
 apply:   splice accepted ops into a new manifest (chunk-granular, VFS §5)
-place:   push the version's new blobs to the session-group members; await acks
+place:   push the version's new blobs to the session-group members; await
+         acks — on the QUORUM-CRITICAL TRANSFER class (PROTOCOL §3's
+         non-interference law), never the opportunistic bulk lane
 commit:  merge record {id, verdict, version, manifest_hash, term}
          through the session group — a merge that cannot be recorded never
          applies; a version that is not placed is never referenced
@@ -362,7 +364,11 @@ reopens the eg-walker branch (ADR-0005) with data in hand.
 
 One node: the session group is one replica (self-ack), placement is a local
 write, every arrow in §7 is an in-process call, attachments project from the
-one local store. Same code, same sequence, no modes.
+one local store. Same code, same sequence, no modes. Receipt: etcd's own
+fault-tolerance table — N=1 is the same Raft code path with quorum = 1; no
+special commit path exists. The fragile step is GROWING 1→2 (a two-member
+group still tolerates zero failures; member-add's joint quorum is the
+delicate transition) — the laptop-to-fleet growth path, owned by Branch 38.
 
 ## 12. Test matrix
 

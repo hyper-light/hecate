@@ -1904,3 +1904,19 @@ etcd-forwarding = rejected alternative. M15e (lying proposer) + M17b
 (resolver storm) added. Unchanged: descriptors, fixed layer, composed net
 ops, dedup identity, GC roots. NEXT: A3 (one-line confirmation) + A4
 (placement QoS class) exchange.
+**A3 + A4 SETTLED ("Agreed and accepted.", 2026-08-18) — A-SERIES RE-AUDIT
+COMPLETE.** A3: MERGE §11 stands, receipted (etcd N=1 = same code path,
+quorum=1); the fragile 1→2 growth transition named and routed to Branch
+38. A4: **quorum-critical transfer** = sixth archetype in PROTOCOL §3;
+membership BY PURPOSE never volume (green placement pushes + consensus
+catch-up for quorum-needed members; KIP-73 = the named negative);
+mClock-shape reservation/weight/limit natively in hecate-quic (D-10(b)
+obligation); derived reservation formula; starvation-pair + catch-up
+membership tests. **ELEVATED TO SYSTEM LAW (user verbatim): "different
+types of traffic for different work should NOT block one another with the
+scheduler, and our scheduler needs to be smart enough to know the
+difference"** — the traffic non-interference law, written into PROTOCOL
+§3; disk-IO/CPU instantiations owed to OBJECT_TIER/RUNTIME as a named
+rider. All four A-items now maximal under the final architecture:
+A1 fused (term-only), A2 inputs-authoritative + piggyback topology,
+A3 receipted, A4 classed. Queue resumes: VFS whole-spec audit next.
