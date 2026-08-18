@@ -2024,3 +2024,23 @@ target — no Hecate doc ever cited it; all existing Borg citations
 verified sound. Exchange presented, now with the sampling clause struck
 and one added amendment: SCHEDULER §6's "exact on homogeneous nodes" fit
 claim becomes exact-PER-CLASS once node classes exist.
+**Placement exchange NOW WORKED IN THE RESEARCH THREAD (2026-08-18)** —
+the thread verified the tree (Branch 28 secrets + Branch 35 hosting
+confirmed on-tree; GAPS §3 staleness re Branch 35 fixed this commit),
+committed the SCHEDULER §6 exact-per-class scoping (6f50e8b, verified
+coherent with the reconciliation line), and presented FIVE RULINGS to the
+user there: (1) node classes — recognition vs Twine-style RESHAPING
+(host-profile actuator on class rebind; interacts w/ Branch 32 bring-up);
+(2) repulsion granularity — per-class (recommended) vs per-node;
+(3) authorize the PODS-derived typed-resource vocabulary pass (the
+consumed⇒typed-resource / matched⇒attribute discriminator as law);
+(4) performance coefficients — slot-now-activate-at-first-baseline
+(FOREST AC-4's fit-before-influence pattern; correctness-neutral,
+utilization-bearing); (5) **Branch 39 charter proposed — observability
+plane + mesh/pod telemetry integration** (the substrate ~10 specs'
+ratchet gates presuppose; collection at existing chokepoints only;
+telemetry = supersession class; bounded cardinality derived; content-free
+law; operator query surface; non-scope = HEALTH judgment/Branch 30
+declaration/Branch 14 math; research-first OTel-as-pattern, Monarch,
+Gorilla). Orchestrator standing off SCHEDULER while that thread drafts;
+VFS amend-and-accept remains open in the main line.
