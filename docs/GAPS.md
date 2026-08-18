@@ -122,7 +122,8 @@ Architecture set (AGENTS/LEDGER/PLATFORM/SKILLS/SUMMONING + CONTEXT + ADRs
   formatted spec. The header says ACCEPTED; the user should confirm or demote
   to presented. (OBJECT_TIER.md correctly says presented.)
 - **D-10 Transport re-ratification: QUIC+UDP primary, bare-UDP control plane
-  (user-directed 2026-08-17, transport-research dossier on file).** Direction:
+  — ACCEPTED 2026-08-17 ("D-10(a)-(e) accepted" — user, in-session), sub-items
+  (a)–(e) ratified as the reconciliation work plan.** Direction:
   QUIC-over-UDP replaces TCP frames as the primary reliable carriage for every
   ordered/directed/bulk class (turn streams, delta streams, consults, claims,
   directed commands, secrets issuance, registry ops, content transfer —

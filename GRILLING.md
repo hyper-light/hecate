@@ -1495,3 +1495,19 @@ carried: a live global forest would reopen FOREST §5's isolation law —
 the proposal settles mechanics WITHIN the ratified law. On acceptance the
 research thread writes SERVING §6 / FOREST §5 / PROTOCOL §3–§4 /
 OBJECT_TIER cross-refs and closes GAPS D-11/D-12.
+D-11/D-12 proposals REFINED in-thread (v2, 2026-08-17; verdicts still
+pending there): D-11 — green has no retention floor so RESYNC_REQUIRED is
+structurally unreachable for chain subscription (replay-forward always
+possible); torn versions unobservable (chain append atomic); "node-local
+by design" survives for work-volume WALs — the shared-volume claim was
+never about them; spec home = SERVING §6b rider + SESSIONS §2 cross-ref;
+law sentence: attach = subscription + cache-fill + pinning, no coherence
+machinery may exist because none is needed. D-12 — F10's input clock
+(identical state under arbitrary arrival permutation) absorbs cross-node
+jitter + shed telemetry with zero new design; F13 kept STRUCTURALLY via
+digest-PUSH (per-pod QUIC stream → local cache; assembly reads cache only,
+zero network at assembly time); explicit retrieval = agent tool invocation
+outside F13 by definition (one clarifying sentence makes it law not lore);
+forest needs no Raft/replication/cross-region protocol — total order from
+ledger, durability from the planes it rides. Only genuinely new wire
+object across both settlements = the green-chain subscription record.
