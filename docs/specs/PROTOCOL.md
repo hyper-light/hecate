@@ -137,9 +137,35 @@ in both directions: control frames never queue behind any bulk class, and
 reservations arbitrate bandwidth among bulk-shaped flows, never priority
 over control. Reservations derive at definition sites (e.g. the
 quorum-critical reservation = target merges/sec × p99 placement bytes per
-merge). The same law's disk-IO and CPU instantiations (store IO classes,
-Seastar-style scheduling groups) are owed to OBJECT_TIER/RUNTIME as a
-named rider — recorded, not silently absent. Tests: the starvation pair
+merge).
+
+**The structural non-interference guarantee** (strengthened 2026-08-18,
+user directive: "a 2GB upload CANNOT possibly block other work, control
+frames, etc."): reservations are policy; this is construction. **The
+invariant: no class's latency bound contains any term dependent on another
+class's object size or queue depth.** Enforced per shared resource, each
+by one of two structural means — *partition* (the resource is per-class;
+interference is unrepresentable) or *quantum bound* (another class's
+maximum occupancy is one frame-cap quantum, independent of object size):
+
+| Shared resource | Structural guarantee |
+|---|---|
+| The wire | Frame cap: no frame larger than the cap can be BUILT (builder rejects) — a 2 GB object is ~1.4M independent packets; worst-case control queueing behind bulk = one packet transmission (~µs), invariant in object size |
+| Transport queues | **Partitioned per class** — separate queues, not one queue with priorities; control's queue physically cannot contain bulk occupancy; head-of-line applies within a class only |
+| Buffers/credits | Per-class credit pools + the never-whole-object-in-credit invariant: bulk credit exhaustion backpressures the SENDER; the reserved-slot discipline (already law for the health plane) generalizes to every class — no class can consume another's buffer allocation |
+| Host CPU/crypto | Bulk payloads carry ZERO host cryptography (Lane-A passthrough: D-3 ciphertext, name-verified) and envelope-only warden inspection (metadata-completeness law) — the 2 GB upload does per-packet envelope work only; its payload bytes never enter an AEAD, a parser, or a policy evaluation on any host |
+| The pod device boundary | Class-separated virtqueue pairs (WIRE_SECURITY §2) — a pod's own upload cannot HOL-block its own claims frames at the ring |
+| Store disk IO | **The owed instantiation, now with its structural form named**: per-class IO queues at the pack store with reservation arbitration (the Seastar/Scylla scheduling-group shape; io_uring submission partitioning) — ingest staging writes and archival bulk cannot occupy the WAL-flush or placement-read queues. Owed to OBJECT_TIER/RUNTIME as a named rider, with THIS table's invariant as its acceptance bar |
+| Store memory/arena | Per-class/per-volume budget charges (existing budget doctrine) — bulk fill cannot evict or starve another class's arena share |
+
+The 2 GB walk, as the permanent test: a saturating multi-GB upload runs
+while control frames, claims traffic, and merge placement proceed —
+**their p99 latencies must be flat across a sweep of upload sizes**
+(the independence proof: if object size appears in any other class's
+latency curve, the guarantee is broken, structurally, and the test fails
+— not "degraded acceptably"). CPU-instantiation of the law
+(scheduling-group shares for maintenance vs serving work on hecate-rt)
+rides the same rider. Tests: the starvation pair
 (opportunistic saturation ⇒ quorum-critical latency within derived budget;
 quorum-critical bursts never delay control) + catch-up membership (a
 quorum-needed member's snapshot joins the critical class and completes

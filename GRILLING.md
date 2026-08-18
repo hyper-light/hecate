@@ -1920,3 +1920,18 @@ difference"** — the traffic non-interference law, written into PROTOCOL
 rider. All four A-items now maximal under the final architecture:
 A1 fused (term-only), A2 inputs-authoritative + piggyback topology,
 A3 receipted, A4 classed. Queue resumes: VFS whole-spec audit next.
+**Structural non-interference guarantee ADDED (2026-08-18, user directive
+verbatim: "a 2GB upload CANNOT possibly block other work, control frames,
+etc.")** — the non-interference law strengthened from policy (reservations)
+to CONSTRUCTION: invariant = no class's latency bound contains any term
+dependent on another class's object size or queue depth; enforced per
+shared resource by partition (per-class queues/credit pools/virtqueue
+pairs/arena budgets — interference unrepresentable) or quantum bound
+(frame cap: worst-case cross-class occupancy = one packet, invariant in
+object size); bulk payloads already do ZERO host crypto (Lane-A
+passthrough) + envelope-only inspection; store disk-IO instantiation =
+the owed OBJECT_TIER/RUNTIME rider with this invariant as its acceptance
+bar (per-class IO queues, Scylla shape); permanent test = the 2GB walk:
+p99 latency curves of every other class FLAT across an upload-size sweep
+— object size appearing in any curve is a structural failure, not
+degradation. Written into PROTOCOL §3.
