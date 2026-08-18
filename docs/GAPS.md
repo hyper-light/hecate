@@ -132,36 +132,70 @@ Architecture set (AGENTS/LEDGER/PLATFORM/SKILLS/SUMMONING + CONTEXT + ADRs
   for consensus votes/membership/fencing probes/liveness/telemetry/gossip
   (Raft = UDP; placement map/membership = UDP). The user is protocol-wise an
   agent like any other — no separate edge stack. Open reconciliations, each a
-  blocking sub-decision: (a) **DIRECTION CHOSEN 2026-08-17, spec owed** ("warden → quic endpoint
-  <-> quic endpoint <- warden. If we need to for virtio to accomplish this,
-  then we do it."): **Noise-IKpsk2 owned handshake** in QUIC CRYPTO frames
-  (nQUIC blueprint; spec-named verified suite — 25519/AESGCM-256/SHA-256-or-
-  BLAKE2s, NOT BLAKE3 in-handshake for proof fidelity; one-hash law governs
-  content identity only), private QUIC version + private Initial salt (RFC
-  9000 §7 sanctioned); **one summon-mint root per pod, HKDF-labeled per-plane
-  derivations** (control-plane envelope keys, Noise static seed, Noise PSK),
-  key_epoch bump at handoff rotates all atomically; IK message-1 replay rule
-  (handshake incomplete until 1-RTT-protected packet decrypts) + QUIC
-  Retry/address-validation retained as law; 0-RTT = closed list of
-  replay-safe frame kinds only; derived AEAD rekey thresholds from RFC 9001
-  formulas, key-phase update (routine) vs full re-handshake (identity/
-  handoff) never conflated. **Topology law: warden → QUIC endpoint ↔ QUIC
-  endpoint ← warden** — pod frames cross the virtio/vsock boundary in the
-  clear (VM-boundary isolation + structural channel identity + fencing
-  tuple), the warden rules pre-effect at the boundary with ZERO key
-  material, then the host QUIC endpoint seals for the wire; QUIC endpoints
-  live at hosts and user terminals ONLY, a pod's peer is always its host,
-  never a remote pod (end-to-end pod QUIC rejected: blinds the warden;
-  key-sharing/shadow-decrypt rejected: precedent-free + NSA-TLSI-cautioned);
-  virtio-layer work authorized as needed to realize the pipeline (we own
-  the libkrun fork). External-egress caveat recorded: guest-held TLS to
-  external services is policed at destination/policy level as already
-  accepted.
-  Rejected: external-PSK TLS (rustls gap → C dependency), RPK TLS (drags
-  the TLS machine for a closed mesh), bespoke non-Noise handshake (gQUIC's
-  own retirement; dominated). D-7 resolves into this settlement
-  (PROTOCOL §2 remains the baseline; LEDGER §7.3/ADR-0002 corrections ride
-  the PROTOCOL amendment);
+  blocking sub-decision: (a) **SETTLED 2026-08-18 ("accepted.") after a
+  six-round grilling arc** (per-pod-QUIC → host-terminated → in-guest-seal
+  three-leg → seal-once lanes → warden-seals-what-it-inspected →
+  ingress-tamper audit → generalized five-layer default). The settled form:
+  **Handshake**: Noise-IKpsk2 owned handshake in QUIC CRYPTO frames (nQUIC
+  blueprint; spec-named verified suite — 25519/AESGCM-256/SHA-256-or-BLAKE2s,
+  NOT BLAKE3 in-handshake for proof fidelity; one-hash law governs content
+  identity only); private QUIC version + private Initial salt (RFC 9000 §7
+  sanctioned); IK message-1 replay rule + QUIC Retry/address-validation as
+  law; 0-RTT = closed list of replay-safe frame kinds; derived AEAD rekey
+  thresholds from RFC 9001 formulas; key-phase update (routine) vs full
+  re-handshake (identity/handoff) never conflated. **Keys**: one summon-mint
+  root per pod, HKDF-labeled derivations (control-plane envelope, flow keys),
+  key_epoch bump at handoff rotates all atomically; per-flow end-to-end keys
+  brokered by hosts as minting authorities; SENDING GUESTS HOLD NO TRANSPORT
+  KEYS. **The seal-once pipeline (1 payload seal + 1 payload unseal, the
+  physical floor; hosts do payload-integrity only, never payload
+  encryption)**: guest posts frame plaintext to a staging ring in its own
+  RAM → WARDEN reads it in place (VMM page access, full plaintext, zero
+  crypto, pre-seal) → verdict → **the warden seals those exact bytes**
+  (TOCTOU/approve-then-swap structurally impossible; a rooted guest has no
+  path to any wire except the warden's own seal — no egress stamp needed)
+  → our private QUIC version carries sealed payloads WITHOUT re-encryption
+  (sealed-payload frame class) → intermediate hosts route/admit on
+  hop-authenticated cleartext AAD → destination guest holds the flow
+  receive key and unseals. **The metadata-completeness law**: every warden
+  verdict anywhere is decidable from typed envelope metadata alone (opaque/
+  encrypted payloads are the norm — content-free doctrine applied to
+  enforcement); payload plaintext may tighten (sensor discipline) but never
+  be required; escalation decrypt = minting authority's deliberate LOGGED
+  act, never fast-path (NSA-TLSI class stays excluded). **The five-layer
+  default, ALL connections both stacks** (user: "make this robustness the
+  default for *all* of our quic + udp connections"): (1) every hop
+  authenticated by its strongest mechanism — session AEAD/MAC on wire hops,
+  structural channel identity on virtio/in-process, equivalence stated as
+  law; (2) end-to-end flow authenticity wherever an end exists, tag = final
+  authority; (3) EVERY acceptance point (host parsers, guest unseal points,
+  terminal clients, bare-UDP datagram parsers) is a parser-resident
+  enforcement point running the §1.3 order with categorized counters;
+  (4) replay discipline at both layers (hop packet numbers/nonces + per-flow
+  endpoint windows); (5) per-lane payload integrity derived from recovery
+  story — claims payloads under the hop MAC (transport retransmit preserved,
+  GHASH-only), bulk exempt (name-verify + missing-set IS the recovery),
+  supersession datagrams neither. **Boot classifier**: every socket/session/
+  stream-class/flow classified against the stack at boot; unclassified
+  transport path fails startup (chokepoint-coverage law applied to transport
+  security). Ingress-tamper audit closed: on-path envelope forgery/
+  decryption-DoS die at hop MAC before admission logic; admitted-vs-sealed
+  divergence = typed alarm. Traffic-analysis (sizes/timing under encrypted
+  payloads) = named Branch 25 rider (padding/shaping). Virtio work
+  authorized (staging ring + doorbell in the libkrun fork). External-egress
+  caveat: guest-held TLS policed at destination/policy level as accepted.
+  Rejected along the arc, receipts on file: external-PSK TLS (rustls gap),
+  RPK TLS (drags the TLS machine), bespoke non-Noise handshake (gQUIC's own
+  retirement), per-pod QUIC endpoints (redundant with virtio physics THEN
+  superseded by in-guest→warden-seal evolution), three-leg per-hop AEAD
+  (deleted: cost made structurally absent), egress-stamp variant (TOCTOU),
+  unauthenticated-envelope ingress (the audit's hole). D-7 resolves into
+  this settlement (LEDGER §7.3/ADR-0002 corrections ride the PROTOCOL
+  amendment). Test matrix: forgery/replay/decryption-DoS/corruption-per-
+  lane/divergence suites run against EVERY endpoint class under cluster-SIM
+  nemeses; coverage-matrix boot check permanent; one-seal-one-unseal
+  structural audit; pre-seal inspection ordering instrumented; escalation-
+  decrypt audit trail zero-on-fast-path;
   (b) owned QUIC-class implementation vs adopted sans-IO state machine
   (quinn-proto/quiche-shape) driven by hecate-rt — "own wire protocol" doctrine
   vs 5–8-year loss-recovery maturity; (c) per-core throughput work items
