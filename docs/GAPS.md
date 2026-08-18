@@ -268,6 +268,20 @@ Architecture set (AGENTS/LEDGER/PLATFORM/SKILLS/SUMMONING + CONTEXT + ADRs
   posture; laptop degenerate (one pod = trivially consistent). Settle with
   FOREST.md's pending whole-spec verdict (D-4).
 
+- **D-13 Resource-kind vocabulary derivation pass — OWED (2026-08-18),
+  sequenced immediately before the SCHEDULER heterogeneity amendment
+  presentation.** The typed-resource law is accepted (consumed ⇒ typed
+  `(kind, type, quantity)` entries in the accounted vector; matched-only
+  ⇒ class attribute; discriminator: "can two pods exhaust it?"). The kind
+  vocabulary must be DERIVED from actual consumers, never invented: sweep
+  PODS.md (tiers, microVM overhead), OBJECT_TIER/SERVING (NVMe
+  capacity/bandwidth), VECTOR_INDEX + Branch 34 (accelerator candidates),
+  Branch 23 (memory class); mint exactly the kinds those specs demand,
+  each derivation at its definition site. Expected v1 shape: {cores, mem,
+  storage_cap, storage_bw}; the accelerator kind structurally provided
+  for but unminted until a Hecate-hardware consumer exists. Spec-readable
+  now (no code required); blocks the SCHEDULER §5/§6 amendment.
+
 ## 3. Undesigned (open branches, charter only)
 
 15 steering · 17 remote client/terminal (the entire presentation plane —

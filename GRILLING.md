@@ -2047,6 +2047,33 @@ target — no Hecate doc ever cited it; all existing Borg citations
 verified sound. Exchange presented, now with the sampling clause struck
 and one added amendment: SCHEDULER §6's "exact on homogeneous nodes" fit
 claim becomes exact-PER-CLASS once node classes exist.
+**Heterogeneous-placement verdicts (2026-08-18, user)** — Item 1 node
+classes: RESHAPING ACCEPTED ("that cost is fine") — registry-declared
+classes as identical-machine equivalence keys (unclassified node fails
+boot — chokepoint-coverage law), dynamic class membership + class→purpose
+binding as versioned meta-group state (Twine entitlement shape), and a
+host-profile actuator applying per-class kernel/sysctl/storage/VMM
+settings on rebind (Twine Sidekick; fenced, Branch-32-integrated —
+profile-apply is a mini node-join; convergence states live in the
+inventory map). Item 2 repulsion: per-class-only REJECTED as incomplete —
+per-node repulsion is "an extremely valuable escape hatch"; investigation
+directed for the maximally correct marriage of both axes; marriage design
+presented in-message — class axis = registry-declared repel (design
+intent, workload-shaped), node axis = fenced inventory-map dispositions
+ONLY (operator cordon/drain = auto-disposed but epoch-bumped map
+proposals, never free-floating taints; K8s receipt verified: production
+per-node taints are control-plane-authored from conditions — "the
+Kubernetes control plane automatically creates taints that match the
+conditions affecting the node" — with cordon as the operator hatch:
+"prevents the scheduler from placing new pods onto that Node but does
+not affect existing Pods"; structural note: item 1's accepted reshaping
+REQUIRES the node axis — a mid-rebind machine must repel work via map
+state). VERDICT PENDING. Item 3 typed resources: ACCEPTED; vocabulary
+derivation pass added to the tree as D-13 (GAPS §2), sequenced
+immediately before the SCHEDULER amendment presentation. Item 4
+performance coefficients: ACCEPTED — slot-now-identity-matrix, activation
+gated on the first commissioning baseline (fit-before-influence, the
+FOREST AC-4 pattern).
 **Placement exchange NOW WORKED IN THE RESEARCH THREAD (2026-08-18)** —
 the thread verified the tree (Branch 28 secrets + Branch 35 hosting
 confirmed on-tree; GAPS §3 staleness re Branch 35 fixed this commit),
