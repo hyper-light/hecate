@@ -156,16 +156,26 @@ Architecture set (AGENTS/LEDGER/PLATFORM/SKILLS/SUMMONING + CONTEXT + ADRs
   chunk fill = QUIC streams per D-10; invalidation/lease control = which
   class?), laptop degenerate. Needs a branch and a spec home (SERVING.md
   rider or its own); settle before the serving plane is implemented.
-- **D-12 Distributed knowledge-forest access — undesigned (user-flagged
-  2026-08-17: "how do nodes query the knowledge forest? this isn't some
-  arbitrary thing that exists in a vacuum").** FOREST.md defines the
-  per-session field service but not the distributed mechanics: how pods on
-  other nodes query/retrieve (request/response class over QUIC per D-10),
-  how field state/traces replicate or shard across nodes and regions, what
-  is ordered (trace ingest streams) vs supersession-semantics (telemetry —
-  bare UDP per D-10), Raft involvement for any authoritative forest state
-  (= UDP control plane), retention locality, laptop degenerate. Needs a
-  branch; settle with FOREST.md's pending whole-spec verdict (D-4).
+- **D-12 The distributed forest substrate — undesigned, research directed
+  (user-corrected 2026-08-17: the forest is an external computational-biology
+  and ML-driven substrate that IS distributed; a first "nobody queries a
+  remote forest" settlement attempt was rejected as an invented falsehood).**
+  User-sketched candidate: the field runs as a process **within every agent
+  pod of a session**; changes propagate among nodes via gossip and/or Raft;
+  the priced downside is convergence lag (a session's pods' forests take time
+  to become consistent). Directed research before settlement: **peer-to-peer
+  machine learning** (gossip/decentralized learning, convergence guarantees)
+  and **consensus** (what, if anything, in the forest needs agreement vs
+  eventual convergence). Design tensions to resolve against receipts:
+  per-pod replication vs FOREST.md's single field service + F10 determinism
+  (note: the Z-set weight algebra is commutative and the input clock
+  `(HLC64, stream_id, stream_seq)` already defines a total order — delta
+  dissemination with order-independent apply may give deterministic
+  convergence without consensus; hypothesis, untested); which forest events
+  (promotion? curation?) need authority vs propagation; carriage per D-10
+  (gossip = bare-UDP plane, ordered delta exchange = QUIC); cross-region
+  posture; laptop degenerate (one pod = trivially consistent). Settle with
+  FOREST.md's pending whole-spec verdict (D-4).
 
 ## 3. Undesigned (open branches, charter only)
 

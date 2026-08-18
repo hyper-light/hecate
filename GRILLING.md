@@ -1511,3 +1511,32 @@ outside F13 by definition (one clarifying sentence makes it law not lore);
 forest needs no Raft/replication/cross-region protocol — total order from
 ledger, durability from the planes it rides. Only genuinely new wire
 object across both settlements = the green-chain subscription record.
+**D-10(a) key-model dossier LANDED (2026-08-17)** — RFC 9000 §7 makes the
+handshake VERSION-PLUGGABLE by normative text ("a different QUIC version
+could indicate that a different cryptographic handshake protocol");
+TLS↔QUIC seam is narrow (secret+AEAD+KDF in → packet protection out —
+exactly our HKDF mint's shape); private version + private initial salt
+sanctioned (RFC 9001 §5.2; quinn-noise reserved 0xf0f0f2f0). On-wire
+visibility under QUIC shrinks to RFC 8999 invariants (DCID/SCID/version) —
+cleartext-AAD policing does not survive. Four key models: (1) external-PSK
+TLS (RFC 8446/9257/9258 — most faithful to summon-mint, BUT rustls has NO
+external-PSK support, issue #174 open since 2018 → C-backed TLS or fork;
+zero shipped external-PSK QUIC found); (2) RPK TLS RFC 7250 (works TODAY
+on rustls ≥0.23.16 + stock quinn; iroh v1.0 production precedent; mint
+type becomes keypairs); (3) Noise-class owned handshake (nQUIC blueprint:
+Noise IK in CRYPTO frames, no semantic transport changes, inherits
+Tamarin/ProVerif/CryptoVerif analyses, ~1K-LoC implementations vs
+OpenSSL's 703K/165 CVEs; three quinn crypto::Session existence proofs —
+owned handshake does NOT force owned QUIC); (4) bespoke QUIC-Crypto-style
+(dominated by 3; gQUIC's own retirement is the precedent). Guardian axis:
+key-sharing/passive-decrypt = precedent-free + NSA-TLSI-cautioned
+(rejected); MASQUE = anti-goal; host-terminates ≈ warden-at-endpoint
+CONVERGE in our topology — pods egress only via host virtio, the host IS
+an endpoint, sees frames pre-encryption; cleartext AAD was compensating
+for a passive-middlebox assumption the architecture never had. D-10(b)
+facts: quinn-proto = sans-IO, "fully deterministic," Instant-injected
+(SIM-fit), crypto-pluggable, no C; quiche = BoringSSL-bound not pluggable;
+s2n-quic = tokio-native docs; neqo = NSS + server experimental. iroh
+trajectory = the own-it precedent (adopt quinn → fork → standalone noq
+only when TRANSPORT semantics diverged, never for crypto). Settlement
+exchange presented.
