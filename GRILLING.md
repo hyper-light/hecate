@@ -1401,3 +1401,28 @@ roaming-client QUIC-shaped carriage (iff mobile attach ships as product);
 Aspera-class delay-based WAN UDP (iff measured cross-region goodput on
 lossy high-BDP paths becomes binding). Net: class 6 splits by LEG not
 wholesale. Awaiting user ruling on the consolidated A1–A7 set.
+**Archetype determination LANDED (2026-08-17, dossier final form,
+user-steered)** — supersedes the per-system table as the normative shape:
+**systems never pick sockets — every message kind declares exactly one
+traffic archetype (R1–R8); the archetype, not the subsystem, determines
+carriage at the PROTOCOL chokepoint; an unclassified kind fails boot**
+(chokepoint-coverage-at-boot discipline applied to transport). R1
+supersession signals = UDP never-retransmitted-never-deduped; R2 idempotent
+fenced control (votes, fencing, credit grants, missing-set requests) = UDP
+full-envelope + replay window; R3 ordered gap-free logs (AppendEntries,
+delta streams, narration, turn streams) = TCP frames; R4 directed
+request/response = TCP default + the lawful escape (fits-one-datagram ∧
+idempotent ∧ latency-critical ∧ **never_secret** — protocol-checked, not
+caller vibe); R5 intra-DC content bulk = owned receiver-credit UDP flights
+(conditions: batching parity, leaf-granular recovery, jumbo-aware envelope,
+loopback first-light gate); **R6 WAN bulk = the SAME owned UDP plane +
+Cubic-class CC + DPLPMTUD with TCP as STRUCTURAL FALLBACK** (Aspera
+promoted to determination; fallback = robustness requirement per
+SMB-over-QUIC's middlebox record — CHANGED from the prior addendum's
+TCP-k-primary); R7 user edge over public internet = ADOPTED QUIC-class
+stack at the tool/user plane (outside hecate-wire — no doctrine breach);
+R8 loss-tolerant playback = RFC 9221-shaped datagrams. Raft = R2 votes +
+R3 log + R5 snapshots. Secrets = R4 TCP-only, escape structurally banned.
+Consults = R3/R4 strictly (resolution not idempotent from the parked
+issuer's view). Net: two transports + one adopted edge stack, eight rules,
+every system derived. Consolidated amendment set awaiting user verdict.
