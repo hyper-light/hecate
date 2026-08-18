@@ -276,6 +276,7 @@ no spec anywhere) · 18 continuity/conversation · 23 document DB ·
 28 secrets · 30 fleet fault detection/recovery · 31 replica handling ·
 35 git-compatible code hosting · 36 attachment lifecycle mechanics ·
 37 volume provisioning (both planes) ·
+39 observability plane + mesh/pod telemetry integration ·
 32-WIDENED node provisioning + abstraction expansion · 38 the laptop
 collapse (whole-system scale-down map + no-modes validation + degenerate
 sweep of the inventory's not-stated column) ·

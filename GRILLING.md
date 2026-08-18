@@ -1104,6 +1104,29 @@ CONSENSUS+FAULTS, OBJECT_TIER §9 (D-3).
   boot-to-serve on a reference laptop, ratcheted (OT15's discipline made
   system-wide). Ruthless mechanics; settles alongside the walking
   skeleton's P0.
+- **39 Observability plane + mesh/pod telemetry integration** — ADDED
+  2026-08-18 (user; surfaced during the heterogeneous-placement
+  reconciliation sweep: the item had been discussed as appended but never
+  recorded — the stale-ledger rule firing on the grilling log itself).
+  Owns the operational-log/metrics/trace substrate that every spec's
+  ratchet gates presuppose (SCHEDULER AC-7, OT15, RUNTIME baselines, the
+  shared >10%-regression CI bars — all require it to exist before first
+  light) and the mesh↔pod integration view: per-lane wire telemetry,
+  seal-pipeline/enforcement-point counters, warden+sensor rollup as one
+  observable system. Shape constraints: collection at existing
+  chokepoints only (warden, sensor, applier decision records,
+  parser-resident enforcement counters, hecate-quic lane stats — no new
+  probes; HEALTH.md's consolidation discipline generalized); carriage per
+  D-10 (telemetry = bare-UDP supersession class, already law);
+  content-free law applies (operational telemetry never carries payload
+  content — metadata-completeness extended to observation); cardinality
+  and retention derived, never configured; operator query surface +
+  terminal-path story; laptop degenerate = local ring buffers, same
+  schema. Explicit non-scope: health judgment (HEALTH.md), fault
+  declaration (Branch 30), detection math (Branch 14). RESEARCH FIRST:
+  OTel data model as pattern-never-dependency, Monarch (VLDB'20) +
+  Gorilla/Beringei for derived retention/compression receipts, eBPF
+  zero-instrumentation collection receipts.
 - **Walking skeleton** — final branch; re-presents against completed tree
   (P0 wire → P1 runtime → P2 spine → P3 pod leg → P4 first agent → P5 first
   merged change; now must thread Sibyl/home-session/lineage into first light;
