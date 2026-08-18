@@ -132,7 +132,7 @@ Architecture set (AGENTS/LEDGER/PLATFORM/SKILLS/SUMMONING + CONTEXT + ADRs
   for consensus votes/membership/fencing probes/liveness/telemetry/gossip
   (Raft = UDP; placement map/membership = UDP). The user is protocol-wise an
   agent like any other — no separate edge stack. Open reconciliations, each a
-  blocking sub-decision: (a) **SETTLED 2026-08-17** ("warden → quic endpoint
+  blocking sub-decision: (a) **DIRECTION CHOSEN 2026-08-17, spec owed** ("warden → quic endpoint
   <-> quic endpoint <- warden. If we need to for virtio to accomplish this,
   then we do it."): **Noise-IKpsk2 owned handshake** in QUIC CRYPTO frames
   (nQUIC blueprint; spec-named verified suite — 25519/AESGCM-256/SHA-256-or-

@@ -1570,7 +1570,7 @@ mechanism EVOLVED beyond the v2 single-instance proposal → per-pod
 replicas + keyed OpSet fold + eager-push/anti-entropy + claims-for-unique-
 actions (CALM framing); supersession pending user verdict in-thread
 alongside the diet section and the still-open D-11 green-attach proposal.
-**D-10(a) SETTLED (2026-08-17)** — user verdict: "warden → quic endpoint
+**D-10(a) DIRECTION CHOSEN (2026-08-17; NOT settled — user paused the over-claim: "did that *actually* ratify anything?"; implementation mechanics owed and presented for correction)** — user direction: "warden → quic endpoint
 <-> quic endpoint <- warden. If we need to for virtio to accomplish this,
 then we do it." Full settled form in GAPS.md D-10(a): Noise-IKpsk2 owned
 handshake (verified suite, not BLAKE3 in-handshake), private QUIC
