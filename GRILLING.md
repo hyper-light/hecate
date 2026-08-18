@@ -1586,3 +1586,35 @@ topology (per-pod QUIC rejected as redundant-with-physics), key-hierarchy
 unification, 0-RTT replay policy, AEAD limits split, Noise-suite proof
 fidelity, IK-vs-XK argued. NEXT EXCHANGE: D-10(b) adopt-vs-own the
 transport state machine (research banked in the (a) dossier).
+**D-10(a) mechanics-verification dossier LANDED (2026-08-18)** — every
+mechanism CONFIRMED on primary sources: egress ring ≈ vhost-net TX path
+(VMM reads guest RAM by construction — OASIS virtio 1.2 descriptor
+guest-physical addresses; vhost VHOST_SET_MEM_TABLE; libkrun
+GuestMemoryMmap + MMIO BusDevice trait, 8 in-tree devices incl. virtio-fs
+as complexity precedent; virtio-wl = shipped-unstandardized-device
+precedent); double-fetch class + copy-once mitigation (Bochspwn; Wang
+USENIX'17 90 double-fetches; CVE-2015-8550/XSA-155 — COMPILER-introduced
+second fetch, arbitrary code exec, RING_COPY_REQUEST as canonical fix;
+CVE-2016-9381, CVE-2024-3446); HKDF per-context derivation standard (RFC
+5869, SP 800-108 KDK, TLS 1.3 schedule, SigV4); KDC failure-mode analysis
+favors us (golden-ticket = KDC gaining authority it didn't have; our
+broker host already maps the pod's RAM — zero marginal authority; clock
+skew deleted by counter epochs); sealed-payload passthrough = SRTP (RFC
+3711 payload-e2e/header-auth) + IPsec AH (RFC 4302 auth-only) + MASQUE
+forwarded mode (explicit double-encryption avoidance; its security
+considerations = our bulk-lane guard checklist); GMAC = NIST SP 800-38D
+standardized auth-only GCM, 0.64→0.16 cpb (Gueron), nonce reuse =
+Joux forbidden attack = unlimited forgery (THE crypto landmine); guest-side
+validation = TDX Linux guest hardening ("all virtio input untrusted",
+split-virtqueues-no-indirect audited config) + VIA ACSAC'21 50 bugs in 22
+drivers; perf: AES-GCM 4-10+ GB/s/core, HKDF ~µs amortized, EVENT_IDX
+kick suppression in-spec, memcpy bound derived-THIN. THIN: C3 broker
+deployed-precedent (2025 arXiv + patents only — spec carries the
+first-principles argument). SEVEN spec obligations: compiler-proof
+copy-once (read_volatile/copy_nonoverlapping, never &T into guest memory,
+length-fetch-once), GMAC nonces = monotone packet-number-bound +
+crash-safe-new-key-on-restart + NIST rotation, counter epochs not
+wall-clock, broker argument in-spec, bulk-exemption guard
+(name-verify-before-use + envelope truncation/reorder detection),
+split-queues-no-indirect + purpose-built guest parser, seal-off-event-loop
++ EVENT_IDX batching. WIRE_SECURITY.md presented in-message.
