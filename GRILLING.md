@@ -1570,3 +1570,19 @@ mechanism EVOLVED beyond the v2 single-instance proposal → per-pod
 replicas + keyed OpSet fold + eager-push/anti-entropy + claims-for-unique-
 actions (CALM framing); supersession pending user verdict in-thread
 alongside the diet section and the still-open D-11 green-attach proposal.
+**D-10(a) SETTLED (2026-08-17)** — user verdict: "warden → quic endpoint
+<-> quic endpoint <- warden. If we need to for virtio to accomplish this,
+then we do it." Full settled form in GAPS.md D-10(a): Noise-IKpsk2 owned
+handshake (verified suite, not BLAKE3 in-handshake), private QUIC
+version+salt, one summon-mint root w/ labeled per-plane derivations +
+atomic epoch rotation, IK replay rule + Retry as law, closed 0-RTT list,
+derived rekey thresholds w/ key-phase-vs-re-handshake split; TOPOLOGY LAW:
+pod frames cross virtio/vsock in the clear → warden rules pre-effect at
+the boundary with zero key material → host QUIC endpoint seals; QUIC
+endpoints at hosts + user terminals only; a pod's peer is always its host;
+virtio-layer work authorized (libkrun fork owned). D-7 resolves into this.
+The maximal-audit corners that produced the final form: termination
+topology (per-pod QUIC rejected as redundant-with-physics), key-hierarchy
+unification, 0-RTT replay policy, AEAD limits split, Noise-suite proof
+fidelity, IK-vs-XK argued. NEXT EXCHANGE: D-10(b) adopt-vs-own the
+transport state machine (research banked in the (a) dossier).

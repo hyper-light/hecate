@@ -132,9 +132,36 @@ Architecture set (AGENTS/LEDGER/PLATFORM/SKILLS/SUMMONING + CONTEXT + ADRs
   for consensus votes/membership/fencing probes/liveness/telemetry/gossip
   (Raft = UDP; placement map/membership = UDP). The user is protocol-wise an
   agent like any other — no separate edge stack. Open reconciliations, each a
-  blocking sub-decision: (a) QUIC's mandatory TLS 1.3 handshake vs PROTOCOL §2
-  per-pod HKDF keys and §1.1 AAD-cleartext Guardian routing (raw-public-key
-  binding vs owned-initial-secrets vs key-model rewrite; composes with D-7);
+  blocking sub-decision: (a) **SETTLED 2026-08-17** ("warden → quic endpoint
+  <-> quic endpoint <- warden. If we need to for virtio to accomplish this,
+  then we do it."): **Noise-IKpsk2 owned handshake** in QUIC CRYPTO frames
+  (nQUIC blueprint; spec-named verified suite — 25519/AESGCM-256/SHA-256-or-
+  BLAKE2s, NOT BLAKE3 in-handshake for proof fidelity; one-hash law governs
+  content identity only), private QUIC version + private Initial salt (RFC
+  9000 §7 sanctioned); **one summon-mint root per pod, HKDF-labeled per-plane
+  derivations** (control-plane envelope keys, Noise static seed, Noise PSK),
+  key_epoch bump at handoff rotates all atomically; IK message-1 replay rule
+  (handshake incomplete until 1-RTT-protected packet decrypts) + QUIC
+  Retry/address-validation retained as law; 0-RTT = closed list of
+  replay-safe frame kinds only; derived AEAD rekey thresholds from RFC 9001
+  formulas, key-phase update (routine) vs full re-handshake (identity/
+  handoff) never conflated. **Topology law: warden → QUIC endpoint ↔ QUIC
+  endpoint ← warden** — pod frames cross the virtio/vsock boundary in the
+  clear (VM-boundary isolation + structural channel identity + fencing
+  tuple), the warden rules pre-effect at the boundary with ZERO key
+  material, then the host QUIC endpoint seals for the wire; QUIC endpoints
+  live at hosts and user terminals ONLY, a pod's peer is always its host,
+  never a remote pod (end-to-end pod QUIC rejected: blinds the warden;
+  key-sharing/shadow-decrypt rejected: precedent-free + NSA-TLSI-cautioned);
+  virtio-layer work authorized as needed to realize the pipeline (we own
+  the libkrun fork). External-egress caveat recorded: guest-held TLS to
+  external services is policed at destination/policy level as already
+  accepted.
+  Rejected: external-PSK TLS (rustls gap → C dependency), RPK TLS (drags
+  the TLS machine for a closed mesh), bespoke non-Noise handshake (gQUIC's
+  own retirement; dominated). D-7 resolves into this settlement
+  (PROTOCOL §2 remains the baseline; LEDGER §7.3/ADR-0002 corrections ride
+  the PROTOCOL amendment);
   (b) owned QUIC-class implementation vs adopted sans-IO state machine
   (quinn-proto/quiche-shape) driven by hecate-rt — "own wire protocol" doctrine
   vs 5–8-year loss-recovery maturity; (c) per-core throughput work items
