@@ -1474,3 +1474,24 @@ judgment, and transferring it to the user↔agent row inverted the rubric
 hardest; TCP is the option lacking a justifying receipt there). The
 fallback question lives ONCE, in D-10(d), settled on UDP-blocking-rate
 evidence — never as a default posture anywhere.
+**D-11/D-12 settlement proposals PRESENTED (2026-08-17, in the research
+thread; verdicts pending there)** — D-11 cross-node attach: green's
+immutability does the work (no coherence protocol exists because nothing
+mutable crosses nodes) — three mechanics only: chain-head subscription as
+a named PROTOCOL §4 delta-stream subject (QUIC ordered), content-by-hash
+through the existing SERVING §6 tiers (QUIC bulk; DAX is per-node physics),
+pin+re-bind unchanged (location-independent version pinning); write
+direction = seal locally, increment ref travels as directed message, merge
+serializer stays single-owner colocated; FS16–FS18; laptop = in-process
+collapse. D-12 distributed forest: four-flow composition under FOREST §5's
+ratified isolation law — ingest already converges at the colocation unit
+(no new machinery), the ONE new verb pair = forest_query/forest_digest
+(QUIC directed; turn-path protected by PLACEMENT not verb — colocation law,
+F23 structural), replication = deliberately none (derived state,
+re-derivation is the availability story; Raft touches nothing),
+cross-session/region knowledge = archived registry artifacts over the
+durable plane, never live remote field queries; F22–F24. HONEST FLAG
+carried: a live global forest would reopen FOREST §5's isolation law —
+the proposal settles mechanics WITHIN the ratified law. On acceptance the
+research thread writes SERVING §6 / FOREST §5 / PROTOCOL §3–§4 /
+OBJECT_TIER cross-refs and closes GAPS D-11/D-12.
