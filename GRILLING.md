@@ -1853,3 +1853,28 @@ spans machines"), Colocation unit + Attachment entries added.
 SUMMONING.md: truth-plane clause corrected (one node "for locality, not
 for existence"; failover is promotion). MERGE exchange CLOSED; A3/A4
 folded (laptop degenerate = §11; carriage = §7's lanes).
+**A1–A4 re-audit dossier LANDED (2026-08-18)** — WS1: TiKV/KRaft/
+Multi-Paxos FUSE application writer with consensus leader; CRDB is the
+regret case (separately-fenced in-group writer → "leader-leaseholder
+splits," indefinite-outage variant → Leader Leases/fortification spent a
+protocol change UNIFYING them, 85% lease-CPU reduction); separate epochs
+shipped ONLY for writers outside the consensus group (Kafka producers,
+BookKeeper clients); NO shipped system fences a replica-resident writer
+with an epoch separate from its own group's term. WS2: etcd server-side
+forwarding vs CRDB/TiKV client resolver-cache both shipped; retry
+pathologies documented (NotLeaseholder storms #23543, redirect ping-pong
+#22837); strongest variant = TiKV piggyback (NACK carries current leader).
+WS3: input-logging + determinism = canonical line (Schneider, Calvin,
+TigerBeetle — divergence DETECTION comes from it); output-logging (Zab
+deltas, Aurora redo, Kafka) = apply-without-recompute but replicates a
+wrong verdict verbatim; hybrid both-in-record has NO precedent (THIN);
+literature posture for µs-cheap pure deciders: inputs authoritative,
+recompute at apply, logged outputs = cross-check whose mismatch is fatal.
+WS4: reservation-bearing scheduling classes for commit-critical
+replication = shipped (Ceph mClock client/subop vs recovery classes;
+Scylla service levels); rate-caps-on-bulk = the documented failure (Kafka
+KIP-73 throttled ISR catch-up → KIP-542; HDFS balancer caps); classify by
+PURPOSE (needed-for-quorum vs opportunistic). etcd N=1 = same code path,
+quorum=1, self-ack; the fragile transition is GROWING 1→2 (feeds Branch
+38's laptop-to-fleet growth path). Re-audits presented one at a time, A1
+first.
