@@ -1001,6 +1001,22 @@ CONSENSUS+FAULTS, OBJECT_TIER §9 (D-3).
   out-vs-down distinction, Borg maintenance windows, Backblaze drive
   lifecycle stats, SMART predictive receipts (Google disk-failure
   paper — SMART's weak predictivity).
+- **33 Cross-node shared-volume attach (D-11)** — ADDED 2026-08-17
+  (user: "have we even discussed the mechanics — we haven't"). Pods on
+  different nodes attaching to the post-merge shared VFS volume:
+  attach protocol, single-writer vs multi-reader fencing, coherence vs
+  sealed-manifest snapshotting, carriage classes (bulk fill = QUIC per
+  D-10; invalidation/lease control class TBD), laptop degenerate. Spec
+  home = SERVING.md rider or own spec; settle before serving-plane
+  implementation. Inherits D-10 carriage — does not reopen transport.
+- **34 Distributed knowledge-forest access (D-12)** — ADDED 2026-08-17
+  (user: "how do nodes query the knowledge forest? this isn't some
+  arbitrary thing that exists in a vacuum"). Cross-node query/retrieval
+  (request/response over QUIC per D-10), field-state/trace replication or
+  sharding across nodes/regions, ordered (trace ingest) vs supersession
+  (telemetry, bare UDP) split, Raft involvement for authoritative forest
+  state (UDP control plane), retention locality, laptop degenerate.
+  Settle with D-4 (FOREST whole-spec verdict). Inherits D-10 carriage.
 - **Walking skeleton** — final branch; re-presents against completed tree
   (P0 wire → P1 runtime → P2 spine → P3 pod leg → P4 first agent → P5 first
   merged change; now must thread Sibyl/home-session/lineage into first light;
@@ -1426,3 +1442,35 @@ R3 log + R5 snapshots. Secrets = R4 TCP-only, escape structurally banned.
 Consults = R3/R4 strictly (resolution not idempotent from the parked
 issuer's view). Net: two transports + one adopted edge stack, eight rules,
 every system derived. Consolidated amendment set awaiting user verdict.
+**TRANSPORT RE-RATIFICATION (2026-08-17, user-directed in the research
+thread; GAPS.md D-10 is the decision record)** — SUPERSEDES the archetype
+R1–R8 entry's TCP-frame assignments above: **QUIC-over-UDP replaces TCP
+frames as the primary reliable carriage for every ordered/directed/bulk
+class** (turn streams, delta streams, consults, claims, directed commands,
+secrets issuance, registry ops, all content transfer incl. cross-region);
+the existing stateless bare-UDP datagram plane (PROTOCOL §1.1) remains as
+the separate lightweight control plane (consensus votes/membership/fencing
+probes/liveness/telemetry/gossip — Raft rides it; protocol-sound: Raft is
+loss-tolerant by design, AppendEntries idempotent + leader-retried). The
+user is protocol-wise an agent like any other — no separate edge stack.
+Rationale anchor: the workload is bursty/concurrent/low-bandwidth-exposed
+(agent swarms, laptops, multi-region) — the regime where the QUIC receipts
+bind and the TCP storage-census receipts (fat clean stable links) do not;
+the intra-DC fat-link penalty (WWW'24) is held as gate D-10(c), not
+argued away. FIVE BLOCKING SUB-DECISIONS (D-10 a–e): (a) TLS 1.3 vs
+per-pod HKDF + AAD-cleartext Guardian routing (composes with D-7); (b)
+owned QUIC-class vs adopted sans-IO state machine; (c) batching/ACK
+throughput work as acceptance gates; (d) TCP fallback for UDP-hostile
+networks; (e) the spec-amendment enumeration (TRANSFER §3/§8, PROTOCOL
+§1.2/§3/§4, FAULTS §3, WIRE_FORMAT). **PROTOCOL.md whole-spec acceptance
+now sequences BEHIND D-10(a)/(b)** — they reshape §1/§2; audit amendments
+A1–A6 remain valid and pending (A4's D-7 reconciliation composes with
+D-10a).
+Rider (same thread): the user caught and the dossier owned an
+incumbency-smuggling error — SMB-over-QUIC's TCP-first posture is
+Microsoft's *migration burden* (port-445 installed base), not engineering
+judgment, and transferring it to the user↔agent row inverted the rubric
+(on lossy/NAT/migrating last-mile paths QUIC is where the receipts bind
+hardest; TCP is the option lacking a justifying receipt there). The
+fallback question lives ONCE, in D-10(d), settled on UDP-blocking-rate
+evidence — never as a default posture anywhere.

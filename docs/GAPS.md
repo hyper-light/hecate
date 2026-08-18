@@ -121,6 +121,50 @@ Architecture set (AGENTS/LEDGER/PLATFORM/SKILLS/SUMMONING + CONTEXT + ADRs
   shown in-message before file write) was not literally followed for the
   formatted spec. The header says ACCEPTED; the user should confirm or demote
   to presented. (OBJECT_TIER.md correctly says presented.)
+- **D-10 Transport re-ratification: QUIC+UDP primary, bare-UDP control plane
+  (user-directed 2026-08-17, transport-research dossier on file).** Direction:
+  QUIC-over-UDP replaces TCP frames as the primary reliable carriage for every
+  ordered/directed/bulk class (turn streams, delta streams, consults, claims,
+  directed commands, secrets issuance, registry ops, content transfer —
+  upload/download/repair/replication, cross-region included); the existing
+  stateless UDP datagram protocol remains as the *separate* lightweight plane
+  for consensus votes/membership/fencing probes/liveness/telemetry/gossip
+  (Raft = UDP; placement map/membership = UDP). The user is protocol-wise an
+  agent like any other — no separate edge stack. Open reconciliations, each a
+  blocking sub-decision: (a) QUIC's mandatory TLS 1.3 handshake vs PROTOCOL §2
+  per-pod HKDF keys and §1.1 AAD-cleartext Guardian routing (raw-public-key
+  binding vs owned-initial-secrets vs key-model rewrite; composes with D-7);
+  (b) owned QUIC-class implementation vs adopted sans-IO state machine
+  (quinn-proto/quiche-shape) driven by hecate-rt — "own wire protocol" doctrine
+  vs 5–8-year loss-recovery maturity; (c) per-core throughput work items
+  (sendmmsg/GSO batching, ACK-frequency tuning — Fastly parity receipt) as
+  acceptance gates; (d) whether any TCP fallback survives for UDP-hostile
+  networks (robustness question, not convenience); (e) TRANSFER.md §3/§8,
+  PROTOCOL §1.2/§3/§4, FAULTS §3, WIRE_FORMAT amendments enumerated in the
+  dossier. Rationale anchor: the workload is bursty/concurrent/low-bandwidth-
+  exposed (agent swarms, laptops, multi-region) — the regime where the QUIC
+  receipts (HOL independence under loss, connection migration, multiplexed
+  streams, edge-measured wins) bind, and the TCP storage-census receipts
+  (fat clean stable links) do not.
+- **D-11 Cross-node attach to the post-merge shared VFS volume — undesigned
+  (user-flagged 2026-08-17: "have we even discussed the mechanics — we
+  haven't").** SERVING.md/VFS.md treat work-volume journals as node-local;
+  nothing specifies how pods on *different nodes* attach to a shared
+  post-merge volume: attach protocol, single-writer vs multi-reader fencing,
+  cache coherence vs sealed-manifest snapshotting, transport carriage (bulk
+  chunk fill = QUIC streams per D-10; invalidation/lease control = which
+  class?), laptop degenerate. Needs a branch and a spec home (SERVING.md
+  rider or its own); settle before the serving plane is implemented.
+- **D-12 Distributed knowledge-forest access — undesigned (user-flagged
+  2026-08-17: "how do nodes query the knowledge forest? this isn't some
+  arbitrary thing that exists in a vacuum").** FOREST.md defines the
+  per-session field service but not the distributed mechanics: how pods on
+  other nodes query/retrieve (request/response class over QUIC per D-10),
+  how field state/traces replicate or shard across nodes and regions, what
+  is ordered (trace ingest streams) vs supersession-semantics (telemetry —
+  bare UDP per D-10), Raft involvement for any authoritative forest state
+  (= UDP control plane), retention locality, laptop degenerate. Needs a
+  branch; settle with FOREST.md's pending whole-spec verdict (D-4).
 
 ## 3. Undesigned (open branches, charter only)
 
