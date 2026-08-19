@@ -1,6 +1,7 @@
 # SPEC: the scheduler — sharded deterministic spine, speculative planners
 
-Status: presented for acceptance (grilling Branch 21; direction ratified).
+Status: presented for acceptance (grilling Branch 21-scheduler — label
+disambiguated from SERVING's Branch 21 per C-6; direction ratified).
 Heterogeneity amendment (§1 node classes, §5a typed vector + two-axis
 repulsion, §5b epoch-frozen coefficients, §6 typed-budget coherence,
 SCH16–21, AC-9/10) ACCEPTED 2026-08-18.

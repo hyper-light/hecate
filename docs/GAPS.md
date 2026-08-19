@@ -232,15 +232,36 @@ Architecture set (AGENTS/LEDGER/PLATFORM/SKILLS/SUMMONING + CONTEXT + ADRs
   receipts (HOL independence under loss, connection migration, multiplexed
   streams, edge-measured wins) bind, and the TCP storage-census receipts
   (fat clean stable links) do not.
-- **D-11 Cross-node attach to the post-merge shared VFS volume — undesigned
-  (user-flagged 2026-08-17: "have we even discussed the mechanics — we
-  haven't").** SERVING.md/VFS.md treat work-volume journals as node-local;
-  nothing specifies how pods on *different nodes* attach to a shared
-  post-merge volume: attach protocol, single-writer vs multi-reader fencing,
-  cache coherence vs sealed-manifest snapshotting, transport carriage (bulk
-  chunk fill = QUIC streams per D-10; invalidation/lease control = which
-  class?), laptop degenerate. Needs a branch and a spec home (SERVING.md
-  rider or its own); settle before the serving plane is implemented.
+- **D-11 Cross-node attach to the post-merge shared VFS volume — RESOLVED
+  2026-08-19 (overtaken by the 2026-08-18 MERGE distributed-model rewrite;
+  verified by direct read, not re-litigated).** The flag (2026-08-17) assumed
+  a *shared mutable* post-merge volume needing multi-writer fencing; the
+  distributed model **dissolves** that premise rather than fencing it: the
+  only mutable volume (the work volume) is **RWO, single-pod, single-node,
+  and never shared** (SERVING §0; VFS §3b), and the session-wide shared
+  target is **green — an immutable CoW manifest chain whose only writer is
+  the merge log** (MERGE §2/§6), so there is no multi-writer case to fence.
+  Each named sub-question is answered: **attach protocol** = the attachment
+  object, per-(pod, volume), created at bind, pins the version, holds the
+  lease, wires warden scopes, runs prefetch (MERGE §6, VFS §3b); **cross-node
+  access** = read-through fill of immutable versions (container-image-by-
+  digest; pull-by-name-verify-by-hash — SERVING §0, "coherence machinery is
+  absent because every shared object is immutable"); **coherence** = manifest
+  versions are the invalidation unit, green base infinite-TTL + explicit
+  invalidation on version advance, pinned-version re-attach to follow head
+  (VFS §5, SERVING §5); **transport carriage** = increment metadata on the
+  claims lane (~100 B, request_id) + bulk blobs on the content plane (dedup
+  first) + commit record + placement acks (MERGE §7, the submission
+  transaction — "an agent submitting work is making a network transaction",
+  cross-node re-attach shown in the §7 diagram); **laptop degenerate** =
+  "identical sequence, in-process, µs" (MERGE §7). **One named micro-residual
+  (thin spot, not blocking)**: the carriage by which a *remote* reader that
+  pinned an older green version learns head advanced — covered in principle
+  by the delta plane (a green advance is a merge-log commit ⇒ a delta) plus
+  "green base invalidates on version advance," but whether a following reader
+  is pushed the head-advance or pulls it at next bind is left to the serving-
+  plane build; record here so it is not lost, resolvable in a one-line
+  SERVING §5 clause when the serving plane is implemented.
 - **D-12 The distributed forest substrate — undesigned, research directed
   (user-corrected 2026-08-17: the forest is an external computational-biology
   and ML-driven substrate that IS distributed; a first "nobody queries a
@@ -386,9 +407,12 @@ doc-sync, no design content):
 
 Remaining drift, needs a decision or a sweep (not mechanically safe):
 
-- **C-6 Branch-label collision**: SERVING.md and SCHEDULER.md both claim
-  "grilling Branch 21." History knows which is which; the labels should be
-  disambiguated once in GRILLING.md.
+- **C-6 Branch-label collision — RESOLVED 2026-08-19.** SERVING.md owns
+  "Branch 21" (ACCEPTED 2026-08-16, decisions (a)–(g); SESSIONS's verdict was
+  held for it); SCHEDULER.md's "Branch 21" was the mislabel. Fixed on the
+  authoritative status line (C-7's rule): SCHEDULER's header now reads
+  "Branch 21-scheduler — label disambiguated from SERVING's Branch 21";
+  GRILLING already carried the note ("SCHEDULER (branch mislabeled '21')").
 - **C-7 Status-line authority — RESOLVED for the foundation set 2026-08-18.**
   **The authority rule (now law):** a spec file's `Status:` header is the
   single source of truth for acceptance state. It reads `ACCEPTED <date>` only
