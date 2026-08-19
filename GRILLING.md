@@ -2210,3 +2210,32 @@ matched-only; accelerator slot reserved-unminted (zero consumers in the
 tree — minting follows a consumer). The full §1/§2/§5a/§5c/§6 amendment
 text + SCH16–21 + criteria 9–10 presented in-message there; awaiting the
 user's word to write. Orchestrator remains off SCHEDULER.md.
+**Branch 28 five-decision design exchange PRESENTED in the research
+thread (2026-08-18; dossiers landed as ccfff5b, verified coherent)** —
+the standout structural moves: (a) the TWO-CLASS detector split — a
+per-session KNOWN-VALUE INDEX (keyed HMACs of every value the vault
+itself materialized: exact, zero-FP/FN for front-door secrets — a
+detector class no scanner in the literature can have) + versioned
+pattern-rule epochs inline (the §5b coefficient-epoch pattern applied to
+scan rules), with live verification probes DISQUALIFIED inline (they
+exfiltrate the candidate as their detection step — nondeterministic,
+networked, on the seal hot path) and confined to Guardian staging/async
+rule-fitness; (b) per-surface dispositions tuned so the cheap error is
+the likely one (redact-and-reference w/ HMAC placeholders on durable
+surfaces; push-protection-style block at seal w/ bypass as USER-authority
+claim; pasted secrets auto-offered into the vault — leakage becomes
+provisioning); (c) vault = own barrier on the durable plane under the
+D-3 hierarchy, HMAC-ADDRESSED OUTSIDE THE CAS (secret dedup = a
+confirmation-of-possession oracle — the one content class where dedup is
+an attack), secret-zero deleted by summon-identity (SPIFFE
+attestation-by-birth ≈ our summon pipeline; meta group as the trusted
+third party), OS keychain = laptop unseal ROOT only; (d) injection =
+secret:// refs + warden-bound RAM-only UNWITNESSED mount (the scratch
+contract reused — secret bytes never cross FUSE_WRITE witnessing), env
+vars banned STRUCTURALLY, rotation = targeted invalidation (the green
+re-bind primitive); (e) event-driven leases (NIST 800-63B kills calendar
+rotation), handoff = re-materialize under the new key_epoch (secrets
+never in the brief), audit-as-claims fail-closed. Cross-tree: provider
+gateway named MANDATORY chokepoint for the known-value scan (one more
+forcing function on the unbranched gateway gap). Five rulings pending
+in-thread; SECRETS.md draft to follow acceptance there.
