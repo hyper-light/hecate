@@ -3941,3 +3941,49 @@ instantiation/density tax, per-call-negligible-for-coarse-loops). Choose
 per the both-scales-no-modes law. Research (a9105719) now covers
 mechanisms × axes × cost = the full priced decision matrix. Presents on
 landing; NO jumping to WASM.
+
+**GREEN-PROCESS ISOLATION DOSSIER LANDED (2026-08-19, a9105719).**
+Full priced matrix, primary-source. hecate-rt today = "BEAM MINUS THE
+RUNTIME": single-owner arenas ≈ isolated heaps, per-task budget ≈
+reductions, no-panic ≈ EXPECTED-fault-only. FOUR GAPS (receipted): (i)
+memory isolation COMPILE-TIME ONLY, fails under native/unsafe (FFI=UB);
+(ii) no-panic NECESSARY-NOT-SUFFICIENT — catch_unwind catches only
+unwind-panic; abort/double-panic/stack-overflow→SIGSEGV/OOM-abort/FFI-UB
+all PROCESS-FATAL (kill BOTH loops); (iii) cooperative budget CAN'T
+preempt a non-yielding loop{}; (iv) monitorability L2-only. MECHANISMS:
+BEAM = the end-to-end proof (isolated heaps + reduction preempt CONTEXT_REDS=4000
++ process_info + supervised restart; 233 words/proc, 2^20/node; but NIF
+crash kills whole VM → native at arm's length). WASM/Wasmtime = strongest
+IN-PROCESS container surviving arbitrary compiled code: fuel (1 unit/instr
+= EXACT compute meter, get_fuel) + epoch interruption (forcible preempt,
+~10% cost, non-deterministic wall-clock) + StoreLimits + traps
+(stack-overflow/OOB/div0/unreachable→trap CAUGHT BY HOST, host survives,
+2 sequential traps same Store) + WASI capabilities; call_async IS a Future
+(schedules as async task). Cost NOT per-call (negligible for coarse
+await-heavy loops; ~thin trampoline, compute 45-55% browser/1.2-1.8×
+bounds-check) — real tax = instantiation + linear-mem density, AMORTIZED:
+pooling 2ms→5µs (400×), CoW → RSS ≈ dirtied pages (few KB), 4GiB guard =
+VIRTUAL address space not RAM. Residual: HOST-FUNCTION bug = native = fatal;
+host-side OOM untracked. MPK/pkeys = hardware memory isolation ~11-260/26/
+23.3 cycles, <1% (ERIM), 90-98% native (Hodor) — but DATA-ACCESS ONLY,
+contains NO fault class (segfault still kills), NOT SECURE ALONE (PKU
+Pitfalls: 10/10 exploits bypass; hardening → 40% throughput loss).
+SFI/RLBox = type-safe tainted<T> compile-error boundary, 4%/0.22µs
+crossing/1.6MB/sandbox, backend swappable (Wasm/SFI/proc). OS process/
+microVM = contains ALL faults, 125ms/5MiB. FAULT TAXONOMY (a panic/b abort/
+c stack-overflow/d OOM/e hang/f FFI-UB): catch_unwind=a-unwind-only; WASM=
+a-e ✅ (f: guest✅/host-fn-fatal); MPK=none; BEAM=a-e ✅ (f fatal); OS=all.
+4-LAYER MONITORABILITY: L1 exact (WASM fuel+data_size / BEAM process_info)
++ L2 semantic (tracing/tokio-console = scheduler-level poll/busy/idle/state,
+NOT cycles/bytes) + L3 eBPF (on/OFF-CPU why-blocked, syscalls; per pinned
+shard-thread 1:1) + L4 cgroup (usage_usec/memory.current/peak exact).
+THE HONEST SPECTRUM: [cheap stack] MPK + runtime-preemption + eBPF/cgroup/
+tokio-console + supervision+pod-reconstruction = memory-iso + preempt +
+process-grade-monitor at ~0 per-call/instantiation/density — but NO
+arbitrary-code fault containment (segfault/abort/FFI kills both loops →
+pod dies → reconstruct). → [WASM] ADDS arbitrary-code memory-safety +
+trap fault-containment + epoch forcible-preempt + exact fuel-metering,
+schedules-as-async, at amortizable instantiation+density. → [OS process]
+full containment, coarse/per-invocation only (tool children). THIN: WASM
+host-call ns#, Cranelift compile-time#, BEAM µs-creation#. Priced matrix
+presented in-thread for the isolation decision.
