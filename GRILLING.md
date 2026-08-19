@@ -3338,3 +3338,21 @@ composes Hecate's substrate without violating the one-format law.
 STORAGE §3 now GROUNDED + CORRECTED; all research in (5 reconcilers +
 engine dossier + storage-corpus reconciler). Ready to assemble the full
 IAM re-presentation (R1-R11) on the user's word.
+
+**BRANCH 44 — ACCEPTED + IAM.md WRITTEN (2026-08-18, user: "accepted!").**
+docs/specs/IAM.md written whole (§0 separation law, §0b six layers, §1
+seven objects incl. Mandate rename, §2 blend tenancy + scope ladder vs
+failure-domain tree, §3 owned LSM store grounded+corrected, §4 full
+taxonomy w/ compile_to_pep existence law, §5 decision tree, §6
+compile-and-distribute + caching, §7 per-system intercepts, §7b ledger
+matrix + anti-hijack H1-H5 + derived-data law, §8 boundary-complete, §9
+assignment/assumption/chaining, §10 worked roles/policies, §11 storage/
+net/cache/audit, §12 tamperproof T1-T8, §13 mgmt surface, §14 scale
+walks, §15 IAM1-36 + IAMS1-6, §16 acceptance 1-16, §17 companion
+amendments). Verdict: ACCEPTED whole after 6 diligence dossiers (5 corpus
+reconcilers + engine + storage-corpus) resolved 6 blockers + ~45 majors.
+Branch 44 status: SPEC-WRITTEN. REMAINING = the §17 companion amendments
+(update-all-sites-together, one change) + the deferred splittable-
+keyspace/cross-region-reparent rider (own exchange, GAPS.md). SECRETS.md
+still owed (its §4/§7 rewrite to reference IAM lands when SECRETS.md is
+written).
