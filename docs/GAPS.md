@@ -292,7 +292,10 @@ no spec anywhere) · 18 continuity/conversation · 23 document DB ·
 35 git-compatible code hosting · 36 attachment lifecycle mechanics ·
 37 volume provisioning (both planes) ·
 39 observability plane + mesh/pod telemetry integration ·
-32-WIDENED node provisioning + abstraction expansion · 38 the laptop
+40 universal caching · 41 vault rotation-under-replication · 42 vault
+credential types (AWS-SM parity) · 43 vault cert issuance (ACM analogue) ·
+44 IAM universal permission plane (UNIFIES Rank/SafetyPolicy/Guardian/
+Biscuit-grants/affordances) · 32-WIDENED node provisioning + abstraction expansion · 38 the laptop
 collapse (whole-system scale-down map + no-modes validation + degenerate
 sweep of the inventory's not-stated column) ·
 32 node lifecycle · walking skeleton (final).

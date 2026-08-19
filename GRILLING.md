@@ -1131,6 +1131,83 @@ CONSENSUS+FAULTS, OBJECT_TIER §9 (D-3).
   OTel data model as pattern-never-dependency, Monarch (VLDB'20) +
   Gorilla/Beringei for derived retention/compression receipts, eBPF
   zero-instrumentation collection receipts.
+- **40 Universal caching (vault / registry / object-store read paths)** —
+  ADDED 2026-08-18 (user). NOT greenfield — audit + unify + fill gaps:
+  OBJECT_TIER already has CacheLib whole-volume FIFO + endurance-servo
+  admission; VFS has the RAM-arena/pack tiers + EdenFS 4-tier read order;
+  REGISTRY has revision-floor reads + bundle caching; SERVING has the
+  attr/entry per-attachment validity. The branch owns the UNIFYING model
+  (what is cacheable, coherence class per data kind — immutable-CAS
+  cache-forever vs authority-state-never-stale-for-effects) and the VAULT
+  gap: envelopes are immutable CAS content (cacheable freely, verified by
+  name); authority/index state must NOT be cached stale for EFFECTS (the
+  effect-fence handles it — the mount IS the secret cache, no second cache).
+  Must compose with the non-interference law (per-class cache budgets, no
+  cross-class eviction) + the single-surface law. RESEARCH FIRST: CacheLib
+  (already on file), the immutability-deletes-coherence receipts (already
+  on file), negative-caching hazards for secrets.
+- **41 Vault credential rotation under replication** — ADDED 2026-08-18
+  (user; "maximally correct… w.r.t. vault replication"). Depends on
+  Branch 28 vault core. Owns: event-driven rotation mechanics (NIST 800-63B
+  kills calendar rotation) under the replicated envelope/authority split;
+  the AWS-Secrets-Manager version-staging primitive (AWSCURRENT/AWSPENDING/
+  AWSPREVIOUS = atomic rotate: stage pending → test → promote); DYNAMIC
+  secrets (Vault-style short-lived generated creds — the user's app DB cred
+  minted per-lease); rotation coordination across the consensus-tree
+  authority (rotate at the authority, propagate epoch, invalidate holders);
+  rotation-vs-effect-fence interplay (a rotation IS an epoch bump). RESEARCH
+  FIRST: AWS SM rotation/Lambda + version stages, Vault dynamic secrets +
+  DB secret engines, rotation-under-async-replication (the meta-scale
+  dossiers on file).
+- **42 Vault credential types (AWS-Secrets-Manager parity)** — ADDED
+  2026-08-18 (user; "support ALL of what AWS Secrets Manager supports by
+  default"). Depends on Branch 28. The value model: opaque binary
+  (SecretBinary), UTF-8 string, structured JSON k/v (the common case),
+  plaintext — plus version-stages (shared with Branch 41) and per-secret
+  resource policies (→ Branch 44 IAM). Precise mechanics: how each type
+  seals into the envelope, how structured k/v is addressed/partially-read
+  (field-level access?), size bounds (AWS SM caps 64KiB — ours derived),
+  the type as metadata never affecting the effect-fence. RESEARCH FIRST:
+  AWS SM value model + version stages + resource policies; Vault KV v2
+  (versioned k/v) + the engine-per-type pattern.
+- **43 Vault certificate issuance (ACM / PKI-engine analogue)** — ADDED
+  2026-08-18 (user; "think AWS cert manager… precise mechanics"). A vault
+  FEATURE, own branch for size. Owns: CA hierarchy (root/intermediate),
+  issuance roles constraining what may be issued, leaf issuance +
+  short-TTL-instead-of-CRL (the short-lived-cert school on file), ACME-like
+  protocol for workload self-service, rotation/renewal, revocation
+  (short-TTL + optional CRL/OCSP). KEY QUESTION: internal vs workload-facing
+  — internally we use Noise (not X.509), so cert issuance is primarily a
+  WORKLOAD feature (the user's services need TLS certs / the user's code
+  needs a signing cert); does anything internal need X.509? Interlocks
+  WIRE_SECURITY (identity plane) + Branch 44 (who may request issuance).
+  RESEARCH FIRST: Vault PKI secrets engine, AWS Private CA + ACM, ACME
+  (RFC 8555), SPIFFE SVID issuance, short-lived-cert practice (on file).
+- **44 IAM — the universal permission plane** — ADDED 2026-08-18 (user;
+  "effectively THE universal plane for managing permissions… the full
+  gamut"). THE load-bearing authorization branch. **Unification mandate
+  (not a sixth authority): Rank, SafetyPolicy, Guardian gates, Biscuit
+  grants, and claim affordances each become a VIEW/INSTANCE of this one
+  plane, or the branch says precisely why one cannot.** Full scope per the
+  user: per-agent/per-pod/per-system role & secret allocation; **governing
+  agent↔agent communication via policies + roles** (the PEP is the
+  WIRE_SECURITY seal-once lanes + warden, already in place); **role
+  assignment mechanics**; **role chaining/assumption** (STS-shape
+  scope-down, confused-deputy avoidance); **using roles to govern external
+  access** (egress, workload-identity-federation); **using roles + policies
+  to govern the code repository** (Branch 35 lineage push/fetch/land,
+  CODEOWNERS-as-policy, protected refs). Model question: ReBAC
+  (Zanzibar-style relationship graph) as the universal substrate with
+  RBAC/ABAC as views; policy language (Cedar — Rust-native + formally
+  verified — is the lead candidate for our lint/verification wall); PDP on
+  the consensus tree, PEPs already exist; deterministic evaluator =
+  f(request, policy-epoch, relationship-snapshot) — versioned log inputs,
+  effect-fenced (the meta-scale-secrets authz-consistency result applied).
+  **UPSTREAM DEPENDENCY: reshapes Branch 28 grants, REGISTRY tenancy,
+  cross-fence Biscuit grants — settle its model before those finalize.**
+  RESEARCH IN FLIGHT (combined authz-theory re-run + IAM model, pinned to
+  the service model 2026-08-18). Charter presented for user confirmation
+  of the unification mandate.
 - **Walking skeleton** — final branch; re-presents against completed tree
   (P0 wire → P1 runtime → P2 spine → P3 pod leg → P4 first agent → P5 first
   merged change; now must thread Sibyl/home-session/lineage into first light;
@@ -2320,3 +2397,38 @@ capability revocation, effect-vs-read consistency, short-lived-credential
 school). Verdict question for both: does the presented design hold as
 maximal, or is there a stronger pattern? SECRETS.md draft HELD pending
 these dossiers.
+
+**META-SCALE SECRETS REPLICATION — KMS/SHIPPED-SYSTEM DOSSIER LANDED
+(2026-08-18)**; the authz-theory half is being RE-RUN on the service model
+per user direction, so the SECRETS §B verdict is HELD for synthesis. KMS
+findings (all primary-sourced): the 5-element design is at-or-above the
+shipped state of the art. Envelopes-async-CAS = every shipped system
+replicates ciphertext + separates authority (KMS MRK replicates key
+material but NOT policy/grants; Secrets Manager primary→replica; Azure KV
+async); the lone CP counterexample (GCP Secret Manager "replication is a
+synchronous process", writes FAIL on regional outage) exists ONLY because
+its read IS the effect with no downstream fence — our effect-fence is what
+makes async safe. Authority-on-consensus = GCP Cloud KMS verbatim
+("consensus always required among datacenters storing key material… for
+cryptographic operations consensus is not required"). Effect-fence =
+CONFIRMED as the Zanzibar-zookie / KMS-grant-token / Vault-X-Vault-Index
+pattern, and OUR variant fences BOTH directions (grant-side like
+KMS-grant-tokens/Vault-SSCT AND supersession-side like Zanzibar's
+content-change check) where each shipped system fences only one. TWO
+CORRECTIONS to fold into SECRETS.md: (1) **the fence has its own freshness
+contract** — a materialization may proceed only when the warden's view of
+the scope epoch is PROVEN current (live authority lease / bounded-staleness
+consensus read); else DENY. Partition posture: never Azure's read-only-
+failover inversion (effects proceed but epoch bumps can't) — fail
+materialization CLOSED. (2) **crypto-erase = committed intent, NOT
+completion**: the scope key is replicated in every group member's log +
+snapshots + backups (NIST 800-88r2 + ISO 27040: "all copies of the target
+keys must be sanitized"; AWS deletes replica-keys-first, 7-30d window,
+"clusters from backups might contain deleted key material"). Fix =
+store scope keys ONLY WRAPPED under an erasable root KEK so log history
+holds only ciphertext (the KEK-cascade NIST r2 blesses); erase state =
+committed→quiesced→complete (holder-purge ack loop for unwrapped RAM
+copies) not boolean; pending-deletion window for high-blast user/root
+scopes. (3) keep short TTLs on grants + short-lived/rotatable materialized
+secrets — the fence does NOT subsume expiry (backstop for missed
+invalidations + state-GC; ALTS/K8s/Chubby all keep both).
