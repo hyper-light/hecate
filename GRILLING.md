@@ -3732,3 +3732,50 @@ attempted-boundary-violation is itself a detectable event surfaced to
 the host warden). Mechanics-grounded design presents when it lands. NO
 more architecture prose w/o the concrete spawn/isolation/lifecycle
 mechanics + examples.
+
+**CO-LOCATED COMPANION LOOP — ACCEPTED w/ EXCEPTIONAL-DOCUMENTATION
+MANDATE (user, 2026-08-19): "I accept that tradeoff as a part of
+colocation, however we need to make sure it is exceptionally well
+documented."** DECISION LOCKED: the Scribe is a co-located COMPANION
+AGENT LOOP = an ownership subtree in the primary's SINGLE hecate-rt
+runtime (NOT two runtimes, NOT two OS processes), sharing the N-shard
+thread pool; the Scribe subtree is light (observer + on-demand
+inference, mostly parked). ISOLATION = the runtime's OWN discipline
+(RUNTIME §1 single-owner arenas + Rust ownership = no cross-subtree
+memory; §4 per-subtree budget = no starvation; §4b no-panic = a fault
+is a typed error not a crash; cancellation = hung task bounded) →
+Bar-A (faulty-agent) MUTUAL/symmetric isolation. TRADEOFF ACCEPTED:
+loses userspace-CODE-EXEC isolation of the Scribe (a code-exec-
+compromised primary owns the shared process incl. the Scribe subtree);
+BACKSTOP = the host-side WARDEN (Bar B, boundary-crossing observation,
+tamper-proof) + Guardian hard-block (a code-exec compromise is a
+SECURITY event, not a perf-narration concern) + the Scribe is ADVISORY
+(score service is outcome-grounded host-side, bounded authority). COMMS
+= each subtree its own vsock flow identity (PODS §3); Scribe observes
+host-side streams over ITS vsock (observe-not-feed); NO intra-runtime
+primary→Scribe channel. EXCEPTIONAL-DOCUMENTATION BAR (what the spec
+MUST contain, first-class not footnote): (1) explicit THREAT MODEL
+section — Bar A defended (faulty/degrading: memory/starvation/fault/
+ptrace all held by runtime discipline) vs code-exec-compromise NOT
+defended in-runtime + exactly what catches it (warden Bar-B + Guardian
+hard-block); (2) isolation-mechanism × vector table (memory→Rust
+ownership; starvation→per-subtree budget; fault→no-panic; signal/ptrace
+→ n/a same process, so the code-exec limit) w/ the tier each holds/
+breaks at; (3) the "what breaks & what catches it" chain, spelled out;
+(4) the ALTERNATIVE CONSIDERED (two OS processes = adds code-exec
+isolation at ~2× runtime cost / N+1 threads w/ right-sized Scribe) + WHY
+the shared-runtime tradeoff was chosen (efficiency + warden backstop +
+advisory role); (5) the derivation/reasoning chain so a future reader
+sees the DELIBERATE choice; (6) tests asserting Bar-A mutual isolation
+holds (neither subtree touches/starves/crashes the other) AND a
+code-exec test showing the warden catches the tradeoff boundary.
+COROLLARY AMENDMENTS: RUNTIME.md + PODS.md gain the co-located-companion
+-loop concept (PODS §3 init spawns the runtime hosting BOTH loops);
+AGENTS_RUNTIME.md "Scribe feed after every turn" (§1/§5/crit) REMOVED
+(the Sylk push anti-pattern) → observe-not-feed. Mechanics research
+(ad03bcc9) still in flight — its lifecycle/restart/tripwire/failure
+findings now reframe to the RUNTIME level (ownership-tree teardown, task
+supervision, budget tripwires) + ground the documentation + provide the
+OS-process alternative for completeness. Spec written (w/ exceptional
+tradeoff documentation) after the research lands + the score-service/
+Scribe-comms design is finalized.
