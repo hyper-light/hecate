@@ -4101,3 +4101,35 @@ re-bind under bumped epoch), commissioning (FIR/fleet-priors) = STAND as
 presented. NEXT: finalize HANDOFF w/ corrected §3 + MONITORING
 reconciliation; write MONITORING.md + HANDOFF.md as two specs (MONITORING
 = the plane/machinery; HANDOFF = detection-math + execution consumer).
+
+**HANDOFF DETECTION — DISCRIMINATOR-INFORMS-AGENT (user, 2026-08-19):
+"we need *some sort of non-agentic discriminator like CUSUM that can help
+inform the scribe*."** Architect OVER-CORRECTED (swung CUSUM-decides →
+no-CUSUM); user set the balance point. RESOLUTION = the warden:Guardian
+pattern applied to degradation: a DETERMINISTIC CUSUM-class DISCRIMINATOR
+INFORMS the Scribe's agentic judgment; the Scribe DECIDES. Dissolves the
+architect's objection: "CUSUM needs a meaningful per-turn quality metric"
+was an objection to CUSUM-AS-DECISION; as an INFORMING discriminator it
+accumulates EVIDENCE over observable signals (state-action recurrence /
+outcome-grade deltas / behavioral), risk-adjusted, graded + trajectory —
+the SCRIBE supplies the MEANING (real degradation vs hard task vs
+legitimate retry). WHY it earns its place: binary tripwire = too crude
+(no gradation/trajectory/risk-adj); per-turn agentic judgment = too
+expensive (model call every turn). The discriminator = cheap +
+deterministic + always-on + graded + REPLAYABLE (testable, unlike a
+per-turn model judgment) middle that hands the Scribe rich input so it
+spends intelligence only when warranted. BONUS: because it only INFORMS
+two agentic filters (Scribe judgment → Guardian fresh-context probe) it
+can be tuned SENSITIVE (flag early/generously; false spikes filtered by
+Scribe+Guardian) — catches MORE real degradation than a conservative
+auto-trigger. CORRECTED HANDOFF: §4 = the DISCRIMINATOR (colocation-unit
+substrate, risk-adjusted CUSUM or K-of-N over per-channel CUSUMs for
+dead/noisy-channel robustness, graded+trajectory, δ-budget = ATTENTION
+HINT not auto-fire, deterministic/single-writer/checkpointed); §5 = the
+Scribe's AGENTIC JUDGMENT consuming the discriminator + observation +
+context → requests handoff w/ reasoning + discriminator evidence; then
+Guardian adjudicates (fresh-context probe). Score (Rank) = separate slow
+agentic-verdict aggregate (RANK §4), unchanged. Context handoff =
+deterministic threshold, unchanged. The full CUSUM/risk-adj/K-of-N/
+derived-threshold research is EXACTLY RIGHT for the discriminator ROLE.
+Fold into HANDOFF.md; write MONITORING.md + HANDOFF.md.
