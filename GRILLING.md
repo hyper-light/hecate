@@ -2933,3 +2933,132 @@ with CONTEXT.md "Session" (isolation unit) — rename owed (likely
 
 Re-presentation assembles when all five agents land. Nothing asserted
 before evidence; round-1 text stands only as proposal input.
+
+**BRANCH 44 — ALL FIVE DILIGENCE AGENTS LANDED (2026-08-18).** Tally:
+6 BLOCKERS, ~45 MAJORS, ~30 MINORS, plus the external receipts pass
+(ALL CONFIRMED verbatim — Anderson triad, Saltzer-Schroeder incl. the
+cached-result-invalidation clause, Firecracker 24-syscall/40+-device/
+125ms/150-vm-s, gVisor Sentry, virtio-fs host daemon, seccomp 29-106ns,
+K8s authz-at-apiserver, Goguen-Meseguer noninterference, Denning ⊕=LUB,
+Flume label propagation, SELinux MAC-over-DAC, GitHub 404-not-403,
+Kafka AclOperation enum, NATS deny-beats-allow, Hardy confused-deputy +
+capability cure, ocap Property-D no-ambient-authority, OWASP LLM01 +
+LLM06 "implement authorization in downstream systems", K8s ResourceQuota
+403-at-admission / Active-Terminating / system:-reserved / NodeRestriction,
+GCP DELETE_REQUESTED-30day + liens, AWS 90-day post-closure, TUF
+thresholds/rollback/delegation + "root of trust must not rely on
+external PKI", Google BSRS MPA + blast-radius compartments, seL4
+functional-correctness + conf/int/avail theorems + timing-channel
+caveat, Ed25519 273364-cyc/114µs verify → batch 56µs / dalek 25-40µs /
+25-70k-per-s-core, CT append-only+monitors). Full dossiers cached in
+$JOBTMP; conflict registers saved (agentA_register.md etc).
+
+BLOCKERS + resolutions: (B-i) "Session"(assumed-role) vs glossary
+Session → RENAME object to **Mandate**. (B-ii) H3 "agents cannot mint
+user-plane claims" outlaws the Sibyl → reword to IMPERSONATION ban:
+kind is a core-stamped record FIELD (not a wire branch); agents mint
+claims AS agent-kind; Sibyl mints user-plane claims as itself (fine).
+(B-iii) CAS policy-text has no GC root (OT9/§7 collects it) → IAM
+records are the GC roots for their referenced blobs (index-as-authority,
+the vault-envelope pattern). (B-iv) draft rewrote sensor
+hold-and-escalate → un-overridable DENY → REVERT: sensor stays
+tighten-only + escalate (narrows the compiled residual; NOT a decide()
+step). (B-v C-1/F-2) freshness window T stalls session-local NEW
+effects vs region-partition-Masked (CN13) → decisions serve from the
+PEP's last-valid compiled artifact under last-known-good; T governs
+REVOCATION propagation only, never decision liveness; root-feed silence
+never blocks a session-path decision. (B-vi C-2) watch checkpoints =
+banned per-group heartbeats (CN2) → NO periodic checkpoints; use the
+existing demand-driven ordered-log subscribe/cursor/RESYNC (PROTOCOL
+§4); revocation is a pushed supersession record (event-driven); freshness
+= artifact carries an epoch-derived validity horizon (SPIFFE short-SVID
+shape), refreshed pre-expiry only for pods holding a LIVE artifact —
+idle groups push nothing.
+
+MAJOR clusters + resolutions: (1) ledger read-granularity vs total-
+within-session + delta-self-sufficiency (B2/C2) → read authorization
+moves to a NEW named PEP, the **ledger serving edge** (per-pod,
+host-side, where the warden already is): core stays identity-blind and
+emits the whole byte-identical stream; the serving edge filters per
+recipient via delta-subscription classes + traverse filtering compiled
+from the residual; default within-session posture stays broad
+(coordination substrate preserved), read-restriction is an optional
+tightening for sensitive claim classes — the user's granular read EXISTS
+without redacting deltas or filtering the core. WRITE/EXECUTE
+(issue/testify/activate/evaluate) are refuse-set extensions (standing
+only). (2) permit matrix vs "no enforcement layer atop claims" (C3) →
+IAM decides STANDING (may this principal issue this KIND at all); claims
+keep WORK-ORDER + SCOPE authority (unchanged); amend LEDGER.md to name
+the split. (3) office→Role double-store (H1) → role-pack bindings DERIVE
+at summon from the registry's AgentRole office binding (registry owns
+agent→office; IAM owns office→capabilities; bindings are compilation
+output, not a 2nd writable store). (4) rank pack (D1/D2) → COMPILED
+PROJECTION of RANK.md's single source, freshness-exempt (core-local
+inputs), one refuse-set member; RANK owns content (K1-K8 preserved).
+(5) caused_by (C1) → principal-carried parentage VERIFIED against
+core-known turn context at commit (keeps turn-mint, adds anti-forgery).
+(6) validations (C4) → issuer-OWNED, multi-CONTRIBUTED (Guardian
+validators enter w/ contributed_by). (7) confer rule (H3-agents) →
+PassRole semantics (confer-permit), NOT hold-the-cap-yourself; Guide
+summons write-pods holding only a confer-permit. (8) consult/challenge
+(H2) → universal in shipped packs; clarification exempt from the permit
+layer (structural, matches K3). (9) Archivalist cross-session archive
+(H4) → archive at USER scope; same-user cross-session recall is up-chain
+scope visibility, NOT a cross-fence reach; "one door" = cross-USER only.
+(10) attach_artifact absent (H6) → add to family. (11) materialization
+gate (E1) → add user-validation/review gate to the 7.7 conjunction.
+(12) store-as-4th-home (PLATFORM) → NOT a 4th home; partitions ON the
+existing root/region/session groups (zero new homes). (13) lineage
+authority root-scoped (C-3) → SEPARATE the two trees: scope LADDER
+(inheritance) = root→org→user→project→session (≤5; lineage=fork tree off
+project, not a rung); failure-domain tree (authority placement/epoch) =
+node<AZ<region; each scope's records placed by holder-containment
+(lineage+root = root group; user/org = home-region; session = session
+group). Answers Org placement (B1): Org is the rung between root and
+user; laptop-degenerate collapses it. (14) Byzantine (F-1/C-7/T4) →
+WRITE the FAULTS §1/§3 amendment admitting a SCOPED compromised-host
+adversary FOR THE AUTHORITY PLANE (justified by the user's "near
+physically impossible… escaped or otherwise"); apply-time Ed25519
+signature verify (receipts: ~25-40µs/verify dalek, 25-70k/s/core) +
+SIGNED snapshots (fixes C-7 install bypass). (15) splittable keyspace
+(C-4) + cross-region reparent (C-5) → genuinely new consensus machinery;
+THIN-flag + defer to a CONSENSUS amendment exchange; interim: 10^7 scope
+rows fit one region group's storage envelope; reparent = rare admin op
+via landing-class externalization fence + 2-phase record. (16)
+mgmt-service/compilers unclassified writers (C-6) → classify: mgmt
+service = lease+fence writer w/ named per-scope epoch; compilers =
+CAS-first (artifacts content-addressed, no consensus write). (17)
+FOREST contribute vs no-emission (D1) → contribute() targets ONLY
+knowledge-graph/documents organs (Br 22/23), NEVER the Forest field.
+(18) derived-scope vs governed lift (D2/E2) → add the governed-scope-lift
+clause (promotion→archive=user scope; publication→published scope;
+landing→lineage scope); forest is session-fenced by design (matches).
+(19) knowledge plane no PEP (D3) → the field/index serving edge is a
+named PEP (same resolution as the ledger serving edge). (20) vector
+per-item scope vs hot-index-ban (E1) → scope granularity = generation
+lineage (corpus selection), never per-vector predicate. (21) registry
+cross-scope grant vs publication-only (B3) → registry resources are
+grant-ineligible cross-scope; publication stays the only road. (22)
+staging authority (B5) → fail-closed conjunction (REGISTRY owns
+content-bound approval; IAM owns standing). (23) merge approve (MERGE) →
+governing field is disk_write_mode; "Architect joins" stays MERGE's, not
+minted in the IAM catalog. (24) evict vs SCH17 → REMOVE evict;
+scale-down = disposal via existing lifecycle. (25) egress revocation →
+keep SUMMONING §4 sever-existing; IAM composes, never weakens.
+
+LANGUAGE-LAW amendments (update-all-sites-together): Session→Mandate;
+Boundary-object→**Ceiling** (frees "boundary" for the pod perimeter);
+refusal stays reserved for STRUCTURAL — forbid/ceiling denials on agent
+tool calls surface as inform/yield (tightens the draft, honors
+CONTEXT); Principal = Participant-viewed-by-authority (1:1 map stated;
+wire never branches on kind — kind is a read field); "work lease" →
+"the governing claim's deadline"; CONTEXT Warden/Affordance/SafetyPolicy
+definitions amended in the SAME change as IAM.md.
+
+Full reconciled re-presentation PRESENTED in-thread (R1-R11 satisfied:
+receipts inline, conflict register w/ resolutions, complete
+enumerations + worked roles/policies, replication/storage/networking/
+caching/audit mechanics on named existing machinery, decision tree +
+per-system intercepts, laptop+Meta scale walks, tamperproof w/ receipts).
+Verdict owed; on accept, IAM.md + the companion amendments land in one
+change.
