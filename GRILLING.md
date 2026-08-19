@@ -3130,3 +3130,55 @@ B-tree-vs-LSM engine choice; DynamoDB-global-tables / Spanner-read-
 replicas / AWS-IAM-global-replication read-locality receipts). Full IAM
 re-presentation STILL HELD; the store section (§3) becomes a real
 distributed-storage design, not arena-reuse.
+
+**BRANCH 44 — IAM STORAGE SUBSYSTEM, CONCRETE DESIGN PRESENTED (2026-08-18,
+answering "what subsystem? how does it sit on existing filesystems? what
+replication? mechanics + internal structure?").** The store = an OWNED
+log-structured MVCC keyed engine (LSM-family) assembled from existing
+Hecate primitives, NOT a new filesystem and NOT the ledger arena. Key
+insight: LSM sorted-runs ARE content-addressed pack blobs; LSM compaction
+IS the existing copy-forward pack compaction; the memtable IS the arena;
+the WAL IS the consensus log; replication IS consensus(log)+content-plane
+(blobs). Structure: IAMRecord{key:(scope,kind,id), revision:LogPos,
+body:Live(hecate-wire)|Tombstone}; sorted (key, revision desc). LEVELS:
+L0 memtable (in-RAM arena, fed by applied consensus records) → L1..Ln
+immutable sorted runs = pack-volume blobs {records, bloom, min/max key,
+min/max rev} on NVMe tier by BLAKE3; a manifest (consensus-tracked) names
+current run-hashes = store root at a revision. WRITE: mutation →
+hecate-wire IAMRecord → consensus append (owning scope's Raft group) →
+quorum-ack (durable) → apply to memtable (queryable). FLUSH: memtable ≥
+derived-threshold → immutable run → pack blob → manifest add via consensus
+record → WAL checkpoint floor advances. READ(key ≤ R): memtable then runs
+newest-first w/ bloom+key-range+min-rev skip; Tombstone⇒absent — BUT hot
+path = compiled residual at the PEP (store read is COMPILE-time, off the
+decision path — why LSM point-read cost is not the hot path). COMPACT:
+existing copy-forward merge → drop superseded+below-GC-floor + tombstones
+→ new run → manifest swap → retire inputs (pack GC). GC floor =
+max(grant TTL, mandate TTL)+freshness T+audit margin (derived).
+REACHABILITY (WhoCan/WhatCan) = separate in-RAM denormalized reverse
+index (Leopard (T,s,e) set-containers/skip-lists, offline+incremental,
+log-fed) — eventually consistent read-optimization, NEVER authority.
+REPLICATION dual: (a) consensus log via Raft across the scope group's
+replicas (quorum, ordering, authoritative); (b) run blobs by hash via the
+content plane (TRANSFER chunks-travel-by-hash, self-verifying, resumable,
+ordering-free). Replica bootstrap = fetch manifest@floor → fetch run
+hashes via content plane → tail log from floor (= WAL snapshot+tail /
+CONSENSUS §5 snapshot-via-transfer-plane). GLOBAL READ-LOCALITY: each
+region hosts replicas for scopes it serves (epoch-scope placement:
+session→session group, user/org→home-region, root/lineage→root); PEP
+reads LOCAL at rev ≥ epoch floor (bounded staleness, no cross-region RTT);
+writes commit on the scope's owning group (region-local for user/session).
+AVAILABILITY: region partition ⇒ local replica serves reads under last
+floor (Masked, satisfies FAULTS); writes to away-scopes wait; node loss ⇒
+group re-replicates from quorum + refetch runs by hash. TAMPERPROOF T4:
+each IAMRecord + manifest carries mgmt-service Ed25519 sig, verified at
+apply on EVERY replica AND at run-load AND on snapshot install (fixes C-7
+bypass); ~25-40µs/verify (dalek), off hot path. Engine choice B-tree vs
+LSM: LSM wins on STRUCTURAL grounds (composes append-only immutable pack
+tier + copy-forward compaction; B-tree needs a new mutable-page format
+that fights the substrate) AND access-pattern (hot path is the compiled
+residual, not the store, so LSM point-read cost is off-critical-path);
+quantitative confirmation lands with the running storage dossier
+(a39974...). Laptop degenerate = same engine, failure-domain tree
+collapsed to 1 node, 1 replica, zero modes. Presented in-thread; folds
+into IAM store §3.
