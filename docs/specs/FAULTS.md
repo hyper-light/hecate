@@ -29,6 +29,24 @@ can lie only as itself and cannot forge consensus traffic); undetected
 corruption past the checksum layer (BLAKE3-everywhere makes the undetected
 residue the hash-collision probability, stated, not defended further).
 
+**Scoped exception — the IAM authority plane (amendment 2026-08-18,
+`IAM.md` §12 T4).** For the IAM store *only*, one Byzantine class is
+admitted in scope: a **compromised host, replica, or group leader
+attempting to inject or mutate authority records**. Authority records
+(bindings, mandates, grants, roles, policies) and the IAM-root/checkpoint
+carry the management service's signature (Ed25519; custody/rotation in
+Branch 25's key hierarchy), verified at **apply on every replica, at
+run-load, and on snapshot install**. A forged or foreign-signed authority
+record is refused and alarmed — not applied — so a single compromised
+node (leader included) cannot mint authority; blast radius stays its
+resident sessions and replicas (T6). This is a **deliberate, documented
+expansion of the fault scope for this subsystem, entered here per the §7
+acceptance rule** ("new fault classes enter by amending §1/§3, never by an
+ad-hoc test"); it does **not** admit Byzantine consensus traffic, forged
+messages past the key layer (F5 stands), or Byzantine behavior for any
+other subsystem. The cost is apply-path CPU (~25–40 µs/verify,
+ed25519-dalek), off the read path.
+
 ## 2. Corruption dispositions (protocol-aware recovery, FAST'18 CTRL)
 
 The one law: **never silent truncation** — truncating a corrupt log region
@@ -117,6 +135,33 @@ rows:
   the replication lag forfeits; sealed work intact; sessions re-summon
   (CN14).
 
+**IAM subsystem rows (amendment 2026-08-18, `IAM.md` §3).** The IAM store,
+its compaction, and its reachability index take the standard §2
+dispositions by artifact class; the cells:
+
+- **IAM store** — reads: `region-partition` ⇒ **Masked** for
+  session/user/org scopes (the owning group is region-local; ReadIndex is
+  region-local, and the decision path reads compiled residuals, not the
+  store); `region-loss` ⇒ **Degraded** (re-replicate from quorum, refetch
+  run chunks by hash). writes: `region-partition` ⇒ **Degraded** for
+  away-scope writes (they wait); `pause` ⇒ **Masked** by epoch fencing.
+  A corrupt IAM-root or authority record ⇒ **Degraded** via
+  rebuild-from-quorum, **Refused** at N=1 (the consensus-log disposition);
+  a corrupt run chunk ⇒ **Masked** by re-fetch-by-hash.
+- **IAM compaction** — any fault ⇒ **Masked**: compaction is a background,
+  restartable, content-addressed merge; a crash mid-compaction discards the
+  half-written run (never referenced by the IAM-root until the atomic swap)
+  and re-runs. It holds no correctness obligation — the pre-compaction runs
+  remain the authority until the root swaps.
+- **IAM reachability index** — any fault ⇒ **Degraded then Masked**:
+  discard-and-re-derive from the log (it is a derived read-optimization,
+  never authority; queries fall back to the authoritative merge-read of
+  runs while it rebuilds).
+
+The T4 apply-time-signature exception (§1) adds one row: an
+**inject-authority attempt** (forged/foreign-signed record at any replica)
+⇒ **Refused** and alarmed — never applied (F8).
+
 ## 6. Test matrix
 
 | # | Test | Catches |
@@ -128,11 +173,15 @@ rows:
 | F5 | Byzantine non-goal boundary: a forged-message attempt dies at the key layer, never reaches the core (negative test) | scope confusion |
 | F6 | Disk-swap-on-reboot: node with stale/foreign disk is detected (epoch/identity mismatch) and refuses to vote | the FAST'18 disk-swap class |
 | F7 | Region-heal fuzz: partition a region (not kill), let both sides run, heal ⇒ safety holds under the full §7 protocol: (a) inside the lease-shadow window the root refuses re-grant/re-summon-with-materialization while the cut side may still legally materialize (CN15's window, exercised from the fault side); (b) after dead-declaration the region epoch is terminal — on heal the region rejoins under a new epoch, no pre-partition epoch resumes authority or renews a lease; (c) zombie sessions' unlanded work ingests as fork branches only, never continuations — overlapping descendants of one lineage node surface as parallel workstreams carrying conflict values; (d) zombie externalization attempts during and after the partition are refused at the fenced egress chokepoints (CN16 from the fault side) | zombie-region resurrection; the lease shadow; un-fenced externalization |
+| F8 | IAM inject-authority (the §1 scoped exception): a forged or foreign-signed authority record / IAM-root injected at any replica — leader included — is refused at apply, run-load, and snapshot install, and alarmed; blast radius stays the compromised node's resident sessions and replicas (no accepted mutation elsewhere) | authority injection via node/leader compromise |
 
 ## 7. Acceptance criteria
 
 1. The fault scope is closed: new fault classes enter by amending §1/§3,
-   never by an ad-hoc test.
+   never by an ad-hoc test. The one scoped Byzantine exception — IAM
+   inject-authority (§1, `IAM.md` §12 T4) — is entered here by that rule,
+   bounded to the IAM store, and tested by F8; it widens no other
+   subsystem and does not disturb F5.
 2. Zero code paths truncate a log region without a typed §2 disposition
    (architecture test).
 3. Simulation runs in CI from the first consensus commit; the seed corpus

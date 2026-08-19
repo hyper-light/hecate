@@ -224,7 +224,10 @@ Content crosses planes only at events the architecture already owns:
 ## 7. GC and capacity
 
 - **Liveness roots**: green manifest chains + registry refs +
-  ledger-referenced seal manifests + generation pointers. **Mark-and-sweep
+  ledger-referenced seal manifests + generation pointers + **live IAM
+  records** (`IAM.md` §3/§11 — an IAM record pins the policy text, compiled
+  artifacts, and sorted-run chunks it references; the IAM-root/checkpoint
+  is a root like any generation pointer). **Mark-and-sweep
   from roots** — never cross-node refcounts (mutable distributed state;
   mark-from-roots is derivable and restartable over immutable manifests).
   Sweep granularity = pack-volume copy-forward compaction (§2).

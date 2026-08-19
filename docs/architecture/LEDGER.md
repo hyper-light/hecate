@@ -386,6 +386,24 @@ The Sylk claims invariants Hecate adopts as law, restated in Hecate terms:
 9. **No enforcement layer atop claims.** An agent acting out of order means the claims
    were not specific enough or not visible enough — fix the claims or the visibility.
    Enforcement bolted on top re-implements the state machine claims replace.
+   **The standing/work-order split (amendment 2026-08-18, `IAM.md` §0/§7.2).** The IAM
+   plane decides **standing** — may this principal issue/receive/read this *kind* of
+   claim at all — evaluated at the affordance guard from a core-local compiled artifact
+   (delivered as an ordinary WAL-logged input, the sub-decision-(c) score-snapshot
+   shape; zero cross-plane RTT, replay-identical). Claims keep **work-order and scope**
+   authority — which specific work is legal now, against which target — unchanged. This
+   is not an enforcement layer atop claims: standing is orthogonal to the claim state
+   machine (it gates *whether an actor participates*, never *what the work sequence
+   permits*), no IAM object is a claim, and the claim scope entries remain the sole
+   scope authorization. **Read visibility** (the per-kind/per-office see-matrix,
+   `IAM.md` §7b) is enforced at the **ledger serving edge** — a per-pod, host-side PEP
+   where the warden already sits — never in the core: the core stays identity-blind and
+   emits the whole byte-identical delta stream, and the serving edge filters per
+   recipient via delta-subscription classes and traverse filtering compiled from the
+   residual. The default within-session posture stays broad (the coordination substrate
+   is preserved); read-restriction is an optional tightening for sensitive claim
+   classes. Deltas remain self-sufficient and single-streamed; the edge decides
+   delivery, it does not redact a delta's bytes.
 10. **Advisors never author.** Policy and advisory systems contribute via provenance;
     the issuer owns every validation set.
 11. **Expected tool calls are instructions, never authority bypasses.**

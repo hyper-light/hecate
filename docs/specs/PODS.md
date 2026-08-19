@@ -164,10 +164,17 @@ pod's device surface. The guest cannot reach it.
   actions are ungated as calls (the compile-edit-test inner loop runs at native
   speed); every consequence meets a decision at the boundary it crosses.
 - **Compiled local policy**, µs decisions, no Guardian round-trip on the fast path.
-  Policy compiles from: SafetyPolicy, the role profile, the bundle's declared
-  capabilities, and **the pod's active claim scope entries** — writes outside the
-  claim's declared scope deny-or-escalate at the filesystem boundary. The claims are
-  the authorization, physically.
+  Policy compiles from: the **SafetyPolicy ceiling**, the **residual artifact** (the
+  IAM plane's per-pod compiled policy — `IAM.md` §6: the role profile realized as a
+  cedar partial-evaluation over the pod's principal, scope, and bindings, with
+  action/resource/context free), the bundle's declared **capability atoms**
+  (`compile_to_pep` — `IAM.md` §4), and **the pod's active claim scope entries**
+  (carried as request-context, `IAM.md` §0) — writes outside the claim's declared
+  scope deny-or-escalate at the filesystem boundary. The claims are the
+  authorization for work scope, physically; the residual is the authorization for
+  standing. (This realizes the four placeholder inputs against the built IAM plane;
+  the shape — SafetyPolicy, role profile, bundle capabilities, active claim scopes —
+  is unchanged.)
 - **Hold-and-escalate**: an op outside policy is held (guest syscall blocks, derived
   timeout) and escalates as a `guardian_check` claim to the Guardian agent —
   auto-approve under the SafetyPolicy ceiling, user prompt above it, deny with

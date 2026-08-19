@@ -13,6 +13,17 @@ Refuse cases), claims-architecture scrutiny findings A1–A5 (applied to LEDGER.
   author). A demotion mid-flight changes the next evaluation, rewrites nothing, and
   replays identically from the same inputs.
 - The matrix is versioned config, shipped with the harness, immutable at runtime.
+- **Relation to the IAM plane (amendment 2026-08-18, `IAM.md` §7.2).** Rank is a
+  CONSUMER of the authority plane, not a second authority: the matrix is compiled
+  into a shipped **rank policy pack** — a *projection generated from this single
+  config source* (the same source that generates the `domain` enum; drift is a build
+  error, criterion 2), immutable via the management surface, root-anchored. The pack's
+  statements compile **only** to the ledger affordance guard (the refuse rule below
+  stays the sole enforcement point); modulation enters as a context attribute sourced
+  from the logged score snapshot (never live state), so the rank pack is **exempt from
+  the §5 freshness fence** — its inputs are all core-local and the verdict lands
+  exactly per this file's table (K1: no third outcome). RANK.md remains the owner of
+  matrix content and semantics; IAM owns only the compilation and distribution.
 
 ## 2. The refuse rule (the only rank enforcement point)
 
