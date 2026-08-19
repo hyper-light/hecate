@@ -2781,7 +2781,59 @@ Transposition recorded: their DB-borrowed revision domains
 the changelog (Watch/distribute tail it); MVCC interval rows ⇒ records
 carrying (created_pos, deleted_pos), alive at R iff created ≤ R <
 deleted; ZedToken(datastore-id, revision, schema-hash) ⇒
-(group-id, applied-position, schema-hash) — the already-settled fence
-shape. NEW Branch 44 exchange item: the point-in-time read window (how
+(group-id, applied-position, schema-hash) — the same SHAPE as the
+secrets-grant fence accepted in SECRETS §8.1, which covers secrets
+grants ONLY. No IAM token, store, group, watch/checkpoint stream, or
+distribution machinery exists or is designed at any status — Branch 44
+designs and builds all of it from nothing. NEW Branch 44 exchange item: the point-in-time read window (how
 long old revisions stay queryable) needs a derived GC bound on our
 substrate — Postgres/Spanner gave the exemplars that for free.
+
+**TENANCY-AT-SCALE DOSSIER LANDED (2026-08-18)** — the blend question
+ANSWERED with receipts: AWS Organizations (flat immutable 12-digit
+accounts, ARN self-routing, OUs = pure relations, ≤5 levels/2000 OUs,
+depth-capped SCP walk, "All policy limits are hard limits", move =
+reparent-only), GCP CRM (project ID "permanent"; move keeps ID + data +
+direct grants, ONLY the inherited overlay recomputes; folders ≤10
+deep/≤300 per parent), HNC (parent pointer = CR row in the child;
+inheritance = eager copy-down) — the blend is SHIPPED three ways, and
+HashiCorp's own guidance concedes it ("The entire list of namespaces
+must fit into a single storage entry" / "Use namespaces sparingly" /
+recommends ACL templating + an external onboarding layer over shared
+mounts). Failure anatomies: single-serialized-artifact (Vault entry;
+ZK-era Kafka controller O(partitions) reload, KIP-500; etcd 2GiB-default
+keyspace binding K8s at 10^4 namespaces/1.5×10^5 objects) vs
+sharded-rows-under-hierarchical-addressing (Zanzibar 1,500 configs vs
+2T tuples sharded by object ID; Spanner/F1 >100M single-fragment
+customer directories, 100–1000 Paxos groups per server, movedir =
+background copy + atomic metadata flip; CRDB meta1/meta2 2^36 ranges,
+512MiB/2500qps split thresholds, quiescence "not ticked... no
+MsgHeartbeat" from source; AWS "millions of customers"; Colossus
+metadata→BigTable "100x over the largest GFS clusters"; Twine 1M
+machines sharded-by-job behind a single-pane proxy; KRaft
+metadata-as-log w/ deltas+snapshots "even... millions of partitions").
+Depth bounds are DESIGN constants everywhere (AWS ≤5, GCP ≤10, K8s
+flat; Vault's ~160–220 = residual byte budget — the outlier).
+Single-Raft-group envelope: ~10^2–10^3 sustained write qps / 100s of
+MiB before the receipted answers kick in: split-under-addressing (CRDB),
+bucket-move (Spanner movedir), or incremental consumption (KRaft).
+THIN: Kafka 2M-partition seconds, Tectonic ~10-tenant figure, Twine
+entitlement internals, CRDB per-node range cap, absolute AWS/GCP counts.
+Feeds IAM.md §2, SECRETS §1b, and a CONSENSUS.md region-directory
+amendment (splittable directory keyspace + meta addressing + lazy
+descriptor repair).
+
+**BRANCH 44 FULL ARCHITECTURE PRESENTED (2026-08-18)** — user command
+(verbatim intents): "architect IAM for this entire system from ground
+up. Maximally correct, no gaps, no compromises"; includes "the decision
+tree, policy evaluation logic, request/action/etc. intercept logic for
+each system"; "needs to work at *Meta scale*, cross region"; "*also*
+needs to work locally on laptop *just as well*". IAM.md presented
+in-message: object model; blend tenancy; own-store mechanics (never the
+ledger); capability taxonomy under a compile_to_pep existence law
+(generalizing SKILLS_API's compile_to_warden); typed-fail-closed
+decision tree; compile-and-distribute; per-system intercept logic for
+every plane; agent↔agent governance; assignment/assumption/chaining;
+egress + repo governance; management surface + audit; cross-region
+scale walk + laptop degenerate; test matrix; acceptance criteria.
+Verdict owed. Write-to-disk only on accept.
