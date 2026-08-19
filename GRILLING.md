@@ -3557,3 +3557,61 @@ feeding/starving its monitor). Reusable Sylk mechanism: hierarchical blend
 Decoys noted: forest scoring.go (build-tagged, uncompiled, retrieval not
 agents), guardian domain_reputation (web-URL, unrelated). Isolation agent
 (a2bec1a9) resumed post-sleep; sidecar-placement (a7ffa4ec) still out.
+
+**CO-LOCATION-ISOLATION DOSSIER LANDED (2026-08-19, a2bec1a9, resumed
+post-sleep).** DECISIVE, primary-source. THE DIVIDING LINE = the
+primary's KERNEL. Two bars held apart: Bar A (FAULTY/degrading primary,
+userspace) vs Bar B (COMPROMISED, guest-kernel/ring-0 primary). Every
+intra-guest mechanism (UID sep, PID/mount/IPC namespaces, seccomp,
+capabilities, Landlock incl. IPC-scoping-to-domain, Yama
+ptrace_scope=3, cgroup v2 memory.min "won't be reclaimed under any
+conditions" + cpu.weight) is enforced BY THE SHARED GUEST KERNEL: FULLY
+effective vs Bar A, COMPLETELY VOID vs Bar B (GKE Sandbox verbatim: "A
+flaw in... the host kernel could allow a process running within a
+container to 'escape' the container and affect the node's kernel").
+Confidential computing does NOT move the line (SEV-SNP/TDX unit = the
+whole GUEST vs the HOST; does NOT partition two processes in one guest —
+tempting wrong answer CLOSED). DECISION MATRIX (5 placements): (1)
+same-VM separate processes = ✅BarA ❌BarB, cheapest/lowest-latency —
+"the naive assumption 'co-residence breaks isolation' is FALSE at Bar
+A"; (2) same-VM primary-behind-gVisor/WASM = ✅BarA ⚠️until-Sentry-escape
+(shifts trust anchor off shared kernel), syscall-bound cost; (3)
+same-node SEPARATE microVMs + warden-brokered vsock = ✅BarA ✅BarB,
+<5MiB+~125ms/VM, host-mediated AF_UNIX↔AF_VSOCK bypasses network stack
+(direct precedent for warden brokering); (4) host-side warden-class =
+✅BarA ✅BarB STRONGEST (the literal "warden+VM boundary still hold"),
+cheapest per-agent, collects across the VM boundary; (5) remote pod =
+✅✅ but network hop. VERDICT ON HECATE'S SENSOR PRECEDENT: it LICENSES a
+co-resident Scribe at EXACTLY the sensor's trust tier and NO HIGHER — a
+row-1 co-resident Scribe occupies the identical position (strong vs
+faulty, defeated by a guest-kernel exploit, warden+VM boundary the
+backstop), NO new trust assumption. A TAMPER-PROOF (warden-class) Scribe
+CANNOT be co-RESIDENT (NO-PRECEDENT: a co-resident monitor tamper-proof
+vs a kernel-compromised primary is an architectural IMPOSSIBILITY by the
+kernel-line limit) — it must be co-LOCATED-in-its-own-VM+vsock (row 3) or
+host-side (row 4). THIN (WebSearch exhausted): namespace/seccomp exact
+overhead, gVisor exact %, vsock-vs-loopback latency delta (all
+qualitative claims CONFIRMED). 
+SYNTHESIS ACROSS ALL 4 DOSSIERS (converging): the SECURITY-CRITICAL
+signal COLLECTION is ALREADY host-side (warden/sensor/health plane —
+Bar B, tamper-proof, EXISTS) = the "ztunnel/per-node cheap always-on"
+tier. The Scribe = the EXPENSIVE SEMANTIC INTERPRETATION (LLM narration
++ scoring signals) CONSUMING those already-tamper-proof-collected
+signals = the "waypoint/per-identity expensive" tier — its placement is
+FREED from the security-critical requirement (it's not the collector),
+so it can be co-resident (row 1, sensor-tier) OR own-pod, chosen on
+cost/latency. This IS the Ambient L4-per-node/L7-per-identity split.
+Combined w/ Sylk (observe-not-feed + single-authority-outcome-score,
+placement⊥comms) + telemetry (autonomous-local-first no-modes,
+aggregate-at-source push-snapshots, single-writer convergence,
+telemetry≠ledger). KEY USER RULING owed: the Scribe's threat model —
+Bar A (perf-monitoring of faulty agents; co-resident row-1 suffices,
+sensor-tier) vs Bar B (must survive adversarial/compromised agents
+evading monitoring; needs row-3 own-VM+vsock or row-4 host-side). Note:
+if the Scribe is observe-not-feed (inputs = host-side chokepoints the
+primary doesn't control), co-residence risk reduces PURELY to a Bar-B
+primary reading/tampering the Scribe's MEMORY — the security-critical
+collection is already host-side regardless. Awaiting the 4th dossier
+(sidecar-placement a7ffa4ec — Istio/Ambient/Solo receipts corroborating
+the split) before presenting the full synthesized design + the threat-
+model ruling.
