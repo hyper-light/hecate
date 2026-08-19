@@ -3500,3 +3500,60 @@ pipeline (matches D-single-pane). NO-PRECEDENT flagged: "% infra on
 observability" (unsourced), eBPF/Hubble specific overhead (GWP
 substituted). THREE agents still out: Sylk (a007b0bf, resumed),
 sidecar-placement (a7ffa4ec), co-location-isolation (a2bec1a9).
+
+**SYLK SCRIBE + SCORE-SERVICE DOSSIER LANDED (2026-08-19, a007b0bf,
+resumed post-sleep).** file:line-grounded forensic read. CONFIRMED
+findings: SCRIBE = in-process goroutine set (-feed + -periodic) co-located
+in the parent's AgentPod, ONE PER PARENT TYPE, on the parent's shared
+GoroutineScope — NOT isolated (scribe.go:315-323, agent_pod.go:794-832).
+Agent→Scribe comms = DUAL: (1) PUSH via bounded LOSSY Go channel (feedCh
+cap 32, drops oldest on overflow — parent controls fill-rate AND content
+= a starvation/manipulation surface), carrying RAW TURN TRANSCRIPTS; (2)
+OBSERVE via activity-fabric subscription (typed activities). Both live in
+prod, both hit processFeed, NO DEDUP — the fabric path was "documented as
+REPLACING push" but push never removed (SCRIBE_FABRIC Phase-10 cleanup
+never ran) = the same ghost-class as the perf-handoff eviction. Scribe is
+a continuity CARRIER not a handoff initiator (no trigger logic in the
+package). SCORE SERVICE = the core/handoff GP stack: per-agent-INSTANCE
+GP in a HandoffBridge (in-process) + process-global HandoffSupervisor
+(profileLearner keyed agentID+model) + ServiceRegistry. Scoped
+per-(agentType,model) process-global — NO per-session, NO per-domain, NO
+rank/bindingness (Hecate-NEW, no Sylk antecedent). CONFIRMED FAULTS: (1)
+SPLIT-BRAIN — THREE profile copies: b.profile (NEVER updated),
+profileLearner (updated every turn + real outcomes), blender (synced from
+the STALE b.profile); the learned threshold NEVER reaches the decision
+(exact "learner updates / controller reads stale" fault predicted). (2)
+Score NOT outcome-grounded — quality = turn TELEMETRY (tool-success
+ratio/stop-reason/cache), not validated work outcomes; conflates
+well-formed-turn w/ competent-work. (3) OBSERVER==OBSERVED — every agent
+RECORDS ITS OWN turns (the telemetry that scores it), Scribe scores itself
+(scribe/tool_loop.go:201) — universal self-scoring. (4) Dead branches:
+cost-opt trigger dead (EstimatedCostPerToken never set), controller
+UpdateAfterHandoff/UpdateWithoutHandoff zero non-test callers. (5)
+Magic-number thresholds (violates Sylk's own derive-from-data rule).
+Wall-clock in batch triggers (non-deterministic segmentation). THE
+TRANSFERABLE DATUM (W3c): Sylk's co-residence LEAKED the narrator/narrated
+boundary — parent both FEEDS and can STARVE its Scribe (lossy shared
+channel) AND every agent SELF-SCORES on shared machinery; in-process made
+it cheap to bolt a 2nd ingest path without removing the 1st. Sylk's
+recommendation: "push the boundary to per-node/host-side; score service =
+single authority reading ONE ordered stream, never self-reported."
+ARCHITECT NUANCE (for the design): Sylk conflated PLACEMENT (co-resident)
+with COMMS (fed) — the ROOT faults are COMMS/AUTHORITY faults
+(feed+self-score), fixable INDEPENDENT of placement. Placement
+(co-resident vs per-node vs pod) and comms (observe-not-feed) are
+ORTHOGONAL; Sylk did co-resident AND fed AND self-scored. Hecate mandates
+(from Sylk, regardless of placement): OBSERVE-not-feed; score = SINGLE
+AUTHORITY reading the ordered stream; score = OUTCOME-grounded (validated
+verdicts) not turn-shape; SEPARATE fast-detection (CUSUM per-instance)
+from slow-reputation (per-(agent,domain) durable) — two signals two
+lifetimes; ONE authoritative state object (learned copy == decision
+copy); no decision axis w/o a wired input; derive constants; remove-Y-when-
+X-replaces-it same change. So co-residence is NOT ruled out by Sylk IF
+observe-not-feed + single-authority-outcome-score hold — pending the
+isolation research (can a co-resident process be prevented from
+feeding/starving its monitor). Reusable Sylk mechanism: hierarchical blend
+(instance→agent-model→model→global priors) IF wired so learned==read.
+Decoys noted: forest scoring.go (build-tagged, uncompiled, retrieval not
+agents), guardian domain_reputation (web-URL, unrelated). Isolation agent
+(a2bec1a9) resumed post-sleep; sidecar-placement (a7ffa4ec) still out.
