@@ -3451,3 +3451,52 @@ FIVE candidates: same-VM-separate-processes, same-VM-monitor-behind-
 gVisor/WASM, same-node-separate-microVMs+vsock, host-side warden-class,
 own-remote-pod. FOUR agents now in flight (Sylk, sidecar-placement,
 telemetry, co-location-isolation). Design re-presents on all landing.
+
+**TELEMETRY META-SCALE→LAPTOP DOSSIER LANDED (2026-08-19, a87cce1a;
+resumed after a machine-sleep interruption).** 100% primary-source
+(WebSearch exhausted ⇒ all direct PDF/doc fetches). THE LAW (no
+small-mode/big-mode): "autonomous-local-first — each node runs ONE code
+path: collect into an in-memory hot ring, sample+aggregate AT the point
+of collection so cost tracks RETAINED SIGNAL not raw volume, federate
+upward only when an upward exists. N=1 is a zone of one running the
+identical binary; N=many is the same leaves + a global query plane on
+top." (literal Monarch zone/global architecture + Prometheus
+single-node-autonomous property.) RECEIPTS: Gorilla (in-memory
+write-through cache, 26h hot window answers 85% of reads <1ms,
+delta-of-delta+XOR = 1.37 B/point/12×, 96% timestamps→1 bit, buffer ≤64kB
+before flush = tolerated loss; 2B series in 1.3TB/20 machines). Monarch
+(in-memory ON PURPOSE to avoid circular dependency on monitored storage;
+LIGHT compression on hot tier, TS-sharing ~10:1; collection-aggregation
+36:1 [≤1e6:1] on 1 CPU core = 25% CPU vs query-based; PUSH beat PULL —
+stated lesson; zone-autonomous, 95% queries answered in-zone; fingerprint
+1.3 B). Dapper (sampling NECESSARY + aggressive-sampling-doesn't-lose-
+signal "if a pattern surfaces once it surfaces thousands of times";
+1/1024 default, 0.01% high-traffic, ADAPTIVE RATE-BASED so low-traffic
+auto-raises/high-traffic auto-lowers; span 176-204ns, daemon <0.3% core,
+<0.01% net, out-of-band local-log→pull). Scuba (in-memory memory-bound,
+sample_rate column COMPENSATED in aggregates, 30d/100GB expire-at-ingest,
+drop-leaves-past-10ms + warn-if-<99.5%). OTel (agent=stateless
+batch/compress/ship pushes DOWN; gateway=stateful; SINGLE-WRITER
+convergence required for per-identity aggregation — trace assembly/dedup/
+per-name rollup). Prometheus (1-2 B/sample, single-node-autonomous
+"rely on it when other infra is broken", local-first + optional
+remote_write; NOT for 100%-accuracy billing = the lossy-tolerant trade).
+GWP (2-D sampling machines×events ⇒ <0.01% aggregate overhead, capped
+"<a few percent" — overhead bounded INDEPENDENT of fleet size). Cardinality
+= the multiplicative cost bomb (never key series on unbounded identities).
+DESIGN IMPLICATIONS (validate the sketched score/Scribe): (1) score
+service = the single-writer convergence point per session group (OTel
+principle) — confirms colocation-unit placement; (2) Scribe AGGREGATES+
+SAMPLES at source, pushes SNAPSHOTS not raw (Monarch push + Dapper
+adaptive-sample + event-carried-snapshot pattern) — bounded cost; (3)
+NEVER block a claim on a telemetry write (Monarch circular-dependency +
+Gorilla tolerated-loss) — confirms "scores are harness state, nothing
+touches the ledger" + async-by-default; (4) per-node in-memory hot ring
+w/ Gorilla-style light streaming compression + bounded retention for
+operational signal, durable tier separate/lossy-tolerant; (5)
+telemetry/signal plane ≠ ledger (hot-ring-vs-cold-store split); the
+single pane is a FEDERATION layer over autonomous nodes, not a 2nd
+pipeline (matches D-single-pane). NO-PRECEDENT flagged: "% infra on
+observability" (unsourced), eBPF/Hubble specific overhead (GWP
+substituted). THREE agents still out: Sylk (a007b0bf, resumed),
+sidecar-placement (a7ffa4ec), co-location-isolation (a2bec1a9).
