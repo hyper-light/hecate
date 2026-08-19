@@ -3385,3 +3385,44 @@ accept" 08-17; PROTOCOL "accepted." 08-18) — the C-7 "conflict" was a STALE
 LEDGER (GAPS inventory unsynced), now fixed; MERGE same drift, synced.
 Genuinely header-presented and CORRECT (awaiting explicit whole-spec
 verdicts, not a status fix): VFS, PODS, AGENTS_RUNTIME, RANK, SCHEDULER.
+
+**BRANCH 14 / SCORE SERVICE + SCRIBE-COMMS — DESIGN PRESENTED, SENT TO
+RESEARCH (2026-08-19).** HANDOFF spec (Branch 14) presented in-thread
+(five tiers: gathering/weighing/storage/trigger+CUSUM/execution +
+Guardian SPRT+fresh-context-probe + commissioning + 16-Sylk-lessons
+tests). §3 storage challenged by user → surfaced that the SCORE SERVICE
+is referenced across the corpus (RANK §4, PLATFORM §6, LEDGER_CORE §2c,
+HEALTH, FOREST, AGENTS) but its ARCHITECTURE (placement/distribution/
+communication) is UNDESIGNED — a dangling-reference gap. Also raised:
+agent↔Scribe communication is undefined (protocol/data/does-it-go-
+through-the-warden). PRESENTED design (HELD pending research):
+- Score service = deterministic harness TASK (not pod/agent/external/
+  separate-process), one per session group, IN the colocation unit
+  (next to field service); computes per-(agent,domain) score as a pure
+  function of ordered inputs (ledger deltas + event-carried Scribe
+  signal snapshots), pushes score snapshots into LEDGER_CORE local
+  state (§2c, no synchronous query); re-derivable, checkpointed,
+  consensus-backed via the session group (NOT peer-to-peer, NOT global,
+  NOT external, region-local).
+- Agent↔Scribe = OBSERVE-not-send (the monitored cannot feed/manipulate
+  its monitor — PLATFORM §6 rationale); no primary-guest→Scribe channel;
+  Scribe consumes host-side chokepoint streams (warden verdicts via
+  health plane + sensor + ledger deltas + gateway usage); does NOT get
+  raw LLM transcripts (robustness); carriage = PROTOCOL delta/ordered
+  streams over the Scribe pod's host lanes, session-group-local.
+USER OVERRULE/CONSTRAINTS (2026-08-19): (1) MUST be research-backed —
+learn from Sylk Scribe/score patterns+faults + external SIDECAR patterns
+(user cited SoloIO's in-process gateway vs Istio sidecar + "significant
+latency benefits"; the per-pod-sidecar tax the industry left). (2) MUST
+research telemetry/observability/monitoring at META SCALE translating
+DOWN to laptop w/o eating resources (max correct/robust/performant/
+efficient, no modes). (3) ISOLATION CONSTRAINT: injecting the Scribe
+(a second agent) into the primary's microVM breaks isolation/boundaries
+— rules OUT naive co-residence; sharpens toward isolated-pod vs
+per-node-shared (ztunnel-shape) vs split (cheap-per-node collector +
+expensive-per-identity narrator, the Ambient L4/L7 split). THREE
+research agents IN FLIGHT: Sylk Scribe/score internals (a007b0bf...);
+external sidecar-placement patterns w/ numbers (a7ffa4ec...); telemetry
+Meta-scale→laptop pipeline (dispatched). "Scribe = own microVM pod"
+DEFAULT now UNDER CHALLENGE (it's the Istio per-pod-sidecar pattern the
+industry moved off). Design re-presents on all three landing.
