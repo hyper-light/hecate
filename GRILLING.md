@@ -1213,28 +1213,39 @@ CONSENSUS+FAULTS, OBJECT_TIER §9 (D-3).
   over-rotation, overruled and recorded: Hecate today has five enforcement
   mechanisms and ZERO management surface. Branch 44 BUILDS the first-class
   IAM system: (1) **the authority store** — roles, policies, role
-  assignments, grants as first-class objects with their own authoritative
-  state on the consensus tree (scoped by the failure-domain tree like the
-  vault index); (2) **the management surface** — create/assign/attach/
-  revoke roles and policies, role-assumption + chaining APIs, audit
-  queries ("what can agent X touch", "who can touch resource Y" — the
-  Zanzibar Read/Expand shape), all as claims-visible operations; (3) **the
+  assignments, grants as first-class objects in the IAM plane's **own
+  replicated store** (its own consensus group(s), scoped by the
+  failure-domain tree like the vault index) — **never the ledger**; (2)
+  **the management surface** — create/assign/attach/revoke roles and
+  policies, role-assumption + chaining APIs, audit queries ("what can
+  agent X touch", "who can touch resource Y" — the Zanzibar Read/Expand
+  shape) — IAM-plane APIs with IAM-plane audit, **never claims**; (3) **the
   decision service (PDP)** — the deterministic evaluator
   f(request, policy-epoch, graph-snapshot), Cedar-shaped language (typed
   fail-closed variant), forbid-overrides + union-grants +
   intersection-boundaries + intersection-session algebra; (4) **compile-
   and-distribute** — decisions/policies compiled to the existing PEPs
-  (warden, Guardian admission, merge gate, boot classifier, ledger Refuse)
+  (warden, Guardian admission, merge gate, boot classifier, the ledger's
+  claim-issuance guard — that last an IAM *consumer* enforcing on work
+  operations, never IAM storage)
   with the measured invalidation SLO + epoch fencing (the effect-fence
   result applied whole); (5) **integration, not dissolution** — Rank/
   SafetyPolicy/Biscuit-grants/affordances become CONSUMERS governed by
   the plane (SafetyPolicy = a boundary-semantics policy the user owns;
   Rank = a shipped policy pack; Biscuit = the portable serialization of a
-  plane decision; the ledger graph = ONE relationship SOURCE the authority
-  store federates, never the store itself). The dossier's unification map
+  plane decision; work facts — active claim scopes, session membership —
+  enter only as PDP request-context attributes read at evaluation time:
+  the ledger is never the authority store nor a store of any IAM object).
+  **SECOND CORRECTION (user, 2026-08-18, verbatim): "the ledger is NOT
+  for things like role and permissions control plane work. It is for
+  driving agent work. Do NOT confuse the two."** — struck from the
+  charter accordingly: claims-visible management ops, ledger-resident
+  authority state, ledger-as-federated-relationship-source. The ledger
+  drives and proves agent work; IAM is its own control plane with its
+  own store, APIs, and audit. The dossier's unification map
   + Cedar/ReBAC/STS receipts stand as design inputs; the cannot-fold list
   stands (judgment, sensor tighten-only, user supremacy). Design exchange
-  owed; vault-namespace dossier (in flight) feeds it (vault paths = one
+  owed; vault-namespace dossier (LANDED 2026-08-18) feeds it (vault paths = one
   resource type IAM names).
 - **Walking skeleton** — final branch; re-presents against completed tree
   (P0 wire → P1 runtime → P2 spine → P3 pod leg → P4 first agent → P5 first
@@ -2556,7 +2567,11 @@ modulation @ ledger-Refuse PEP; SafetyPolicy = user boundary fragment
 judge (HOLD stays agentic); Biscuit = portable attenuable revocation-id
 serialization of a plane decision; **claim affordances = the plane READING
 THE LEDGER-AS-GRAPH (axis-2 dependency = Zanzibar reachability literally;
-the ledger already IS the ReBAC substrate)**. CANNOT fold (flagged):
+the ledger already IS the ReBAC substrate)** [CORRECTED 2026-08-18, user:
+the ledger is a fact SOURCE the PDP may read for work-scoped attributes —
+"the ledger is NOT for role/permissions control plane work"; the
+relationship/authority store is the IAM plane's OWN — Branch 44 second
+correction]. CANNOT fold (flagged):
 work-quality judgment, sensor tighten-only (composes as DENY layer,
 Istio DENY-before-ALLOW), user supremacy. Agent↔agent governance = mesh
 pattern on existing rails (SPIFFE-by-birth mint, policy names principals
@@ -2570,3 +2585,67 @@ judgment — but Hecate's domains already share one ledger, one identity
 mint, one consensus tree, one PEP doctrine, so the historical forcing
 conditions don't all apply. Branch 44 model exchange owed after the
 namespace dossier (Branch 28 upstream interlock).
+
+**VAULT-NAMESPACE DOSSIER LANDED (2026-08-18)** — Branch 28 unblocked;
+amended SECRETS.md presented in-thread. Verdicts: (1) tenancy
+discriminator — first-class namespaces exist iff tenants need their OWN
+auth/identity/admin plane (Vault namespace = "mini-Vault": own auth
+methods, identity store, policies, tokens; COST receipts: ~3500/~7000
+namespace cap bounded by the serialized mount table, ~160/~220 depth at
+40 bytes/path element; Azure reached the same endpoint by
+vault-instance-per-tenant proliferation). Read isolation alone required
+first-class NOWHERE (GCP = hierarchy-node policy attach + inheritance;
+K8s+HNC = view-tenancy w/ delegated subnamespace creation; AWS = flat +
+naming convention, with the ARN-entropy delete/recreate pathology).
+(2) "NO cross-namespace visibility" phrasing CORRECTED by dossier:
+Vault's real model = isolated by default + administrator-controlled
+sharing + parent→child reference + privileged root. (3) Engines: mount =
+router + storage barrier (UUID data root, "impossible for an enabled
+secrets engine to access other data"); dynamic secrets = behavior-with-
+state needing an addressable owner; even revocation is prefix-addressed
+(`lease revoke -prefix aws/`); mount TABLE = serialized-state scale
+liability; PKI unbounded-issuance receipts (50k–100k problem, 500k+
+cluster impact; no_store + tidy remedies). (4) Policy anchor: unanimous
+across Vault/AWS/GCP/Cedar/Zanzibar — policy names the STABLE LOGICAL
+IDENTITY (path/ARN/node/entity/relation), never content or version.
+(5) Corner a: automaton rebuild is ms-class linear (TruffleHog AC receipts
+2x avg/3.58x single-target; Meyer IPL-1985 incremental-insert retains
+complexities); the defect was keying rebuild to the SCAN EVENT instead of
+the pattern-set version; automaton is secret-bearing ⇒ sealed residency;
+GitHub minted-format receipts (prefix+checksum ⇒ 0.5% FP + offline
+validation). (6) Corner b: per-materialization quorum read = NO-PRECEDENT
+at any surveyed scale; receipted maximal = epoch-floor local monotonic
+check (zookie shape) + sealed-grant mint-race bridging (KMS grant token,
+≤~5min propagation envelope) + push-invalidation with TTL backstop (Vault
+agent eviction); the revocation bound must be STATED. (7) Corner c:
+index-pins-as-GC-roots (AWS staging labels) + derived version-count bound
+(precedents 10/KV-v2, 100/ASM) + age floor (precedent 24h; ours DERIVED =
+max lease TTL + freshness window T — the fence⇄GC closure) + unpin ≠
+destroy + background tidy only (PKI). THIN: Azure per-vault throttling;
+dynamic-delete-AC per-op bounds (paywalled).
+
+**LEDGER/IAM SEPARATION — SECOND USER CORRECTION APPLIED (2026-08-18)**
+(verbatim in Branch 44 entry). Swept into the amended Branch 28
+presentation: §6 leases = vault-plane lifecycle state (NOT ledger claims;
+the residual-lease force-revoke at custody transfer is a vault rule on
+the handoff event); §6 audit = secrets-plane audit streams for BOTH
+populations on the Branch-39 substrate (NEVER claims; the ledger records
+work, not access records); §7 park-to-grant CLAIM stands (it drives a
+user decision — that IS work) while the granted authority object lands in
+the IAM plane's own store. Research-index "ledger IS the ReBAC substrate"
+line annotated-corrected in place.
+
+**IAM MECHANICS RESEARCH RELAUNCHED (2026-08-18, user: "try launching
+the agent again")** — prior agent stopped mid-flight; fresh dispatch on
+the service model covering: Zanzibar serving+storage internals (tuple
+schema, changelog, aclserver cache/hedging, Leopard, Watch, config
+rollout), SpiceDB (datastore/MVCC revisions, migration SQL, dispatch
+hash-ring, ZedTokens, consistency modes), OpenFGA (immutable model IDs,
+check resolution), AWS IAM/STS internals (evaluation algebra, AssumeRole/
+chaining mechanics, per-service regionalized evaluation) + AVP, Cedar
+paper + cedar-policy crate API + slicing + skip-on-error baseline, Vault
+ACL/policy-store internals, compile-and-distribute precedents (OPA
+bundles, Istio/Envoy xDS RBAC, K8s RBAC colocated authorizer, GCP IAM
+propagation numbers, SPIFFE/SPIRE), synthesis WITHOUT recommendation.
+Corrected charter framing (own store, never the ledger) baked into the
+brief. Branch 44 design exchange follows its landing.
