@@ -3987,3 +3987,37 @@ schedules-as-async, at amortizable instantiation+density. → [OS process]
 full containment, coarse/per-invocation only (tool children). THIN: WASM
 host-call ns#, Cranelift compile-time#, BEAM µs-creation#. Priced matrix
 presented in-thread for the isolation decision.
+
+**WASM COST NUMBERS UNDER-SOURCED — USER CAUGHT IT (2026-08-19): "Where
+do those numbers even come from? Did you back them with actual research
+into WASM overhead? The case where Prisma spent years ripping out WASM
+due to performance costs?"** ARCHITECT OWNS IT: the WASM cost figures
+were WEAKLY sourced — 45-55% = Jangda "Not So Fast" (BROWSER engines
+V8/SpiderMonkey, NOT Wasmtime; the dossier itself flagged Wasmtime-native
+= NO-PRECEDENT); "1-10% heavy math" = echoed from the USER's own prior
+message; the DATA-TRANSFER cost (the dominant term) = MY qualitative
+reasoning w/ ZERO production evidence. Presented firmer than warranted.
+PRISMA is the decisive production evidence I lacked: built the query
+engine in Rust, shipped native-binary + WASM, spent YEARS fighting the
+JS↔engine SERIALIZATION/data-transfer boundary cost + bundle-size +
+cold-start, now REMOVING the Rust/WASM engine for a native TypeScript
+query compiler FOR PERFORMANCE. A production WASM-rip-out > academic
+microbenchmarks, and it points exactly at the data-marshalling boundary
+cost I hand-waved (the Prisma problem = boundary cost dominates
+data-moving workloads). REAL RESEARCH DISPATCHED (a0a499ff): W1 Prisma
+full story (why remove Rust/WASM; the specific costs — serialization/
+bundle/cold-start/memory; the native-engine before/after numbers); W2
+other production WASM overhead/removal reports + honest counter-cases
+(Figma win, Shopify Functions limits, edge cold-start); W3 the
+data-marshalling/boundary-transfer cost RIGOROUSLY (lifting/lowering,
+copy-into-linear-memory, host-call ns, why compute-bound-cheap vs
+data-moving-expensive); W4 rigorous Wasmtime-SPECIFIC overhead (Sightglass,
+bounds-check, AOT-vs-JIT — confirm/refute the NO-PRECEDENT); W5 synthesis
+for the AGENT-LOOP workload (coordination + data-moving: is WASM a
+Prisma-class trap? can the data plane stay host-side w/ WASM holding only
+handles, or does data still get lifted/lowered?). Brutally-honest verdict
+owed. Prior isolation matrix STANDS on the isolation/fault/monitorability
+axes + the cross-platform finding (MPK disqualified = x86-only mode; WASM
+uniform cross-platform; eBPF/cgroups in-guest-Linux uniform) — only the
+WASM COST leg is being re-grounded. Decision on gap-(ii)/§3 HELD until
+the real WASM-cost evidence lands.
