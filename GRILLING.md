@@ -3372,3 +3372,16 @@ moved out of §3 undesigned, D-14 opened (splittable-keyspace + cross-
 region-reparent rider), SECRETS §4/§7 rewrite deferred to Branch 28.
 DEFERRED (each owed its own exchange, NOT done): D-14 consensus
 machinery; SECRETS.md write. Branch 44 = SPEC-WRITTEN + reconciled.
+
+**C-7 STATUS-LINE AUTHORITY — RESOLVED for the foundation set (2026-08-18).**
+Authority rule now law (recorded in GAPS.md C-7): the spec file's `Status:`
+header is the SINGLE source of truth for acceptance; it reads `ACCEPTED
+<date>` only on an explicit dated whole-spec verdict (verdict quote in the
+header); GAPS §1 mirrors it; **this GRILLING "SETTLED" table denotes
+DIRECTION-settled (a design direction chosen), strictly weaker than
+spec-accepted — never read as acceptance.** Verified by direct header read:
+foundation set headers were ACCEPTED all along (RUNTIME/WAL "amend and
+accept" 08-17; PROTOCOL "accepted." 08-18) — the C-7 "conflict" was a STALE
+LEDGER (GAPS inventory unsynced), now fixed; MERGE same drift, synced.
+Genuinely header-presented and CORRECT (awaiting explicit whole-spec
+verdicts, not a status fix): VFS, PODS, AGENTS_RUNTIME, RANK, SCHEDULER.

@@ -22,10 +22,10 @@ other classes are read against it.
 
 | Spec | Status (header) | Tests | AC | Laptop degenerate |
 |---|---|---|---|---|
-| RUNTIME.md | presented (Br 1) | T1–T8 | 7 | implicit (shard formula) |
-| WAL.md | presented (Br 2) | W1–W8 | 7 | implicit (1-replica group) |
+| RUNTIME.md | ACCEPTED 2026-08-17 (Br 1) | T1–T8 | 7 | implicit (shard formula) |
+| WAL.md | ACCEPTED 2026-08-17 (Br 2) | W1–W8 | 7 | implicit (1-replica group) |
 | PROTOCOL.md | ACCEPTED 2026-08-18 | P1–P19 | 14 | yes (per-path MTU, P18) |
-| MERGE.md | presented (Br 4) | M1–M12 | 9 | not stated |
+| MERGE.md | ACCEPTED 2026-08-18 (Br 4) | M1–M12 | 9 | not stated |
 | VFS.md | presented (Br 5) | V1–V11 | 8 | not stated |
 | PODS.md | presented (Br 6) | T1–T19 | 13 | yes (formula-derived) |
 | AGENTS_RUNTIME.md | presented (Br 7) | R1–R11 | 6 | not stated |
@@ -389,11 +389,34 @@ Remaining drift, needs a decision or a sweep (not mechanically safe):
 - **C-6 Branch-label collision**: SERVING.md and SCHEDULER.md both claim
   "grilling Branch 21." History knows which is which; the labels should be
   disambiguated once in GRILLING.md.
-- **C-7 Status-line authority**: GRILLING's SETTLED table lists RUNTIME, WAL,
-  PROTOCOL, MERGE, VFS, PODS, AGENTS_RUNTIME, RANK, SCHEDULER as settled while
-  their file headers still read "presented for acceptance." One authority must
-  win; recommend updating headers upon explicit acceptance verdicts, and until
-  then reading the table as direction-settled rather than spec-accepted.
+- **C-7 Status-line authority — RESOLVED for the foundation set 2026-08-18.**
+  **The authority rule (now law):** a spec file's `Status:` header is the
+  single source of truth for acceptance state. It reads `ACCEPTED <date>` only
+  on an explicit dated user whole-spec verdict, carrying the verdict quote; the
+  GAPS §1 `Status (header)` column mirrors it exactly; the GRILLING "SETTLED"
+  table denotes **direction-settled** (a design direction chosen) and is
+  strictly weaker than spec-accepted — never read it as acceptance. On this
+  rule the C-7 "conflict" was mostly a **stale ledger**, not a real
+  contradiction: the headers had been updated at each acceptance and this
+  ledger + the GRILLING table were not synced (the "stale ledger is itself a
+  gap" clause biting its own author).
+  Verified 2026-08-18 by direct header read:
+  - **Foundation set — no conflict, ledger synced**: RUNTIME (`ACCEPTED
+    2026-08-17`, "amend and accept"), WAL (`ACCEPTED 2026-08-17`, "amend and
+    accept"), PROTOCOL (`ACCEPTED 2026-08-18`, "accepted.") — headers were
+    authoritative and correct all along; §1 inventory updated to match.
+  - **MERGE** (`ACCEPTED 2026-08-18`) — same drift, §1 inventory synced.
+  - **Genuinely header-presented (correct state, NOT a conflict, awaiting an
+    explicit whole-spec verdict)**: VFS, PODS, AGENTS_RUNTIME, RANK, SCHEDULER —
+    each header reads "presented for acceptance"; each is direction-settled but
+    never received a whole-spec "accept" verdict (RANK: "recommendations
+    accepted"; the others: "direction ratified"). These are accurately
+    presented; their acceptance is ordinary owed grilling work, not a
+    status-line fix. The GRILLING table's listing of them is direction-settled,
+    per the rule above.
+  Residual: one full sweep should confirm every accepted spec's §1 row equals
+  its header (done here for the foundation set + MERGE; the ~11 specs accepted
+  2026-08-16 already carry matching ACCEPTED rows).
 - **C-8 Test-ID hygiene**: RUNTIME and PODS both use T-prefixed IDs (T1–T8 vs
   T1–T19); FOREST skips F20 and keeps F12–F14 in prose; PODS T18/19 and
   SCHEDULER SCH13–15 live outside their matrices. Cosmetic until cross-spec
