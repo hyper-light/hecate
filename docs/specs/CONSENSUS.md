@@ -112,6 +112,17 @@ with a single leaf — every collapse below is tree-derived, never a mode.
   import a wall-clock axiom the doctrine bans; if fortification later makes
   local reads provable from the support fabric alone, that arrives as its
   own spec amendment with its own proof obligations — never as a flag.
+  - **IAM-store reads under this law (note, 2026-08-18, `IAM.md` §3).** The
+    authority plane reads honor ReadIndex like any client — and get
+    region-local latency without a new read mode because each scope's records
+    live on the group owning its epoch scope (§6): for session/user/org scopes
+    that group is **region-local**, so the ReadIndex quorum round is
+    region-local (no cross-region RTT), satisfying "no synchronous WAN
+    round-trip on any session hot path" (§1). Root/lineage-scope reads (holders
+    anywhere ⇒ root group) would incur a cross-region round, so the plane keeps
+    those off the decision path by construction — enforcement reads a compiled
+    residual artifact, not the store. A genuine local-follower optimization for
+    the store remains a future amendment here, never a flag.
 
 ## 3b. Split brain, structurally
 

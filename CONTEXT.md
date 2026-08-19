@@ -32,7 +32,7 @@ _Avoid_: event, notification
 Any entity that can issue, receive, or evaluate claims — agent, deterministic service, system runtime, or external actor (user, CI). Wire format and lifecycle never branch on the category.
 
 **Affordance**:
-Whether a tool call is legal, derived from graph state: the target's lifecycle precondition and the work node's dependency satisfaction. The response to an unmet affordance is inform or yield — refusal is reserved for structural invariants.
+Whether a tool call is legal, derived from graph state: the target's lifecycle precondition and the work node's dependency satisfaction — and, since the authority plane, the principal's standing to act at all (whether policy permits the action). The response to an unmet affordance is inform or yield — refusal is reserved for structural invariants (a policy denial informs or yields; it does not refuse).
 
 ### Runtime
 
@@ -62,7 +62,7 @@ _Avoid_: container, process, goroutine
 A Guardian check that may deny within bounded, declared rules or request more evidence a bounded number of times, but cannot block indefinitely. Summons and performance-driven handoffs are soft-gated.
 
 **Warden**:
-The Guardian's per-pod enforcement daemon — host-side and deterministic — deciding every boundary crossing pre-effect from compiled local policy (SafetyPolicy, role profile, bundle capabilities, active claim scopes). What policy cannot answer is held and escalated; verdicts compile back with provenance. Fail-closed: a dead warden is a frozen pod.
+The Guardian's per-pod enforcement daemon — host-side and deterministic — deciding every boundary crossing pre-effect from compiled local policy (the SafetyPolicy ceiling, the role profile as the authority plane's per-pod residual, bundle capability atoms, active claim scopes). What policy cannot answer is held and escalated; verdicts compile back with provenance. Fail-closed: a dead warden is a frozen pod.
 
 **Sensor**:
 The guest-kernel telemetry probe inside each pod, streaming early behavioral signals to the warden. Tighten-only: its signals can narrow a pod's world, never widen it. Silence fails closed.
@@ -127,7 +127,23 @@ An agent's per-domain authority ordering, shipped as a static matrix with the ha
 _Avoid_: hierarchy, seniority
 
 **SafetyPolicy**:
-The single user-owned configuration object driving every Guardian gate decision: trust mode, auto-approve ceiling, disk-write mode, network egress. Enabling low-trust drastically lowers the auto-approve ceiling. A config item, not ledger state.
+The single user-owned configuration object driving every Guardian gate decision: trust mode, auto-approve ceiling, disk-write mode, network egress. Enabling low-trust drastically lowers the auto-approve ceiling. A config item, not ledger state. It compiles into a **Ceiling** — the user's — in the authority plane.
+
+**Authority plane**:
+The single control plane for roles, policies, and permissions across every system: it answers whether a principal may perform an action on a resource in a scope, given context, at an authority epoch. Its own replicated store, own APIs, own audit — never the ledger, which drives work. Rank, SafetyPolicy, Guardian gates, Biscuit grants, and claim affordances are its consumers, not its parts.
+
+**Principal**:
+Any participant viewed by the authority plane — an immutable UID plus a kind (agent pod, system service, user, external, node). The kind is a read field on the record; wire format and lifecycle never branch on it.
+
+**Ceiling**:
+A policy that only caps, never grants. SafetyPolicy, the Guardian hard-block classes, and a mandate's scope-down are ceilings; a decision must pass every applicable ceiling (they intersect).
+_Avoid_: boundary (reserved for the pod perimeter)
+
+**Mandate**:
+An assumed role — a derived principal carrying its base, role, scope, a scope-down ceiling, expiry, an immutable provenance origin, and tags. Effective authority is the intersection of base, role, and scope-down; chaining only narrows.
+
+**Grant**:
+A narrow, evaluated, epoch-stamped, durable authorization decision made durable — the object a brokered cross-fence share or a materialized secret produces. The authoritative row lives in the authority plane; the Biscuit token is its portable projection.
 
 ### Agents
 

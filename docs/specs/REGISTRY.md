@@ -35,6 +35,21 @@ without coordination. Conditions with reasons; no phase roll-ups.
 Built-in kinds: `AgentRole` (offices, rank archetype, custom domains), `Prompt`,
 `Skill`, `MCPServer`, `Recipe`, `ModelConfig`, `GuestImage`, `Bundle`.
 
+**`AgentRole` vs the authority plane's Role (amendment 2026-08-18, `IAM.md`
+§7.9).** These are distinct and each owns its half: `AgentRole` (registry) is
+the **agent→office binding + bundle refs** — the composition identity resolved
+at summon; the IAM Role pack is **what a principal of that office may do** — the
+policy statements. There is no double-store: at summon, resolution reads the
+registry's `AgentRole` office binding and the IAM plane compiles the matching
+role pack into the pod's residual (per-principal rows are compilation *output*,
+never a second writable binding store). The registry stays a non-runtime-
+authority (it cannot route, gate, or author claims); role-pack *content* lives
+in the IAM store, root-anchored. Scope-authored roles that ship *through* the
+registry ride the existing Guardian-staged publication (a claim — legal, it is
+registry work, not IAM management); the commit **into** the IAM store is a
+management-surface apply triggered *after* approval, never the claim itself, and
+decision-time reads never touch the registry (G5's hot-path isolation holds).
+
 Registration is a **descriptor**: `{kind, spec schema, storage class, plural}` —
 one registration call for compiled kinds, and (beyond syllium) **the descriptor
 carries the spec's schema, so a kind can be registered from a config document
@@ -214,6 +229,15 @@ revision = log index, same gap arithmetic (`CONSENSUS.md`).
 
   Cross-scope collision is unrepresentable, and every scan is a scope-prefixed
   range — visibility filtering costs zero (range restriction, not row checks).
+  **Relation to the authority plane's scope ladder (amendment 2026-08-18,
+  `IAM.md` §2).** This `Scope` enum is a **projection of the IAM scope nodes**,
+  not a second tenancy authority: `Shipped` ≙ the root/harness scope, `Org` and
+  `User` ≙ those rungs of the ladder (`root → org → user → project → session`).
+  The registry keeps its own key-prefix mechanics (they cost zero and predate
+  the plane); the plane owns the tenancy *taxonomy* and answers the standing
+  question. Registry refs remain **grant-ineligible across scopes** — an IAM
+  grant never creates a cross-scope road; publication (below) stays the only
+  one (G13), so the plane composes with §5b, it does not dissolve it.
 - **Write authority lives in the handle type, not per-call checks**: a registry
   handle is constructed at authentication with its scope baked in —
   `UserRegistryHandle(UserId)` can only *construct* `RefKey`s in its own
