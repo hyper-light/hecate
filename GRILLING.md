@@ -3062,3 +3062,40 @@ caching/audit mechanics on named existing machinery, decision tree +
 per-system intercepts, laptop+Meta scale walks, tamperproof w/ receipts).
 Verdict owed; on accept, IAM.md + the companion amendments land in one
 change.
+
+**BRANCH 44 — STORAGE-SUBSTRATE QUESTION (user, 2026-08-18): "IAM
+records ride as WAL entry payloads on top of *what database*? How are
+they queryable? Updateable? Deleteable? Again, more research."** Real
+gap: "WAL payload" = durability/replication, NOT query/update/delete.
+CORPUS FINDING (grep-verified): Hecate has NO database, by design —
+(a) OBJECT_TIER §2 EXPLICITLY REJECTED an LSM/mutable-keyed on-disk
+engine with receipts ("LSM (ShardStore) earns its complexity only for
+mutable keys and heat-driven re-placement — paid with soft-updates
+dependency DAGs and an institutional formal-methods [burden]"); pack
+store = append-only immutable content-addressed, in-RAM
+`blake3→(volume,offset,len)` index, rebuild-by-scan. (b) LEDGER_CORE
+holds mutable state as IN-MEMORY ARENAS; its relations arena =
+`{from:Handle,to:Handle,rel:Relation}` + per-node in/out edge lists +
+secondary index, queried by bounded `traverse(node,filter,depth)` —
+i.e. ALREADY a ReBAC tuple/edge store, log-backed, snapshot-persisted.
+(c) WAL owns "only the floor API"; each logical-log client materializes
++ checkpoints its own applied state. PROPOSED IAM ANSWER (grounding in
+flight): IAM applied state = the log-backed in-memory edge-arena pattern
+(update = superseding MVCC-interval record; delete = tombstone record;
+query = traverse over edge indexes), snapshot-persisted to the content
+tier, SHARDED by scope so each group's arena is RAM-bounded; cross-fleet
+WhoCan = offline denormalized index (Leopard/SpiceDB-Materialize shape),
+eventually-consistent read-optimization never authority. RESEARCH
+DISPATCHED (service model): log-vs-state-machine-store separation
+(etcd/bbolt, CRDB/Pebble, TiKV/RocksDB), MVCC/query/update/delete/PITR
+mechanics in LSM+B-tree, the in-memory-authoritative+log+snapshot
+alternative (Redis AOF+RDB, VoltDB/H-Store command-log, RamCloud
+log-structured-memory), ReBAC edge-store shape (Zanzibar-on-Spanner as
+the honest CHALLENGE — 2T tuples/100TB does NOT fit RAM → they chose a
+DB; Leopard in-memory index as the counter; TAO cache-over-store),
+scaling envelope + sharding + cross-shard denormalized index. Full IAM
+re-presentation HELD until this dossier lands; the storage-substrate
+answer folds into the store section (§3) with receipts. Note: this also
+retro-grounds the WAL-payload extraction from the substrate reconciler
+(IAM records as entry payloads = the DURABILITY leg; the arena is the
+QUERY leg).
