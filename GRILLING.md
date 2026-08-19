@@ -2432,3 +2432,25 @@ copies) not boolean; pending-deletion window for high-blast user/root
 scopes. (3) keep short TTLs on grants + short-lived/rotatable materialized
 secrets — the fence does NOT subsume expiry (backstop for missed
 invalidations + state-GC; ALTS/K8s/Chubby all keep both).
+**META-SCALE SECRETS REPLICATION §B SETTLED ("accepted", 2026-08-18)** —
+both dossiers (theory + shipped-KMS) synthesized; the 5-element design is
+CONFIRMED maximal (Zanzibar-zookie / KMS-grant-token / Chubby-sequencer /
+Kleppmann-fence class; ours fences BOTH grant + supersession at the effect,
+which no shipped system does). THREE amendments accepted, to fold into
+SECRETS.md §B: (1) the fence's own freshness contract — materialize only
+when the warden's scope-epoch view is PROVEN current (pushed invalidations,
+ALTS-local-CRL shape; revocation done-when-fences-ack); a warden with a
+stale feed / lapsed lease fails materialization CLOSED; partition posture =
+NEVER Azure's read-only-failover inversion (effects stop, not revocation).
+(2) crypto-erase = committed→quiesced→complete, NOT one op: scope keys
+stored ONLY WRAPPED under an erasable root KEK (log/snapshot/backup hold
+ciphertext only — the NIST-800-88r2 KEK-cascade); quiesce = holder-purge
+ack loop for unwrapped RAM copies; pending-deletion window for user/root
+scopes. (3) expiry stays (fence ≠ subsume — SPIFFE/ALTS/K8s/Chubby all
+keep both; backstop + state-GC); epoch folded into the Biscuit caveat so
+token+authority can't diverge; epoch floor covers the COMPOSED decision
+(single-authority chokepoint gives new-enemy safety free). Scale arithmetic
+intact (envelopes on the exabyte plane; authority small on the existing
+consensus tree by scope; no global hot state; ≥128-bit-AEAD invariant).
+SECRETS.md now UNBLOCKED — presented in-message (grant section IAM-pending,
+Branch 44).
