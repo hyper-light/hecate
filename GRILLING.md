@@ -3356,3 +3356,19 @@ Branch 44 status: SPEC-WRITTEN. REMAINING = the §17 companion amendments
 keyspace/cross-region-reparent rider (own exchange, GAPS.md). SECRETS.md
 still owed (its §4/§7 rewrite to reference IAM lands when SECRETS.md is
 written).
+
+**BRANCH 44 — §17 COMPANION AMENDMENTS LANDED (2026-08-18).** All
+update-all-sites-together edits committed across three batches: CONTEXT
+glossary (authority plane/Principal/Ceiling/Mandate/Grant + Affordance/
+Warden/SafetyPolicy), OBJECT_TIER §7 IAM roots, FAULTS §1/§3 scoped
+authority-plane adversary + §5 three-subsystem cells + F8 + AC-1 note,
+PODS §6 residual compile-source, LEDGER inv.9 standing/work-order split +
+ledger serving edge, RANK §1 pack-as-projection, REGISTRY Scope-as-
+projection + AgentRole/Role split, CONSENSUS §3 region-local ReadIndex
+note, FOREST §5b governed scope-lifts + emission-surface + provenance
+stamps, VECTOR_INDEX §5 generation-lineage scope granularity + manifest
+stamp. GAPS.md updated: IAM.md added to component inventory (ACCEPTED),
+moved out of §3 undesigned, D-14 opened (splittable-keyspace + cross-
+region-reparent rider), SECRETS §4/§7 rewrite deferred to Branch 28.
+DEFERRED (each owed its own exchange, NOT done): D-14 consensus
+machinery; SECRETS.md write. Branch 44 = SPEC-WRITTEN + reconciled.

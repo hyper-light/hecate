@@ -42,6 +42,7 @@ other classes are read against it.
 | SIBYL.md | ACCEPTED 2026-08-16 | WV1–WV10 | 6 | scale-to-zero only |
 | OBJECT_TIER.md | presented (Br 24) | OT1–OT15 | 8 | yes (§10, OT15) |
 | VECTOR_INDEX.md | accepted-in-session 2026-08-17 (see D-9) | VX1–VX12 | 6 | yes (§6, VX12) |
+| IAM.md | ACCEPTED 2026-08-18 (Br 44) | IAM1–36 + IAMS1–6 | 16 | yes (§14, IAM21) |
 
 Architecture set (AGENTS/LEDGER/PLATFORM/SKILLS/SUMMONING + CONTEXT + ADRs
 0001–0005): law-level, no test matrices by design.
@@ -268,6 +269,22 @@ Architecture set (AGENTS/LEDGER/PLATFORM/SKILLS/SUMMONING + CONTEXT + ADRs
   posture; laptop degenerate (one pod = trivially consistent). Settle with
   FOREST.md's pending whole-spec verdict (D-4).
 
+- **D-14 IAM scope-keyspace scaling + cross-region reparent — OPEN (owed
+  its own exchange, 2026-08-18).** `IAM.md` §2/§3 place scope records on the
+  epoch-scope-owning group and note the region directory's keyspace must be
+  **splittable** past one group's write/storage envelope, and that a
+  cross-region scope **reparent** must be epoch-atomic (wholly-old or
+  wholly-new chain). Neither mechanism exists in CONSENSUS.md: no range
+  descriptor, no routing/descriptor cache, no split/merge record, no
+  cross-group atomic-move transaction (the §7 externalization fence covers
+  egress only, not an internal two-partition move). This is genuine new
+  consensus machinery (CRDB meta1/meta2 + load/size split, Spanner movedir
+  copy-then-atomic-flip as exemplars). **Non-blocking interim**: 10^7 scope
+  rows (10^5 users × 10^2 sessions) fit one region group's storage envelope,
+  so a v1 IAM store runs unsplit; the rider settles before a region group's
+  IAM partition approaches its envelope, or before cross-region user/org
+  mobility is supported. Spec home: a CONSENSUS.md §1/§7 amendment, settled
+  with Branch 27 (leader-election revisit) if their scopes touch.
 - **D-13 Resource-kind vocabulary derivation pass — CLOSED 2026-08-18.**
   Pass executed (PODS, OBJECT_TIER, SERVING, VECTOR_INDEX, Branch 23/34
   charters swept); v1 vocabulary minted and written into SCHEDULER §5a:
@@ -294,11 +311,35 @@ no spec anywhere) · 18 continuity/conversation · 23 document DB ·
 39 observability plane + mesh/pod telemetry integration ·
 40 universal caching · 41 vault rotation-under-replication · 42 vault
 credential types (AWS-SM parity) · 43 vault cert issuance (ACM analogue) ·
-44 IAM universal permission plane (UNIFIES Rank/SafetyPolicy/Guardian/
-Biscuit-grants/affordances) · 32-WIDENED node provisioning + abstraction expansion · 38 the laptop
+32-WIDENED node provisioning + abstraction expansion · 38 the laptop
 collapse (whole-system scale-down map + no-modes validation + degenerate
 sweep of the inventory's not-stated column) ·
 32 node lifecycle · walking skeleton (final).
+
+**Branch 44 IAM — SPEC-WRITTEN 2026-08-18** (moved out of undesigned).
+`IAM.md` ACCEPTED and written after six diligence dossiers (five corpus
+reconcilers + engine + storage-corpus) resolved 6 blockers + ~45 majors.
+It BUILDS the first-class authority plane (own LSM store, decision tree,
+compile-and-distribute to existing PEPs, tamperproof T1–T8); Rank/
+SafetyPolicy/Guardian/Biscuit-grants/affordances are now its consumers.
+§17 companion amendments LANDED (same-change doctrine): CONTEXT glossary
+(authority plane, Principal, Ceiling, Mandate, Grant + Affordance/Warden/
+SafetyPolicy refined), OBJECT_TIER §7 (IAM roots), FAULTS §1/§3 (scoped
+authority-plane adversary) + §5 cells + F8, PODS §6 (residual compile-
+source), LEDGER inv.9 (standing/work-order split + ledger serving edge),
+RANK §1 (pack-as-projection), REGISTRY (Scope-as-projection + AgentRole/
+Role split), CONSENSUS §3 (region-local ReadIndex note), FOREST §5b
+(governed scope-lifts + emission-surface + provenance stamps),
+VECTOR_INDEX §5 (generation-lineage scope granularity + manifest stamp).
+**Two IAM riders DEFERRED, each owed its own exchange**: (i) the
+**splittable-scope-keyspace + cross-region-reparent** consensus machinery
+(range descriptors, routing caches, split/merge records, cross-group
+atomic move — genuine new CONSENSUS §1/§7 work, Spanner-movedir-shaped;
+10^7 scope rows fit one region group's storage envelope interim, so
+non-blocking); (ii) SECRETS §4/§7 grant-authority rewrite (lands when
+SECRETS.md is written — Branch 28). IAM now UNBLOCKS the vault stack
+(28/41/42/43) and repo governance (35), which reference its grant/scope/
+policy model.
 
 **Unbranched gap found by this pass**: the **provider gateway** — LLM request
 shaping, streaming, retry/backoff, rate limits, provider errors, failover
