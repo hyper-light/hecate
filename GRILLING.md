@@ -2251,3 +2251,28 @@ WIRE_SECURITY/D-3; vault holds the residue; identity plane = authority).
 Structural rule: agent-visible secret:// resolves ONLY within the
 workload population — system names are outside the namespace (not
 denied; nonexistent). Five rulings still pending in-thread.
+Branch 28 maximal forms PRESENTED in-thread (2026-08-18, on the user's
+no-menus demand): detection = scan-before-CDC on the whole emission
+stream (boundary-straddling secrets invisible per-chunk), Aho-Corasick
+known-value automaton over ALL standard encodings (raw/base64/hex/URL/
+JSON-escape — one O(n) pass), RE2-class linear engines only (no
+backtracking DoS on the seal path), verifier-fed per-rule precision
+ratchet, and the DX law: every "no" ships its pre-minted fix (span +
+ready secret:// ref), FPs killed permanently via fingerprint-scoped
+user-authority allowlist claims. Dispositions = boot-registered per
+surface (unregistered emission surface FAILS STARTUP — chokepoint law on
+emissions), redaction-in-chat IS the capture flow, block-at-seal carries
+the one-action auto-fix. Injection = ONE resolver, THREE triggers
+(boot-resolve loud-fail / bind-resolve at attachment prefetch /
+JIT-resolve via agent-invoked request_secret) — bind IS JIT run by the
+attachment step; JIT ungranted ⇒ turn PARKS into a grant claim in the
+user's pane (grant-once/session/standing; denial typed, never a hang);
+delivery = flow-key sealed, response-wrapped single-consumption
+(interception DETECTABLE); registration atomic with materialization (no
+scanner-blind window); revoked values keep HMAC shadows in the detection
+index (bounded, derived). Lifecycle = leases ARE claims (drain law
+force-revokes at handoff custody post), event-driven rotation only,
+revocation cascade with a named completeness test, compromise of
+workload creds ⇒ rotation-required claim to the user (system creds
+rotate immediately), audit total + fail-closed. SECRETS.md draft next
+in-thread on acceptance.
