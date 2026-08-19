@@ -2276,3 +2276,33 @@ revocation cascade with a named completeness test, compromise of
 workload creds ⇒ rotation-required claim to the user (system creds
 rotate immediately), audit total + fail-closed. SECRETS.md draft next
 in-thread on acceptance.
+Branch 28 self-examination vs the tree (in-thread, 2026-08-18) — two REAL
+conflicts found in its own design and resolved: (1) the JIT delivery step
+violated the ratified ingress model (guests hold flow receive keys; a
+warden unsealing payload = host payload-crypto, illegal) — resolved
+CLEANER: the secrets lane is **warden-terminated by classification** (the
+mount IS the endpoint; vault seals to the warden's lane key; guest access
+= FUSE reads only; boot-classifier row `secrets_issuance →
+warden-terminated, sealed, single-use, TTL`); (2) audit-as-claims cannot
+hold for the SYSTEM population at boot (no session ledger exists) —
+per-population audit devices: workload = session-ledger claims
+(fail-closed as designed); system = durable operational log (Branch 39's
+substrate) w/ boot-fails-loudly — **Branch 39 now on Branch 28's critical
+path**. Self-correction: envelopes (fresh-CSPRNG-key sealed, unique
+ciphertext by construction) ARE ordinary CAS content — the dedup oracle
+runs through plaintext-derived addressing only; the VAULT INDEX is the
+non-CAS mutable authority. Meta-scale design: three-way state split —
+envelopes = async-everywhere on the durable plane (staleness of
+ciphertext harmless); authority = small strongly-consistent state on the
+EXISTING consensus tree by scope (session/user-home-region/root — no new
+groups); **grant-epoch fencing at the warden mount-write makes
+replication staleness harmless at the EFFECT** (externalization-fencing
+law verbatim; stronger than Vault Enterprise's read-consistency race —
+their model flagged for a receipts pass before citing); revocation = one
+consensus epoch bump + invalidation fan-out, lease-shadow margin bounds
+in-flight; **crypto-erase under async replication = the punchline: erase
+the scope key at the authority, every envelope copy everywhere including
+mid-flight becomes garbage — deletion consistency reduces to the small
+state**; region rejoin protocol applies unchanged (dead-region grant
+epochs fence-fail after rejoin). No global hot state; laptop = same code.
+SECRETS.md full draft pending the user's word in-thread.
