@@ -1205,9 +1205,37 @@ CONSENSUS+FAULTS, OBJECT_TIER §9 (D-3).
   effect-fenced (the meta-scale-secrets authz-consistency result applied).
   **UPSTREAM DEPENDENCY: reshapes Branch 28 grants, REGISTRY tenancy,
   cross-fence Biscuit grants — settle its model before those finalize.**
-  RESEARCH IN FLIGHT (combined authz-theory re-run + IAM model, pinned to
-  the service model 2026-08-18). Charter presented for user confirmation
-  of the unification mandate.
+  RESEARCH LANDED 2026-08-18 (dossier in research index). **CHARTER
+  CORRECTED BY THE USER (2026-08-18, verbatim): "we need to BUILD an IAM
+  system. While it can integrate with portions of our framework, we have
+  NO single, coherent control plane or device for managing roles,
+  permissions, etc."** — the read-model framing was the architect's
+  over-rotation, overruled and recorded: Hecate today has five enforcement
+  mechanisms and ZERO management surface. Branch 44 BUILDS the first-class
+  IAM system: (1) **the authority store** — roles, policies, role
+  assignments, grants as first-class objects with their own authoritative
+  state on the consensus tree (scoped by the failure-domain tree like the
+  vault index); (2) **the management surface** — create/assign/attach/
+  revoke roles and policies, role-assumption + chaining APIs, audit
+  queries ("what can agent X touch", "who can touch resource Y" — the
+  Zanzibar Read/Expand shape), all as claims-visible operations; (3) **the
+  decision service (PDP)** — the deterministic evaluator
+  f(request, policy-epoch, graph-snapshot), Cedar-shaped language (typed
+  fail-closed variant), forbid-overrides + union-grants +
+  intersection-boundaries + intersection-session algebra; (4) **compile-
+  and-distribute** — decisions/policies compiled to the existing PEPs
+  (warden, Guardian admission, merge gate, boot classifier, ledger Refuse)
+  with the measured invalidation SLO + epoch fencing (the effect-fence
+  result applied whole); (5) **integration, not dissolution** — Rank/
+  SafetyPolicy/Biscuit-grants/affordances become CONSUMERS governed by
+  the plane (SafetyPolicy = a boundary-semantics policy the user owns;
+  Rank = a shipped policy pack; Biscuit = the portable serialization of a
+  plane decision; the ledger graph = ONE relationship SOURCE the authority
+  store federates, never the store itself). The dossier's unification map
+  + Cedar/ReBAC/STS receipts stand as design inputs; the cannot-fold list
+  stands (judgment, sensor tighten-only, user supremacy). Design exchange
+  owed; vault-namespace dossier (in flight) feeds it (vault paths = one
+  resource type IAM names).
 - **Walking skeleton** — final branch; re-presents against completed tree
   (P0 wire → P1 runtime → P2 spine → P3 pod leg → P4 first agent → P5 first
   merged change; now must thread Sibyl/home-session/lineage into first light;
