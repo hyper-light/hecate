@@ -3661,3 +3661,37 @@ tier for the narrator suffices because collection is already Bar-B
 host-side. Score service = single-writer authority per session group in
 colocation unit, outcome-grounded, push snapshots to RANK check (all 4
 dossiers concur). Design presented in-thread for verdict.
+
+**SCRIBE DECOMPOSITION REJECTED — AGENTIC COORDINATOR (user, 2026-08-19,
+verbatim):** "the purpose of the scribe agent is to serve as an
+intelligent, interactive narrator... Reducing the system in this way
+violates the agentic nature of hecate. The Scribe serves as a
+*coordinator* of these systems, not 'three in a trenchcoat'. It's
+agentically enabled observability." ARCHITECT ERROR: mapped dumb-proxy
+sidecar research (Ambient ztunnel/waypoint = L4/L7 BYTE proxies) onto an
+INTELLIGENT AGENT, dissolving it into a mechanical pipeline — the exact
+anti-agentic reduction Hecate forbids. CORRECTION: the Scribe is a
+FIRST-CLASS AGENT (intelligent interactive narrator + COORDINATOR of the
+observability systems). The mechanical systems (collection, detection,
+scoring) EXIST as SUBSTRATE the Scribe agent coordinates — NOT what the
+Scribe IS. GROUNDING = Hecate's canonical mechanism+judgment pattern:
+warden (deterministic host-side mechanism) : Guardian (agentic judgment)
+:: {host-side collection + deterministic CUSUM detection + outcome-
+grounded score service} : SCRIBE (agentic coordinator). The 4-dossier
+research STANDS but applies to the SUBSTRATE (cheap host-side collection
+Bar-B; deterministic detection/score in colocation unit single-writer;
+telemetry aggregate-at-source/sample laws; observe-not-feed; signal-
+source≠score-authority; outcome-grounded). The SCRIBE sits atop as the
+agent: intelligent narration, interactive history-serving (peers consult
+it, it reasons what to surface), coordinates collection (consumes
+host-side signals, observe-not-feed), reads the deterministic detection/
+score signals and applies AGENTIC JUDGMENT (requests performance handoff
+with evidence+context; Guardian approves — CONTEXT.md model preserved),
+is the score service's signal SOURCE but NOT the score authority (Sylk
+separation). PLACEMENT: the Scribe is its OWN agent/microVM (one-agent-
+per-microVM, first-class, ISOLATED — not co-resident, not dissolved).
+EFFICIENCY = substrate does the cheap always-on mechanical work + the
+Scribe applies intelligence AGENTICALLY/on-demand (scale-to-zero when
+primary quiet, AUTOSCALING), NOT from making it stateless/pooled.
+Memory: feedback_dont_dissolve_agents_into_substrate. Re-presented
+in-thread with the corrected agentic frame.
