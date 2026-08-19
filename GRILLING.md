@@ -2100,6 +2100,44 @@ coefficients (identity until commissioning epoch 1), §6 typed-budget
 coherence clause, SCH16–21, AC-9/10, header status line. GAPS inventory
 row updated (SCH1–21, AC 10). The heterogeneous-placement item of the
 SCHEDULER whole-spec exchange is SETTLED.
+**Branch 28 OPENED — research dossiers LANDED (2026-08-18)**, three
+workstreams, primary sources verified. Detection: entropy-only = high
+recall/catastrophic precision (truffleHog v2's 4.5/3.0 thresholds carried
+ALL its detections yet missed ~70–75% of secrets — Meli NDSS'19);
+distinct-signature regexes + lookaround anchoring + statistical filters
+(entropy-deviation >3σ, word/sequence filters) = 99.29% candidate
+validity, 89.10% of found secrets sensitive (Meli); shipped-tool trade
+stark — Gitleaks 88% recall/46% precision vs GitHub 75% precision (ESEM
+2023 Basak); GitHub scale receipts: 39M secrets leaked 2024, ~90% of
+GitHub's own internal alerts closed non-valid (the FP-poison anchor);
+live verification (trufflehog ~800 provider probes) is the only
+FP-killer but = outbound API call CARRYING the credential —
+never inline; Vault audit = the fail-closed chokepoint pattern
+(HMAC-SHA256 instead of value + "Vault refuses to service the
+corresponding API request" if no audit device can log). Storage: Vault
+barrier/seal/Shamir/auto-unseal, dynamic-secrets leases + prefix TREE
+revocation ("vault lease revoke -prefix aws/"), rotate-vs-rekey
+distinction, response wrapping (single-use cubbyhole, malfeasance
+detection); age (per-file CSPRNG file key, recipient stanzas, no
+config); sops (encrypt values not keys, MAC under data key, key groups +
+Shamir); per-OS keychains verified (Keychain AES-256-GCM two-key,
+DPAPI logon-credential scoping, Secret Service session collections,
+kernel keyrings unswappable); secret zero = platform-identity
+attestation (Vault AWS/K8s auth "AWS is treated as a Trusted Third
+Party"; SPIFFE workload API "does not require that a calling workload
+have any knowledge of its own identity"). Injection: universal
+convergence on references-in-specs + materialize-at-trusted-boundary
+into RAM-backed files (K8s secret volumes ARE tmpfs by doc; Vault
+injector shared MEMORY volume, app never Vault-aware; systemd
+credentials non-swappable + not propagated down process tree; 1Password
+op:// = secrets-as-references product pattern; BuildKit secret mounts
+never in layers); env vars = documented anti-pattern (Docker: "available
+to all processes… printed in logs"; OWASP: "not recommended"); rotation
+= re-render in place at 2/3 lease (Vault agent), K8s env vars need
+restart (the rotation gap); NIST 800-63B: event-driven not calendar
+("SHALL NOT require… change periodically… SHALL force… if compromised");
+access-as-audited-event (Vault audit devices, CloudTrail GetSecretValue).
+Design exchange follows.
 **Placement exchange NOW WORKED IN THE RESEARCH THREAD (2026-08-18)** —
 the thread verified the tree (Branch 28 secrets + Branch 35 hosting
 confirmed on-tree; GAPS §3 staleness re Branch 35 fixed this commit),
