@@ -2306,3 +2306,17 @@ mid-flight becomes garbage — deletion consistency reduces to the small
 state**; region rejoin protocol applies unchanged (dead-region grant
 epochs fence-fail after rejoin). No global hot state; laptop = same code.
 SECRETS.md full draft pending the user's word in-thread.
+**Branch 28 META-SCALE REPLICATION REOPENED FOR RESEARCH (2026-08-18,
+user: "investigate the meta-scale secrets replication… MAXIMALLY correct,
+robust, performant, efficient, no-corners-cut").** The design-thread's §B
+replication argument (envelope=async-CAS / authority=strong-consistent-
+by-scope / epoch-fence-at-the-mount-write / crypto-erase-reduction /
+region-rejoin) was derived from ratified laws + ONE flagged receipt
+(Vault Enterprise), never grounded. Two parallel research passes
+dispatched: (1) shipped KMS/secret-manager replication+consistency
+behavior + crypto-erasure formalism; (2) the authorization-consistency
+theory the design implicitly claims (Zanzibar zookies, Macaroons,
+capability revocation, effect-vs-read consistency, short-lived-credential
+school). Verdict question for both: does the presented design hold as
+maximal, or is there a stronger pattern? SECRETS.md draft HELD pending
+these dossiers.
