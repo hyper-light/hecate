@@ -3840,3 +3840,41 @@ tool-child pidfd/tripwires). ALL RESEARCH IN (Sylk+telemetry+isolation+
 sidecar+mechanics). Design fully grounded; ready to write (companion
 loop + score service + agent↔Scribe + exceptional tradeoff doc + the
 tool-child-isolation constraint) on the user's go.
+
+**STRONGER ASYNC-TASK ISOLATION — "GREEN PROCESS" FRONTIER (user,
+2026-08-19): "is there a way we can better isolate those async tasks? At
+a system level — run like async tasks, but have some of the isolation of
+OS processes, tracing, monitorability."** The canonical model = green
+process / strongly-isolated actor: schedules like an async task, isolated/
+monitorable like a process. FOUR AXES: (1) memory isolation stronger than
+language ownership (survives bugs/native code); (2) preemption + resource
+metering (a runaway task can't monopolize; per-task CPU/mem caps); (3)
+fault isolation; (4) per-task tracing/monitorability (process_info-grade).
+hecate-rt ALREADY has the actor skeleton: single-owner arenas ≈ isolated
+heaps; per-task budget ≈ reductions; no-panic ≈ fault isolation; the
+question = how far to push it to process-grade. RESEARCH DISPATCHED
+(a9105719): W1 BEAM/Erlang (isolated per-process heaps + per-process GC;
+PREEMPTIVE reduction-counting scheduling ~2000 reductions; let-it-crash
+fault isolation; process_info/observer/trace per-process introspection;
+µs creation, millions/node) = the 40-yr proof of all four axes end-to-
+end; W2 WASM/Wasmtime instances (linear-memory isolation surviving
+arbitrary compiled code; FUEL deterministic metering; EPOCH interruption
+= forcible preemption; ResourceLimiter/StoreLimits per-instance caps;
+async_support so it SCHEDULES as an async task; WASI capability
+deny-by-default) = the modern in-process mechanism giving process-grade
+memory+preemption+capability+resource isolation while scheduling async;
+W3 Intel MPK/pkeys hardware intra-process memory isolation (pkey_mprotect/
+WRPKRU, per-thread page-group access w/o syscall; ERIM <1%-overhead,
+Hodor) = near-zero-cost hardware memory isolation between tasks (+ honest
+PKRU-attack limits); W4 SFI + RLBox (type-driven in-process sandbox
+boundary, Rust-adjacent) = software-only alternative; W5 tokio-console/
+console-subscriber (per-task poll/busy/idle/scheduled/waker/state =
+"top for async tasks") + tracing spans = the monitorability axis; W6
+runtime preemption beyond cooperative yield (Tokio auto-coop budget; Go
+signal-based async preemption at safepoints) = bounding a non-yielding
+task. W7 synthesis = decision matrix (6 mechanisms × 4 axes + overhead +
+composes-with-actor-runtime), mapping each onto hecate-rt's existing
+model + what each ADDS. Grounds whether the two agent loops get WASM-
+instance / MPK / reduction-style-preemption / console-grade-tracing
+upgrades over today's ownership+budget+no-panic. Presents decision matrix
+on landing.
