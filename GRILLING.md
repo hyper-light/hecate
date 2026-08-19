@@ -3265,3 +3265,76 @@ toward B-tree. Certification + storage §3 + engine decision wait on the
 reconciler. THIN in dossier: Vault-secondary-partition semantics,
 Spanner t-safe internals, DynamoDB ms-phrasing, RAMCloud-2009-not-2015,
 Neo4j exact source-of-truth phrasing, TiKV MVCC key encoding depth.
+
+**BRANCH 44 — STORAGE-CORPUS RECONCILER LANDED (2026-08-18, abfd6b...) —
+the last gate.** Verdict: skeleton composes real machinery, but NOT
+maximal as sketched. THREE claimed-reuses corrected: (A PARTIAL) a run
+is NOT a single pack blob — it's a content-addressed MANIFEST-OF-CHUNKS
+(ContentRef root over CDC chunks); full-run merge-scan NOT broken
+(manifest order preserves byte order); bloom+min/max go in the store-root
+for zero-fetch skip, bloom in the run's header chunk via ranged_get.
+(B REFUTED — my thin-spot #1 CONFIRMED) pack copy-forward is
+chunk-granular GC reclaim "never for updates"; record-merge is ENTIRELY
+NEW logic; BUT OBJECT_TIER §2's LSM-rejection criterion ENDORSES this
+use ("LSM earns its complexity only for mutable keys… keeps bulk bytes
+outside the tree") — cite §2 as SUPPORT, stop claiming merge-reuse.
+(C PARTIAL) "new WAL kind:u8" is wrong layer — IAMRecord = a hecate-wire
+SCHEMA kind inside raft ENTRIES; and the store-root manifest should BE
+the group's CHECKPOINT (WAL §6 floor API), not an ever-appending swap
+stream — resolves the churn concern. CONFIRMED-fits: (D) content-plane
+run fetch + batch_exists-dedup + snapshot+tail bootstrap; (Task3-4)
+epoch-scope placement (session→session grp / user-org→region / root-
+lineage→root) CONFIRMED against CONSENSUS §6 holder-containment (caveat:
+a globally-mobile principal's holders force root scope). (E PARTIAL) IAM
+manifest is a legit added mark-from-roots root but OBJECT_TIER §7's root
+list must be AMENDED (update-all-sites); dedup interacts CORRECTLY
+(shared chunks stay live); "become garbage" was loose. 
+TWO BLOCKERS: (C1) FAULTS obligation-matrix cells for {IAM store,
+compaction, reachability index} × every fault class are boot-validated
+CI and currently ABSENT — must author them (mitigant: FAULTS §2
+dispositions already classify the artifacts — run chunks=re-fetch-by-hash,
+manifest=rebuild-from-quorum/N=1-refuse-loudly, index=discard-and-
+re-derive); my region-partition cell mis-stated (reads Masked but
+writes-to-away-scopes = Degraded, split cell). (C2) runs must NOT be a
+second on-disk format — "exactly one on-disk store format exists… a
+second of any is unrepresentable"; a run is a LOGICAL content object
+(hecate-wire sorted records + index block + bloom) CDC-chunked into pack
+chunks — internal structure is CONTENT, on-disk format stays the pack
+volume; stated as a literal .sst it's a BLOCKER.
+THREE DOCTRINE TENSIONS: (C4) CONSENSUS §3 "ReadIndex only, v1. Lease
+reads do not exist" vs bounded-staleness local reads → for session/user
+scopes the owning group IS region-local so ReadIndex is region-local (no
+WAN, satisfies "no cross-region RTT" w/o a new mode); root/lineage lean
+on the compiled-residual escape (store read at COMPILE time, off the
+decision path); any genuine local-read optimization = a CONSENSUS
+amendment, never a flag. (C5) CN2 no-per-group-timer vs time-derived GC
+floor → node-level amortized sweep or event-driven advance, never a
+per-group timer. (C6) no-unbounded-growth vs reachability index →
+derived budget (copy OBJECT_TIER §2 index-RAM formula items×per-item-cost
+vs node RAM + escape hatch) + scope partition + eviction (safe: it's
+derived, evictable, NEVER authority). MINORS: C7 "manifest" vocab
+collision (rename store-root → "IAM root"/"level set"); C9 revision=LogPos
+is PER-SCOPE not global (PITR at rev≤R is per-group; revision must be the
+committed/applied index, not raw append pos); C10 Ed25519 "management
+service" custody/rotation belongs in Branch 25 key hierarchy + RUNTIME §4
+FFI-lint allowlist, verify-at-apply is apply-path CPU (~25-40µs) off the
+read path; C11 arena/index/checkpoint overloads; C12 memtable-apply must
+advance applied watermark in the SAME txn (CONSENSUS §2); C13 derive
+bloom-FP/flush-threshold/T/audit-margin/part_floor at definition sites
+(zero literals); C14 the compiled-residual hot-path claim is IAM-domain,
+unverifiable vs storage specs, C4's severity depends on it.
+
+**ENGINE CHOICE RESOLVED → LSM (owned, over the pack tier).** The B-tree
+vs LSM fork is settled NOT on access-pattern (which mildly favored
+B-tree: read-dominated small shards) but on the ONE-ON-DISK-FORMAT LAW
+(C2): a mutable-page B-tree is a SECOND on-disk format = "unrepresentable";
+an LSM's immutable sorted runs CDC-chunk into the EXISTING pack format as
+content; OBJECT_TIER §2 explicitly ENDORSES an LSM-consumer over the
+immutable pack tier; and the compiled-residual model puts store reads at
+COMPILE time so the LSM's weaker point-read is off the hot path — its one
+disadvantage neutralized. LSM wins because it's the only engine that
+composes Hecate's substrate without violating the one-format law.
+
+STORAGE §3 now GROUNDED + CORRECTED; all research in (5 reconcilers +
+engine dossier + storage-corpus reconciler). Ready to assemble the full
+IAM re-presentation (R1-R11) on the user's word.
