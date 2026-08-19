@@ -2881,3 +2881,55 @@ blast radius = resident sessions only (no quorum, no keys), T7
 high-blast mutations carry user-approval obligations, T8 probe =
 sensor high-signal → hard block + quarantine. Tests IAM25–36 + criteria
 15–20 added. Verdict owed.
+
+**BRANCH 44 DILIGENCE ROUND (2026-08-18, user) — round-1 amendments
+DEMOTED to proposals pending diligence.** User convictions, all accepted:
+"solved the holes without doing diligence"; "no research backing, no
+concrete details"; "no analysis of our existing designs to determine
+conflicts"; "no comprehensive list of actions, principals, resources,
+roles examples, policy examples"; "no practical mechanics of how we
+replicate and distribute, what protocols we use — this simply just
+magically exists?"; "How does it work with our storage types? What
+networking does it use? Do we cache? How? How do we store audits,
+access, storage of policies?"; "At Meta AND laptop scale to be clear."
+
+REQUIREMENTS REGISTER for the IAM re-presentation (all mandatory):
+R1 receipts on every claim (external security-receipts dossier IN
+FLIGHT: Anderson triad, Saltzer-Schroeder, Firecracker/gVisor/virtiofs/
+seccomp boundary receipts, Goguen-Meseguer noninterference, Denning
+lattice, Flume DIFC, SELinux MAC/DAC, GitHub 404-privacy, Kafka/NATS
+granular ACLs, Hardy confused deputy, ocap no-ambient-authority, OWASP
+LLM01/excessive-agency, K8s ResourceQuota/lifecycle/NodeRestriction/
+system:-prefixes, GCP/AWS lifecycle windows + liens, TUF thresholds,
+Google BSRS multi-party authorization, seL4 proofs, Ed25519 verify
+costs, CT append-only). R2 corpus conflict register (FOUR agents IN
+FLIGHT covering all 25 specs + 5 architecture docs + CONTEXT.md +
+secrets presentation; conflict categories CONTRADICTION/DOUBLE-SPEC/
+GAP/HOT-PATH-COST/VOCABULARY w/ verbatim both-side quotes; plus
+extraction of the exact existing machinery IAM must ride). R3 complete
+enumerations: every principal (all system services named), every
+resource type, every action (closed lists, no abbreviation), worked
+ROLE definitions per office + system roles, POLICY examples as concrete
+dialect text. R4 replication/distribution mechanics: record kinds,
+log-stream integration per WAL consensus-substrate clause, message
+flows, artifact transport (CAS-hash + pointer-record over named
+PROTOCOL archetypes), compiler service placement per RUNTIME task
+laws. R5 storage integration: where policy text/bindings/sessions/
+grants/artifacts/audit live across consensus logs, CAS arena/pack
+tiers, durable plane — named per storage type. R6 networking: which
+planes/lanes/archetypes carry store↔compiler↔PEP traffic; identity +
+sealing per WIRE_SECURITY lane classes. R7 caching: what caches exist
+(residual artifacts, decision memoization, context slices), cache keys
+(subproblem × epoch — Zanzibar quantization shape), invalidation =
+epoch bump; what is deliberately NOT cached. R8 audit/access-record
+storage: stream classes, encodings, retention, fail-closed
+dispositions, per population. R9 decision tree + per-system intercepts
+(round-1 text; must survive R1/R2 reconciliation). R10 EVERY mechanism
+shown at laptop N=1 AND Meta cross-region (both scale walks, no
+modes). R11 tamperproof T1–T8 (pending R1 receipts). Vocabulary risk
+already self-flagged for R2: draft "Session" (assumed-role) collides
+with CONTEXT.md "Session" (isolation unit) — rename owed (likely
+"Assumption" or "AssumedIdentity").
+
+Re-presentation assembles when all five agents land. Nothing asserted
+before evidence; round-1 text stands only as proposal input.
