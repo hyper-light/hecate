@@ -2454,3 +2454,91 @@ intact (envelopes on the exabyte plane; authority small on the existing
 consensus tree by scope; no global hot state; ≥128-bit-AEAD invariant).
 SECRETS.md now UNBLOCKED — presented in-message (grant section IAM-pending,
 Branch 44).
+**SECRETS.md verdict HELD (2026-08-18) — the user's namespace probe caught
+real corners in the presented draft**: (1) NO tenancy/namespace model — the
+draft**AUTHZ-THEORY RE-RUN + IAM DOSSIER LANDED (2026-08-18; service model;
+all-primary receipts — Zanzibar/Chubby/Anderson/Macaroons/Cedar/NIST
+PDFs read directly)** — Synthesis A CONFIRMS the §B settlement verbatim:
+effect-fence maximal (enforce-at-CHECK collapses into enforce-at-EFFECT
+only when check+effect are atomic; detachable effects — locks, secrets,
+egress, commits — REQUIRE the resource-side floor; Kleppmann/Chubby/
+CWE-367); stale-reads-safe iff complete-mediation + monotonic-floor-at-
+effect + systematic-invalidation-with-expiry-backstop; fence-freshness
+contract = ALTS local-CRL shape (CRL-not-expiry as source of truth —
+Google's own clock-skew rationale ≡ our epochs-not-wall-clock law);
+crypto-erase completion = max(replica-destruction acks, lease-shadow
+margin), declared not assumed. IAM Synthesis B: ReBAC graph = universal
+substrate (Zanzibar: hundreds of services, one model; roles = concentric
+relations) BUT every production ReBAC bolts on a condition mechanism
+(OpenFGA Conditions, SpiceDB CEL caveats, Cedar when) — graph+typed-
+conditions is the real shape; Cedar = the only surveyed language meeting
+the determinism/verification bar (total, side-effect-free, order-
+indifferent, default-deny + forbid-overrides, typed-never-errors,
+SMT-analyzable sound+complete, Lean-modeled, Rust, 28-80× faster than
+FGA/Rego) w/ ONE divergence required: skip-on-error → typed fail-closed;
+AWS evaluation ALGEBRA adopted regardless of language (deny-overrides +
+union-grants + intersection-boundaries + intersection-session — maps 1:1
+to hard-blocks/grants/SafetyPolicy/scope-down); STS role mechanics
+(intersection-only scope-down; SourceIdentity-persists ≡ caused**IAM + AUTHZ-THEORY DOSSIER LANDED (2026-08-18, service-model re-run) —
+grounds Branch 44 and re-confirms secrets §B with verbatim primary
+receipts.** AUTHZ THEORY: effect-fence CONFIRMED maximal in exact form —
+"a monotone version floor checked by the resource at the moment of the
+effect closes the check-to-effect window no read-side discipline can
+close" (Kleppmann verbatim "cannot fix by a check just before writing" +
+"storage server must take an active role"; Chubby sequencer "recipient
+server is expected to test... reject"; CWE-367). Enforce-at-CHECK
+(Zanzibar) = special case of enforce-at-EFFECT when check+effect atomic
+(zookie stored atomically with content version); detaches for locks/
+secrets/egress/disk ⇒ effect is the general primitive. Stale reads safe
+IFF: complete mediation (Anderson "always invoked") + monotone floor at
+the effect (zookie/sequencer/epoch) + systematic invalidation w/ expiry
+backstop (Saltzer-Schroeder "remembered results must be systematically
+updated"; §1.12 REFUTED fence-subsumes-expiry — SPIFFE/ALTS/K8s/Chubby/
+Macaroons/Biscuit ALL keep both; ALTS names CRL not expiry the source of
+truth). Vault-Enterprise read-consistency (X-Vault-Index/412) = the weaker
+placement, receipted. Both secrets §B corrections re-grounded: fence
+freshness contract (ALTS local-CRL push + measured lag + fail-closed;
+K8s TokenReview honors deletion only "60s or more" after — even authority
+checks carry a bound); crypto-erase completion (NIST 800-88: complete only
+when "all copies of the keys are sanitized" — authority replicas + escrow
++ live lease-shadow RAM copies; completion_time = max(replica-acks,
+lease-shadow margin)). IAM MODEL (Branch 44): ReBAC relationship graph =
+universal substrate (Zanzibar: hundreds of services one model; roles =
+concentric relations; RBAC subsumed, ABAC subsumed ONLY w/ attached
+condition mechanism — OpenFGA Conditions/SpiceDB CEL caveats/Cedar `when`,
+EVERY production ReBAC adds one). Cedar = the policy language matching our
+bar (total, side-effect-free, order-indifferent, default-deny +
+forbid-overrides, typed-never-errors, SMT sound+complete, Lean-modeled,
+RUST-native, DRT; 28-80× faster than OpenFGA/Rego; ONE divergence:
+skip-on-error → make typed fail-closed for us). Rego REJECTED for
+seed-replay (eval-time http.send/time.now_ns). AWS evaluation ALGEBRA
+stolen regardless: deny-overrides + union-grants + intersection-boundaries
++ intersection-session-scope → maps 1:1 to SafetyPolicy(boundary)/
+grants(session)/hard-blocks(deny). Role mechanics = STS transposed:
+assume = session identity w/ INTERSECTION (never union) of role+session
+policy; chaining carries provenance (SourceIdentity ≙ caused_by) + hard
+duration cap (anti-laundering); confused-deputy avoided by-construction
+(Biscuit third-party blocks / Macaroon contextual confinement). PDP/PEP
+(NIST 800-207): PDP = decision service on consensus tree (decides+logs);
+PEPs ALREADY EXIST (warden/Guardian/merge-gate/boot-classifier); decision
+= f(request, policy-epoch, graph-snapshot) — the §5b/SCH19/zookie pattern.
+UNIFICATION MAP (the mandate): Rank = domain authority relations + event
+modulation @ ledger-Refuse PEP; SafetyPolicy = user boundary fragment
+(intersection/caps-never-grants); Guardian = PEP + escalate-disposition
+judge (HOLD stays agentic); Biscuit = portable attenuable revocation-id
+serialization of a plane decision; **claim affordances = the plane READING
+THE LEDGER-AS-GRAPH (axis-2 dependency = Zanzibar reachability literally;
+the ledger already IS the ReBAC substrate)**. CANNOT fold (flagged):
+work-quality judgment, sensor tighten-only (composes as DENY layer,
+Istio DENY-before-ALLOW), user supremacy. Agent↔agent governance = mesh
+pattern on existing rails (SPIFFE-by-birth mint, policy names principals
+not addresses, PEP = warden + FlowKeyGrant as the natural default-deny
+moment — a flow key issues only when the plane edge exists at current
+epoch). Repo governance (Br 35) = lineage resource policies + CODEOWNERS-
+as-path-relations + required validations @ land PEP. Universal-plane
+precedent: NO ONE runs literally one plane for all (Google runs ≥3);
+leak points ALWAYS = dynamic context / resource-native last-inch /
+judgment — but Hecate's domains already share one ledger, one identity
+mint, one consensus tree, one PEP doctrine, so the historical forcing
+conditions don't all apply. Branch 44 model exchange owed after the
+namespace dossier (Branch 28 upstream interlock).
