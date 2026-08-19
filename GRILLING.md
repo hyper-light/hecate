@@ -3878,3 +3878,40 @@ model + what each ADDS. Grounds whether the two agent loops get WASM-
 instance / MPK / reduction-style-preemption / console-grade-tracing
 upgrades over today's ownership+budget+no-panic. Presents decision matrix
 on landing.
+
+**GREEN-PROCESS FRONTIER — TWO AXIS SHARPENINGS (user, 2026-08-19):**
+(1) "no-panic as fault isolation is STILL weak — processes do unexpected
+things." CORRECT: no-panic/catch_unwind covers only the EXPECTED fault
+path (recoverable panics, panic=unwind). PROCESS-FATAL faults it does
+NOT contain in a shared process: abort (panic=abort/double-panic/
+alloc-fail-abort), stack overflow→SIGSEGV, OOM, hang/livelock/deadlock
+(only PREEMPTION contains — ties to axis 2), FFI/unsafe UB/native crash.
+Real fault isolation of the UNEXPECTED needs a SANDBOX (WASM: OOB/
+stack-overflow/unreachable→traps caught by host, contained to the
+instance; fuel/epoch bound infinite loops; StoreLimits bound growth —
+host-call residual) or an OS PROCESS (contains all, at process cost).
+MPK contains NONE of the fault-fatal (memory access control ≠ fault
+containment). Even BEAM's honest hole: a bad native NIF crashes the VM →
+native/arbitrary code MUST be at arm's length (child process — Hecate's
+tools-as-child-processes). Addendum sent: fault TAXONOMY (a-f) ×
+mechanism containment table. (2) "purely relying on tokio for
+monitorability is weak — how do we determine what the process is doing?
+Resource usage?" CORRECT: tokio-console = SCHEDULER-level only (poll/
+busy/idle/waker/state), NOT actual compute/memory/syscalls/semantics.
+Process-grade needs FOUR LAYERS: L1 EXACT per-task accounting (WASM fuel
+= instructions executed + linear-mem size = exact bytes + host-calls =
+every I/O at the boundary; or BEAM process_info reductions+heap+
+current_function+msg_queue_len+status; hecate-rt today = only arena-byte
+budget); L2 SEMANTIC (tracing spans = what operation); L3 KERNEL/
+MECHANICAL (eBPF — syscalls, on-CPU + OFF-CPU "what's it blocked on",
+page faults, I/O — the deep view tokio can't give); L4 RESOURCE ENVELOPE
+(cgroup cpu.stat/memory.current/io.stat). Addendum sent: four-layer
+monitorability × mechanism table. THE THROUGH-LINE emerging (to be
+priced, not asserted): WASM instances score high on ALL THREE axes
+SIMULTANEOUSLY — memory isolation (surviving arbitrary code → could
+CLOSE the §3 code-exec tradeoff), fault containment (traps + fuel +
+limits, host-call residual), AND monitorability (fuel/linear-mem = exact
+resource accounting, host-calls = observable I/O). The decision matrix
+must weigh this against the WASM boundary cost (model/tool calls become
+host calls; whether the agent loop itself should be a WASM instance vs
+tools-only). Research (a9105719) covers all + both addenda.
