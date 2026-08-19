@@ -3695,3 +3695,40 @@ Scribe applies intelligence AGENTICALLY/on-demand (scale-to-zero when
 primary quiet, AUTOSCALING), NOT from making it stateless/pooled.
 Memory: feedback_dont_dissolve_agents_into_substrate. Re-presented
 in-thread with the corrected agentic frame.
+
+**SCRIBE = CO-LOCATED PROCESS, MECHANICS RESEARCH (user, 2026-08-19).**
+User: prose w/ "zero practical application"; "scale to zero" is
+INCOHERENT (a monitor attached to a RUNNING agent can't scale to zero).
+VOCABULARY RULE: NOT a "sidecar" (mesh baggage) — a **CO-LOCATED
+PROCESS**. Confirmed direction: the Scribe is a first-class agent
+running as a co-located, mutually-isolated PROCESS inside the primary's
+microVM (Kata Containers = the production precedent: a whole K8s pod =
+multiple isolated processes in ONE microVM via kata-agent guest init +
+per-process namespaces/cgroups). BIDIRECTIONAL non-tampering is
+co-equal: primary-must-not-tamper-Scribe is AS important as
+Scribe-must-not-tamper-primary — PEER isolation, not a privileged
+watcher. SCALE-TO-ZERO RETRACTED → honest model: the Scribe process is
+RESIDENT (blocked on its host-side input stream, ~0 CPU idle, cost = its
+RSS); MODEL INFERENCE is on-demand/bursty (narrate/judge on events), not
+per-turn. CONCRETE-MECHANICS RESEARCH dispatched (ad03bcc9, expanded):
+W1 libkrun actual process/guest model (does the fork support a
+multi-process guest w/ init/supervisor, or is that fork work?); W2 Kata
+multi-container-in-one-VM precedent (kata-agent spawn + per-container
+ns/cgroup isolation, ttRPC/vsock); W3 guest-init supervisor pattern; W4
+CONCRETE isolation flags (clone/unshare NEWNS/NEWPID/NEWIPC/NEWUSER,
+cgroup v2 memory.min/cpu.weight + delegation, separate UID + yama
+ptrace_scope, seccomp/Landlock — actual flags/paths); W5 native-sidecar
+spawn ordering (KEP-753); W6 resident-idle footprint (kills
+scale-to-zero); W8 MUTUAL/symmetric isolation (both processes protected
+from each other; each own cgroup floor the other can't rewrite unless
+guest-root); W9 process lifecycle + failure/RESTART within the microVM
+(guest-init PID1 reaping/restart; Scribe crash→restart w/ primary
+running; primary crash→Scribe observes+reports+torn down; ordering);
+W10 lifecycle COUPLING (how the Scribe polls/watches the primary's
+liveness from within the guest — pidfd_open(2) race-free death
+notification, /proc, cgroup.events — NOT a primary-controlled channel);
+W11 TRIPWIRES (seccomp RET_TRAP/audit, Landlock denials, cgroup OOM =
+attempted-boundary-violation is itself a detectable event surfaced to
+the host warden). Mechanics-grounded design presents when it lands. NO
+more architecture prose w/o the concrete spawn/isolation/lifecycle
+mechanics + examples.
