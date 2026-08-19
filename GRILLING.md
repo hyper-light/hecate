@@ -3915,3 +3915,29 @@ resource accounting, host-calls = observable I/O). The decision matrix
 must weigh this against the WASM boundary cost (model/tool calls become
 host calls; whether the agent loop itself should be a WASM instance vs
 tools-only). Research (a9105719) covers all + both addenda.
+
+**GREEN-PROCESS FRONTIER — LATENCY/SCALE-COST SHARPENING (user,
+2026-08-19): "hesitant to just jump to WASM — laptop might support it,
+Meta scale the latency will KILL."** CORRECT instinct, sharpened: WASM's
+per-call boundary cost kills FINE-GRAINED workloads but is NEGLIGIBLE for
+the COARSE await-heavy agent loop (model ~100s-ms, tool child ~seconds,
+vs µs boundary). The REAL Meta-scale WASM tax is INSTANTIATION/compile +
+LINEAR-MEM DENSITY across N instances (mitigable by pooling-allocator/
+pre-instantiation/AOT — to be quantified). KEY: WASM is NOT the only path
+— cheaper non-WASM mechanisms hit most axes at NEAR-ZERO per-call cost:
+MPK/pkeys (WRPKRU ~tens-of-cycles, no syscall/boundary, ERIM <1% — memory
+isolation surviving... actually only access-control not code-exec, but
+near-free); runtime preemption (reduction-count/signal — bound a hung
+task ~free); supervision + POD-DEATH RECONSTRUCTION (process-fatal faults
+uncatchable in-process contained at the POD level — pod dies, warden
+detects, successor reconstructs from durable claims, AGENTS_RUNTIME R3);
+eBPF + runtime accounting (deep monitorability, kernel-side, zero app
+boundary). Addendum sent: matrix gains {per-call/hot-path, instantiation,
+memory-density@N} cost columns × the isolation/fault/monitorability axes.
+THE HONEST SPECTRUM the matrix must lay bare: cheap-strong-on-3-axes
+(MPK + runtime-preemption + eBPF + supervision — but NO arbitrary-code
+fault containment) → WASM (ADDS arbitrary-code containment at an
+instantiation/density tax, per-call-negligible-for-coarse-loops). Choose
+per the both-scales-no-modes law. Research (a9105719) now covers
+mechanisms × axes × cost = the full priced decision matrix. Presents on
+landing; NO jumping to WASM.
