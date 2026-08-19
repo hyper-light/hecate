@@ -2837,3 +2837,47 @@ every plane; agent↔agent governance; assignment/assumption/chaining;
 egress + repo governance; management surface + audit; cross-region
 scale walk + laptop degenerate; test matrix; acceptance criteria.
 Verdict owed. Write-to-disk only on accept.
+
+**BRANCH 44 GRILL ROUND 1 (2026-08-18, user)** — four challenges: (1)
+in-pod vs boundary-only intermediation ("isolated enough trust me bro"
+vs "everything checked, UX miserable"); (2) knowledge systems missing +
+claims board governance must be GRANULAR (see/execute/write ×
+claims/testaments/artifacts/validations/deltas; hijack threat named) +
+sessions-as-enforcement-layer ("think in layers"); (3) scope/tenancy
+recommendation convicted as an ESCAPE HATCH — maximal answer demanded;
+(4) IAM must be "*near physically impossible*" for agents to
+manipulate. AMENDMENTS PRESENTED IN-THREAD: (1) boundary-complete
+enforcement law — the pod boundary IS the complete effect surface
+(VFS server-side, lanes warden-terminated, egress gatewayed, claims
+through the core): IAM evaluates at boundary events (attach/load/
+grant/edge), compiled residuals enforce per-IO at constant time,
+in-guest computation is FREE, sensor observes tighten-only; (2)
+six-layer model L0 metal → L1 session envelope (cross-session =
+resolution-layer NONEXISTENCE, one door: brokered Grant) → L2
+structural walls → L3 boundary caps → L4 policy → L5 judgment; granular
+ledger matrix w/ metadata-vs-content split, typed artifact reads,
+receipt-holder-only testify/activate (structural), double-entry edge
+checks; ANTI-HIJACK laws H1–H5 incl. NO-AUTHORITY-TRANSFER (executor
+acts with own authority ∩ attached scoped Grant, never issuer's) +
+core-stamped unforgeable provenance; DERIVED-DATA-INHERITS-MOST-
+RESTRICTIVE-SOURCE-SCOPE law (kills read-via-index laundering; forest/
+vector ingestion = registered emission surfaces); knowledge governance
+(contribution permits, provenance-weighted trust, source-scope
+visibility); (3) scope subsystem upgraded to maximal: visibility =
+chain ∪ grants at RESOLUTION (no exists-vs-denied oracle — D-3
+reasoning), delegated-admin containment + non-interference invariant
+(partition-keyspace structural), epoch-atomic reparent (wholly-old or
+wholly-new chain, never mixed; cross-region reparent → CONSENSUS §7
+externalization fence), scope lifecycle (create/freeze/archive/dispose)
++ derived quota attachment; escape-hatch framing RETRACTED (warrant =
+AWS-Orgs/GCP/F1 receipts; Vault guidance demoted to failure anatomy);
+(4) tamperproof triad (Anderson): T1 host-side-only plane (zero IAM
+code in guests), T2 management-endpoint NONEXISTENCE on pod lanes, T3
+type-level unbindability (iam/node_plane actions schema-marked
+principal_kinds:[user,system_service]; agent bindings unrepresentable),
+T4 record-signature-verified-at-APPLY on every replica (compromised
+node or LEADER cannot mint authority), T5 signed artifacts, T6 node
+blast radius = resident sessions only (no quorum, no keys), T7
+high-blast mutations carry user-approval obligations, T8 probe =
+sensor high-signal → hard block + quarantine. Tests IAM25–36 + criteria
+15–20 added. Verdict owed.
