@@ -2649,3 +2649,120 @@ bundles, Istio/Envoy xDS RBAC, K8s RBAC colocated authorizer, GCP IAM
 propagation numbers, SPIFFE/SPIRE), synthesis WITHOUT recommendation.
 Corrected charter framing (own store, never the ledger) baked into the
 brief. Branch 44 design exchange follows its landing.
+
+**IAM BUILD-MECHANICS DOSSIER LANDED (2026-08-18, relaunched agent)** —
+grounds Branch 44 implementation. ZERO NO-PRECEDENT findings: every
+needed mechanism has production precedent. Highlights (full dossier in
+session transcript; verbatim receipts on file):
+- **Zanzibar storage**: per-namespace Spanner DBs; tuple PK (shard ID,
+  object ID, relation, user, commit timestamp) = MVCC in-row; changelog
+  written in the SAME transaction (randomly sharded) feeding Watch;
+  namespace configs = config + changelog tables, servers
+  load-all-then-tail. Serving: fan-out from any server, consistent-hash
+  delegation w/ BOTH-side caching, quantized eval timestamps ("one or
+  ten seconds") respecting zookie floors, per-server lock table
+  (anti-stampede), hedging, concurrent boolean-tree eval w/ cancel.
+  Leopard: (T,s,e) set-container skip-lists; offline snapshot layer +
+  Watch-fed incremental layer merged at query. Numbers: 1,500+
+  namespaces / hundreds of apps; 2T+ tuples ~100TB; 10M+ qps; Check
+  p50/95/99/99.9 = 3/11/20/93ms; 99.999%+ over 3yr; 200M cache
+  lookups/s.
+- **SpiceDB (buildable exemplar; actual migration SQL captured)**:
+  relation_tuple rows carry created/deleted transaction (alive at R iff
+  created≤R<deleted; delete = logical sentinel), later xid8+pg_snapshot;
+  caveats (name + JSONB context) + expiration TIMESTAMPTZ on tuples;
+  schema stored chunked + content-hashed per revision. Revisions:
+  PG = xid8+snapshot w/ quantized-selection SQL; CRDB = HLC. **ZedToken
+  = datastore-ID + revision + SCHEMA HASH — the only surveyed token
+  fencing data AND schema at once** (also detects wrong-datastore
+  tokens). Consistency modes verbatim (minimize_latency /
+  at_least_as_fresh / at_exact_snapshot / fully_consistent; 5s default
+  quantization). Dispatch: per-node consistent hash ring (no consensus;
+  endpoint-watch membership), subproblem cache keys include eval
+  timestamp, singleflight w/ traversal bloom filter. Preconditioned
+  transactional writes (MUST_MATCH/MUST_NOT_MATCH); ImportBulk (one
+  txn)/ExportBulk (resumable); Watch = {relationship updates, schema
+  updates, CHECKPOINTS} — checkpoints ARE the applied-epoch signal our
+  wardens need.
+- **OpenFGA contrast**: tuples current-state-only (no MVCC) + separate
+  changelog; models = IMMUTABLE ULID snapshots (pin
+  authorization_model_id); NO zookie ("considering a similar feature")
+  ⇒ receipted INSUFFICIENT alone for our fencing law. **Contextual
+  tuples ("treated as if they were actual stored tuples during the
+  evaluation of that request"; context takes precedence) = the exact
+  precedent for our work-facts-as-request-context-only law.** Stored
+  per-model assertions (test cases as data).
+- **AWS IAM/STS**: full enforcement-code order verbatim (deny-first →
+  RCP ∧ SCP ∧ (resource ∨ identity) ∧ boundary ∧ session; union for
+  same-account identity+resource). **Receipted precedence hole: a
+  resource policy naming the SESSION principal bypasses boundary/
+  session implicit denies** — Hecate must decide this deliberately.
+  AssumeRole: 900s–12h, default 1h; **chaining hard-caps at 1h
+  regardless of role max**; session policy = intersection (≤2048 chars,
+  ≤10 ARNs); tags ≤50 w/ transitive persistence, colliding inherited
+  tag FAILS the assume; SourceIdentity set-once, immutable across
+  chains, permission-gated both sides, in CloudTrail; ExternalId
+  "controlled by [the deputy], not its customers". IAM eventual
+  consistency verbatim + "do not include IAM changes in critical
+  high-availability code paths"; authorization >400M calls/s (2021).
+  AVP: IsAuthorized{PARC + entity slice} → {decision,
+  determiningPolicies, errors incl. "does not exist in the slice"};
+  Batch ≤30 shared-slice ≤100+100; templates w/ ?principal/?resource +
+  RETROACTIVE propagation.
+- **Cedar**: decision procedure verbatim (any forbid-true ⇒ Deny; else
+  any permit-true ⇒ Allow; else Deny). **Skip-on-error baseline
+  verbatim ("the policy does not factor into the authorization
+  response; it is skipped") + their own safety argument against blanket
+  deny-on-error — the erroring-FORBID-silently-stops-forbidding case is
+  exactly what our typed per-effect fail-closed disposition fixes**
+  (error-in-permit already fail-closed; error-in-forbid must fail the
+  DECISION closed). Crate: Authorizer::is_authorized(Request, PolicySet,
+  Entities) → Response{Decision, Diagnostics}; Schema/Validator;
+  partial-eval behind `tpe`/`partial-eval` (PartialRequest/TpeResponse/
+  EntityLoader) — the natural basis for compiling per-warden RESIDUAL
+  policies; Apache-2.0. Validation sound for "most, not all errors" ⇒
+  disposition load-bearing. Lean model + nightly DRT ~100M tests;
+  cedar-policy-symcc property verification w/ counterexamples.
+  Closed-world slice evaluation: the PDP does NO I/O mid-decision.
+- **Vault internals (source-read)**: ACL = policies COMPILED to radix
+  trees (exact/prefix/segment-wildcard) + capability bitmap at
+  token-use; most-specific-wins w/ deny-at-equal-specificity enforced
+  IN THE MATCHER (CVE-fix comment captured); policies in barrier, LRU
+  2Q cache (1024); tokens carry policy NAMES, LATE-BOUND to content at
+  eval (edits bite live tokens — the inverse of AWS's issuance-frozen
+  sessions); perf replicas: policies async-replicate, tokens/leases
+  deliberately cluster-local.
+- **Compile-and-distribute shapes (all receipted)**: xDS full-snapshot
+  push w/ version+nonce ACK/NACK + last-valid-config-on-NACK +
+  make-before-break ordering; OPA signed gzip bundles w/ etag/304,
+  delta bundles (JSON Patch), roots-scoped ownership, last-known-good +
+  status API on activation failure, **decision logs stamped with
+  bundles[_].revision** (epoch-stamped decisions) + masking hook; K8s =
+  colocated-no-distribution (etcd objects ARE the store; chain
+  short-circuit; additive-only, no deny rules; **Node authorizer =
+  per-node principal w/ graph-computed perms — the warden-identity
+  precedent**); GCP propagation "Typically 2 minutes, potentially 7
+  minutes or longer" (groups: hours); SPIFFE/SPIRE attestation →
+  selector-mapped registration → short-lived SVIDs.
+- **Synthesis (no recommendation)**: store-versioning trichotomy
+  (MVCC-interval / commit-ts+changelog / immutable-model+current-state)
+  — only MVCC-with-schema-hash-in-token fences both planes; management
+  verb union captured; PDP laws: compile-before-evaluate, closed-world
+  slices, (subproblem, quantized-snapshot) memoization under the zookie
+  floor, Leopard escape for deep nesting, decisions carry determining
+  policies + epoch; **warden pipeline composite = OPA-style signed/
+  revisioned/roots-scoped artifacts + xDS-style ACK/NACK/last-known-good
+  + Watch-checkpoint epochs (each element receipted; the composite is
+  ours)**. Revocation trichotomy: AWS short-TTL-no-revoke / Vault
+  instant-late-binding / SPIFFE rotation — our push-invalidation + TTL
+  backstop ≙ Vault-style late-bound grants + SPIFFE-style short
+  sessions.
+- Caveats: agent's WebSearch budget was exhausted ⇒ AWS-internal
+  replication topology beyond official docs = NO-RECEIPT; THIN:
+  Zanzibar staged config rollout, SpiceDB Leopard-equivalent, OpenFGA
+  check internals, Cedar bench numbers/index structures, K8s
+  aggregation verbatim, GCP inheritance verbatim, SPIRE rotation.
+Branch 44 design exchange: OWED — sequenced AFTER the tenancy/blend
+exchange (scale dossier in flight), since scope/tenancy shape the
+authority store's sharding and the management surface's attachment
+points.
