@@ -4021,3 +4021,44 @@ axes + the cross-platform finding (MPK disqualified = x86-only mode; WASM
 uniform cross-platform; eBPF/cgroups in-guest-Linux uniform) — only the
 WASM COST leg is being re-grounded. Decision on gap-(ii)/§3 HELD until
 the real WASM-cost evidence lands.
+
+**WASM OVERHEAD — PRODUCTION EVIDENCE LANDED (2026-08-19, a0a499ff).**
+THE RULE: WASM taxes BYTES CROSSING THE BOUNDARY, not instructions inside
+it. PRISMA (verbatim, raw HTML): removing Rust/WASM query engine because
+"the cost of serializing data between Rust and TypeScript is very high
+[and] negates any benefit gained"; penalty SCALES WITH DATA — findMany
+25k records 185ms→55ms (3.4×), large m2m 1539ms→136ms (11×), "minimal"
+on small queries; bundle 14MB→1.6MB→148KB; WASM prod failures (#28012
+Cloudflare "Invalid array buffer length", #16805 "Out of memory: wasm
+memory" 32 comments). CRUCIAL: Prisma's NEW arch IS the mitigation —
+WASM compiler emits SQL (tiny/compute), JS driver executes+receives bulk
+rows (data never re-crosses WASM). ZAPLIB (rewrote-in-WASM-then-
+abandoned): compute win only "5% faster"/"2× some of the time, not 10×"
+— WASM compute speedup is SMALL + RARE (so isolation, not speed, is the
+only reason to WASM a coordination loop). FIGMA 3× (but COMPUTE-bound
+rendering). SHOPIFY Functions hard caps (128kB in/20kB out = platform
+bounding boundary transfer). Wasmtime bounds-check 1.2-1.8× is ELIDED by
+default on 64-bit (4GiB guard + page-fault traps) — NOT a Hecate cost.
+NO clean Wasmtime-vs-native % exists (Sightglass explicitly refuses the
+comparison) — NO-PRECEDENT CONFIRMED. Per-call host-call ns = THIN (not
+published; direct call not syscall, small; data-copy is the term that
+matters). Cold-start/bundle = Prisma's EDGE pain, does NOT transfer —
+Hecate = long-lived POOLED instances (Wasmtime pooling allocator + CoW +
+AOT + InstancePre = 5µs instantiation; Lucet <50µs). MITIGATION clean +
+expressible: component-model `resource` = host-owned handle, guest holds
+opaque i32, bulk data never enters linear memory (= Prisma's new arch).
+Residual honest: whenever the guest must READ bytes to decide, THAT slice
+copies in → design loop to read MINIMUM (decisions on metadata/handles,
+not full payloads); same-language Rust↔Rust avoids Prisma's JS
+(de)serialization. VERDICT: agent loop NOT a Prisma trap CONDITIONALLY —
+ONLY if bulk data plane (context/token-stream/tool-I/O) stays HOST-SIDE
+behind handles; if data crosses, it IS the Prisma wall. ARCHITECT READ:
+compute win nil (Zaplib) → isolation is the ONLY WASM benefit; data cost
+real+controllable-but-a-design-constraint for a content-reasoning loop;
+cheap-stack (ownership+preemption+in-guest-eBPF/cgroups+pod-reconstruction,
+FREE + cross-platform + Bar-A + pod-level recovery) is the better DEFAULT.
+RECOMMENDATION: accept §3 Bar-A + cheap-stack; do NOT WASM the loops (nil
+compute win + real data cost + design constraint don't beat
+pod-reconstruction); reserve WASM (if anywhere) for BOUNDED-COMPUTE tool
+execution (a separate decision, Shopify-Functions-shaped). gap-(ii)/§3
+decision now RE-OPENED for the user with the real evidence.
