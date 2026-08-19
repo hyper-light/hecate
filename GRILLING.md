@@ -3426,3 +3426,28 @@ external sidecar-placement patterns w/ numbers (a7ffa4ec...); telemetry
 Meta-scale→laptop pipeline (dispatched). "Scribe = own microVM pod"
 DEFAULT now UNDER CHALLENGE (it's the Istio per-pod-sidecar pattern the
 industry moved off). Design re-presents on all three landing.
+
+**CO-RESIDENCE NOT EVICTED (user correction, 2026-08-19):** "*Is*
+co-residence out though? Or are you just prematurely evicting it... This
+is literally what research is for — can we co-locate processes and
+effectively isolate them." Architect's "co-residence is out" RETRACTED as
+premature. Co-location-with-isolation is now a FIRST-CLASS researched
+option. THREAT-MODEL is the crux (established as the research axis):
+isolation vs a merely-FAULTY/degrading primary (easy — process
+isolation) vs a COMPROMISED/adversarial primary (hard — needs a boundary
+a guest-kernel compromise can't cross). KEY INTERNAL PRECEDENT: Hecate
+ALREADY runs a co-located in-guest observer — the SENSOR — explicitly
+semi-trusted ("a guest-kernel exploit defeats the sensor; the warden and
+VM boundary still hold", PODS §6). So the corpus already licenses an
+in-guest observer at a defined (semi-trusted) tier; the open question is
+whether a co-resident Scribe rides that same tier or needs warden-class
+tamper-proofing. FOURTH research agent dispatched (a2bec1a9...):
+co-located process/VM isolation mechanisms + strength per threat model
+(intra-guest namespaces/seccomp/Landlock/cgroups; gVisor/WASM
+intra-guest second boundary; same-node separate microVMs + vsock;
+K8s-multi-container-pod precedent; confidential-computing-is-VM-not-
+process; starvation isolation via cgroups). Placement decision now spans
+FIVE candidates: same-VM-separate-processes, same-VM-monitor-behind-
+gVisor/WASM, same-node-separate-microVMs+vsock, host-side warden-class,
+own-remote-pod. FOUR agents now in flight (Sylk, sidecar-placement,
+telemetry, co-location-isolation). Design re-presents on all landing.
