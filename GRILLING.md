@@ -2766,3 +2766,22 @@ Branch 44 design exchange: OWED — sequenced AFTER the tenancy/blend
 exchange (scale dossier in flight), since scope/tenancy shape the
 authority store's sharding and the management surface's attachment
 points.
+
+**CLARIFICATION (user pause, 2026-08-18): SQL is NOT a design input.**
+The build-mechanics dossier quoted SpiceDB/OpenFGA migration SQL because
+that is where those systems state their data model most precisely —
+evidence NOTATION, not a storage recommendation. Hecate's IAM authority
+store rides Hecate's own substrate like every other authority: its own
+consensus group(s), hecate-wire records, WAL/snapshot machinery, RSM
+in-memory indexes, large immutable artifacts (schema/policy text,
+compiled bundles) as CAS objects referenced by authoritative records.
+Transposition recorded: their DB-borrowed revision domains
+(xid8/pg_snapshot/HLC) ⇒ our group log position/epoch IS the revision
+(no foreign MVCC bridge); their same-transaction changelog ⇒ our log IS
+the changelog (Watch/distribute tail it); MVCC interval rows ⇒ records
+carrying (created_pos, deleted_pos), alive at R iff created ≤ R <
+deleted; ZedToken(datastore-id, revision, schema-hash) ⇒
+(group-id, applied-position, schema-hash) — the already-settled fence
+shape. NEW Branch 44 exchange item: the point-in-time read window (how
+long old revisions stay queryable) needs a derived GC bound on our
+substrate — Postgres/Spanner gave the exemplars that for free.
