@@ -3779,3 +3779,64 @@ supervision, budget tripwires) + ground the documentation + provide the
 OS-process alternative for completeness. Spec written (w/ exceptional
 tradeoff documentation) after the research lands + the score-service/
 Scribe-comms design is finalized.
+
+**CO-RESIDENT MECHANICS DOSSIER LANDED (2026-08-19, ad03bcc9).** Primary
+-source, concrete flags/syscalls/API. KEY: libkrun boots its OWN init
+(PID1, built-in) that runs EXACTLY ONE workload + reboots the VM on that
+workload's exit (verbatim exec.rs fork→waitpid(main)→set_exit_code→
+reboot(RB_AUTOBOOT); the `_=>continue` arm reaps arbitrary children).
+Two co-located WORKLOADS = NO-PRECEDENT in libkrun = fork work. Natively
+PROVIDED: guest PID1 reaping, host→guest vsock (krun_add_vsock_port, ONE
+device/multi-port) + virtio-console multiport (/dev/vportNpM),
+per-workload uid (krun_setuid), shutdown eventfd. Kata = the production
+precedent for N-isolated-processes-in-one-microVM (one VM=one sandbox=
+whole pod; kata-agent=the in-guest supervisor; per-container ns+cgroups
+created INSIDE the guest; PR_SET_CHILD_SUBREAPER + waitpid(-1,WNOHANG|
+__WALL)). Concrete isolation (W4/W8): unshare(CLONE_NEWNS|NEWIPC|NEWUSER
+|NEWPID); cgroup v2 delegation + memory.min (hard, "won't be reclaimed
+under any conditions") + cpu.weight; distinct non-root UIDs + Yama
+ptrace_scope=2/3; PR_SET_NO_NEW_PRIVS→seccomp + Landlock (self-restrict,
+un-removable). HONEST LIMIT: cgroup protects siblings from each other but
+GUEST-ROOT owns the hierarchy → design = supervisor=guest-root owns the
+tree, BOTH peers = distinct non-root UIDs in delegated sub-cgroups.
+Liveness (W10): pidfd_open(2) race-free (EPOLLIN=zombie/EPOLLHUP=reaped),
+supervisor opens pidfd on primary + hands read-only fd to observer
+(never needs primary's cooperation); cgroup.events populated;
+PR_SET_PDEATHSIG. Tripwires (W11): seccomp RET_TRAP(SIGSYS)/RET_LOG
+(auditd)/RET_USER_NOTIF(live→warden) on ptrace/cross-boundary; Landlock
+EACCES; memory.events/oom_kill — every attempted violation is an
+OBSERVABLE event surfaced to the warden. Footprint (W6): resident-idle =
+blocked in epoll_wait (state S) ≈ 0 CPU + RSS; inference = separate
+bursty spike (kills scale-to-zero). Restart-on-exit INSIDE one guest =
+NO-PRECEDENT (K8s restarts above the VM) = fork work. THIN: <5MiB
+overhead #, small-model inference RSS, "KEP-753" label.
+
+**RECONCILIATION w/ the ACCEPTED shared-runtime decision:** the research
+is about TWO OS PROCESSES; the user accepted TWO OWNERSHIP SUBTREES in
+ONE hecate-rt. These map cleanly: (1) the SHARED-RUNTIME model FITS
+libkrun's one-workload model NATIVELY — the ONE workload libkrun execs
+IS the hecate-rt runtime, which hosts both loops as subtrees + is itself
+the supervisor of its subtrees & tool-child-processes; NO separate guest
+supervisor fork work needed (whereas the two-process alternative WOULD
+need the Kata-style supervisor). So shared-runtime is BOTH more efficient
+AND simpler-to-build — research REINFORCES the choice. (2) The
+mechanics dossier GROUNDS THE ALTERNATIVE-CONSIDERED for the exceptional
+documentation (two OS processes: exact ns/cgroup/uid/seccomp/Landlock/
+pidfd/tripwire flags + Kata precedent) — precisely the "alternative
+considered + why not chosen" the doc bar requires. (3) REAL CONSTRAINT
+surfaced for the shared-runtime model: TOOL/CODE EXECUTIONS must run as
+OS-ISOLATED CHILD PROCESSES (the W4 flags: distinct uid/cgroup/seccomp/
+Landlock), NOT inside the hecate-rt process — else arbitrary
+agent-generated code (a coding agent runs code!) could reach the shared
+runtime's memory incl. the Scribe subtree, breaking Bar-A. This is the
+concrete requirement that makes the shared-runtime Bar-A isolation
+actually hold; likely implied by VFS §6 (tools execute in-guest) + the
+warden, but the tool-child-process ISOLATION must be stated explicitly.
+(4) Comms/liveness/tripwire primitives (vsock/virtio-console for
+observe-not-feed host-side input; pidfd for the Scribe watching the
+primary's liveness; seccomp-RET_USER_NOTIF→warden tripwires) apply to
+the shared-runtime model too (the Scribe subtree's host-input vsock; the
+tool-child pidfd/tripwires). ALL RESEARCH IN (Sylk+telemetry+isolation+
+sidecar+mechanics). Design fully grounded; ready to write (companion
+loop + score service + agent↔Scribe + exceptional tradeoff doc + the
+tool-child-isolation constraint) on the user's go.
