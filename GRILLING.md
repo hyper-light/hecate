@@ -4133,3 +4133,33 @@ agentic-verdict aggregate (RANK §4), unchanged. Context handoff =
 deterministic threshold, unchanged. The full CUSUM/risk-adj/K-of-N/
 derived-threshold research is EXACTLY RIGHT for the discriminator ROLE.
 Fold into HANDOFF.md; write MONITORING.md + HANDOFF.md.
+
+**HANDOFF — IT'S ALSO A METRICS PROBLEM (user, 2026-08-19): "So it is
+*also* a metrics problem, and we need to examine that."** CORRECT + the
+load-bearing piece: the discriminator is only as good as its inputs, and
+SYLK'S REAL FAILURE WAS METRICS not math (2/3 channels zero-producer,
+surviving signal 97% constant-1.0, "quality"=tool-success-ratio =
+conflates WELL-FORMED turn w/ COMPETENT work). A perfect CUSUM over
+garbage metrics discriminates noise. HARD CONSTRAINT: the discriminator
+is NON-AGENTIC → metrics must be (a) observable DETERMINISTICALLY from
+Hecate's substrate (ledger deltas / warden verdicts / sensor / gateway;
+NO model call, NO logprobs-Anthropic-API-doesn't-expose), (b) actually
+CORRELATED with degradation (not crude proxies), (c) robust vs Sylk
+modes (dead producers, constant channels, well-formed-vs-competent
+conflation). METRICS RESEARCH DISPATCHED (a9a3ea7b): W1 LLM-agent
+failure taxonomies + observable signatures (MAST freqs, OpenHands/
+SWE-agent failure modes); W2 state-action recurrence/looping (best-
+evidenced, exact measurement method + correlation#); W3 outcome signals
+(validation-failure streak, self-correction/revert/corrective-churn,
+lagging-vs-leading); W4 behavioral (tool-error/malformed/retry-storm/
+stop-reason — WHY tool-success-ratio fails, what non-conflating looks
+like); W5 progress/goal-drift (IS progress non-agentically measurable at
+all, or does it require judgment→Scribe?); W6 metric-design principles
+as REQUIREMENTS (observability/variance/non-conflation/risk-adjustment/
+robustness, each tied to a Sylk failure); W7 synthesis = candidate
+metric set for the discriminator (each: measures-what / evidence+# /
+non-agentic-extraction-from-Hecate-observables / leading-vs-lagging /
+avoids-Sylk-trap), + the honest line between non-agentically-measurable
+(→discriminator) vs judgment-requiring (→Scribe). This settles the
+discriminator's INPUTS. HANDOFF §1 (gathering) + §4 (discriminator)
+finalize on this landing; MONITORING.md + HANDOFF.md write after.
