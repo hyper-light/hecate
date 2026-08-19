@@ -3099,3 +3099,34 @@ answer folds into the store section (§3) with receipts. Note: this also
 retro-grounds the WAL-payload extraction from the substrate reconciler
 (IAM records as entry payloads = the DURABILITY leg; the arena is the
 QUERY leg).
+
+**BRANCH 44 — ARENA-REUSE OVERRULED (user, 2026-08-18): "That doesn't
+even make any sense. Clearly we need some sort of organized storage
+designed for extreme availability, low latency, and global scale."** The
+"reuse the ledger's in-memory edge arena" framing is REJECTED and
+recorded as the architect's error: the ledger arena is a bounded
+per-session working-set RSM; a fleet-wide authority plane (roles/
+bindings/grants across users/orgs/regions) is a purpose-built GLOBAL
+storage problem. CORRECTED PREMISE: the IAM plane gets a first-class,
+organized, globally-distributed storage subsystem designed for extreme
+availability + low-latency reads everywhere + MVCC + global scale.
+CONSISTENCY NOTE (not a corpus violation): OBJECT_TIER's LSM rejection
+is SCOPED to immutable content and its own words name the carve-out —
+"LSM earns its complexity only for mutable keys and heat-driven
+re-placement"; mutable-keyed authority records ARE that workload, so a
+purpose-built mutable-keyed MVCC engine for IAM is the case the
+rejection names, not one it forbids. SHAPE (grounding in flight, Zanzibar
+is the existence proof of all three requirements at once — 10M+ QPS,
+p95<10ms, 99.999%/3yr, 2T tuples globally distributed): reference
+architecture = [authoritative writes: per-scope consensus groups] +
+[state engine: OWNED mutable-keyed MVCC — B-tree(bbolt-shape) vs
+LSM(Pebble-shape) argued] + [global read-locality: local replicas
+serving bounded-staleness reads under a freshness/epoch floor, NO
+cross-region RTT on the decision path] + [reachability: denormalized
+index, Leopard shape] + [availability: partition-survivable local
+serving]. Running storage research (a39974...) REFRAMED toward this
+(global HA/low-latency/scale distribution model as the headline; owned
+B-tree-vs-LSM engine choice; DynamoDB-global-tables / Spanner-read-
+replicas / AWS-IAM-global-replication read-locality receipts). Full IAM
+re-presentation STILL HELD; the store section (§3) becomes a real
+distributed-storage design, not arena-reuse.
