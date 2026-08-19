@@ -254,14 +254,18 @@ Architecture set (AGENTS/LEDGER/PLATFORM/SKILLS/SUMMONING + CONTEXT + ADRs
   first) + commit record + placement acks (MERGE §7, the submission
   transaction — "an agent submitting work is making a network transaction",
   cross-node re-attach shown in the §7 diagram); **laptop degenerate** =
-  "identical sequence, in-process, µs" (MERGE §7). **One named micro-residual
-  (thin spot, not blocking)**: the carriage by which a *remote* reader that
-  pinned an older green version learns head advanced — covered in principle
-  by the delta plane (a green advance is a merge-log commit ⇒ a delta) plus
-  "green base invalidates on version advance," but whether a following reader
-  is pushed the head-advance or pulls it at next bind is left to the serving-
-  plane build; record here so it is not lost, resolvable in a one-line
-  SERVING §5 clause when the serving plane is implemented.
+  "identical sequence, in-process, µs" (MERGE §7). The canonical statement of
+  the whole model is **MERGE §0 "How it works — the human picture"** (the
+  spec title: "distributed staging volume"), whose "one edit, three machines"
+  walk (pod on A, home B, **reader pod on C**) draws the cross-node attach
+  end-to-end; **SERVING §0 "the single-surface law"** is the anchoring law
+  ("any pod on any node may attach any volume version — locality is caching,
+  never availability; the mutable work volume is RWO and is never shared").
+  **On the notification carriage** (earlier flagged as a micro-residual): it
+  is not a gap at the model level — MERGE §0's walk shows step 8, the note
+  "green is now v43" pushed from home B to reader C, so a following reader IS
+  told; only the precise delta-class binding of that note is a serving-plane
+  build detail, not a design hole.
 - **D-12 The distributed forest substrate — undesigned, research directed
   (user-corrected 2026-08-17: the forest is an external computational-biology
   and ML-driven substrate that IS distributed; a first "nobody queries a
