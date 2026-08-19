@@ -3205,3 +3205,63 @@ wiring (IAM manifest as mark-from-roots root); (8) PITR-below-floor
 typed failure. Design file written for reconciliation. Certify-or-revise
 when both agents land; then storage §3 folds into the full IAM
 re-presentation. NOT asserting maximal until diligence returns.
+
+**BRANCH 44 — ENGINE-CHOICE DOSSIER LANDED (2026-08-18, a39974...).**
+DECISIVE FINDING (NO-PRECEDENT, searched): "a production, globally
+distributed authorization plane whose AUTHORITATIVE store is an
+in-memory arena/heap with only log+snapshot durability" — NONE EXISTS.
+Every surveyed authz/identity plane (Zanzibar, SpiceDB deployments,
+AWS IAM, KMS, TAO-as-authz, Vault) puts authority in a REPLICATED
+ON-DISK DB/engine and uses in-memory structures STRICTLY as derived
+caches/indexes; the only in-memory authz datastore (SpiceDB memdb) is
+documented non-HA/ephemeral/dev-only. This is the strongest possible
+corroboration of the user's arena-reuse OVERRULE. Universal architecture
+fact CONFIRMED: every consensus record store separates (a) append-only
+ordered LOG + (b) mutable-keyed sorted queryable ENGINE the log applies
+into + (c) applied-index watermark; reads from (b), never scanning (a).
+etcd = Raft-WAL + bbolt-B+tree + consistent_index (its OWN RBAC lives as
+authRoles/authUsers buckets — authz-in-consensus-B+tree is a boring
+working precedent); CRDB = per-range-Raft-log + Pebble-LSM ("storage
+layer commits writes from the Raft log"); TiKV = two RocksDB (raftdb +
+kvdb); Spanner = Paxos-log + "B-tree-like files + WAL" on Colossus,
+reads "at any replica sufficiently up-to-date". MVCC universally =
+version-rows keyed by revision/timestamp (etcd (rev,sub,type); CRDB/TiKV
+HLC-suffixed; Zanzibar PK (shard,object,relation,user,commit-ts) — the
+IAM record shape LITERALLY); delete = tombstone + async reclaim
+(compaction/defrag); PITR = read within GC window, explicit horizon
+error beyond ("required revision has been compacted") — a documented
+contract everywhere, NOT a gap. REFERENCE ARCHITECTURE confirmed leg-by-
+leg with receipts: [1] per-scope consensus groups, geographically TIGHT
+quorums (Zanzibar 5 voters ≤25ms apart; one global group anti-receipted
+by etcd 50s election ceiling) + changelog dual-write same-txn; [2] owned
+mutable-keyed MVCC engine; [3] global read-locality = FULL replication +
+non-voting local replicas serving BOUNDED-STALENESS reads under a
+freshness token (zookie: "at-least-as-fresh"; Safe-requests 2 orders >
+Recent, "vast majority of checks locally"; Spanner ≥10-15s local-serve;
+KMS "all authorization information... available on all regional hosts");
+[4] reachability = denormalized in-memory Leopard set-index ((T,s,e)
+skip-lists, RAM-served, offline-built + Watch-fed; <1ms p99; commercial
+twin AuthZed Materialize) — the DERIVED layer where the ledger's
+snapshot+log-replay competence legitimately lives; [5] availability =
+partition-survivable LOCAL serving, NO cross-region RTT on the decision
+path (KMS 99.999%, DynamoDB-global-tables 99.999%, Zanzibar 99.999%/3yr
+absorbing 10s Spanner leader re-elect in the Recent threshold). Numbers:
+Zanzibar 2T tuples/100TB/10M+ QPS/p95<10ms/p50~3ms/>10k servers/30+
+locations; IAM 400M+ auth-calls/s. B-TREE vs LSM DISCRIMINATOR
+(receipted, bbolt's own guidance): read-heavy/range-scan → B-tree;
+>10K random-writes/s → LSM. IAM is read-DOMINATED (Zanzibar 25K writes/s
+vs 12.2M reads/s, 3 orders) w/ small per-scope shards → by ACCESS
+PATTERN the B-tree's simplicity "wins ground"; BUT Hecate-specific
+SUBSTRATE FIT cuts for LSM (pack tier is append-only-immutable =
+SSTable disk model; a B-tree needs a mutable-page format fighting the
+substrate, or a COW-B-tree = still a mutable-root page store, not
+content-addressed blobs). ENGINE CHOICE NOT YET CALLED — it hinges on
+whether the pack tier CLEANLY HOSTS SORTED RUNS (thin-spots #1
+object-vs-record-granular compaction, #2 large-run chunking) = exactly
+what the running storage-corpus reconciler (abfd6b...) determines. If
+pack-tier composition holds → LSM substrate-fit decisive; if not → both
+engines need a new on-disk format and read-dominated-small-shard tips
+toward B-tree. Certification + storage §3 + engine decision wait on the
+reconciler. THIN in dossier: Vault-secondary-partition semantics,
+Spanner t-safe internals, DynamoDB ms-phrasing, RAMCloud-2009-not-2015,
+Neo4j exact source-of-truth phrasing, TiKV MVCC key encoding depth.
