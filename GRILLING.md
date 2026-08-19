@@ -2239,3 +2239,15 @@ never in the brief), audit-as-claims fail-closed. Cross-tree: provider
 gateway named MANDATORY chokepoint for the known-value scan (one more
 forcing function on the unbranched gateway gap). Five rulings pending
 in-thread; SECRETS.md draft to follow acceptance there.
+Branch 28 rider (in-thread, 2026-08-18): the user's Postgres challenge
+produced the TWO-POPULATION taxonomy for SECRETS.md's opening
+definitions — (1) WORKLOAD secrets (property of the user's project;
+Hecate stores/references/injects/detects/audits but never consumes; user
+= granting authority; session/project scope; the seal boundary's
+concern) vs (2) SYSTEM secrets (Hecate's own material — enrollment
+identities, pod roots, transport/flow keys, vault KEKs, provider
+credentials at the gateway; owners mostly exist already in
+WIRE_SECURITY/D-3; vault holds the residue; identity plane = authority).
+Structural rule: agent-visible secret:// resolves ONLY within the
+workload population — system names are outside the namespace (not
+denied; nonexistent). Five rulings still pending in-thread.
