@@ -3182,3 +3182,26 @@ quantitative confirmation lands with the running storage dossier
 (a39974...). Laptop degenerate = same engine, failure-domain tree
 collapsed to 1 node, 1 replica, zero modes. Presented in-thread; folds
 into IAM store §3.
+
+**BRANCH 44 — IAM STORAGE MAXIMALITY CHECK (user: "maximal? no
+shortcuts? conflicts?").** Architect declined to certify prematurely.
+Two diligence items IN FLIGHT before certification: (a) engine-choice
+dossier a39974... (B-tree vs LSM w/ numbers + global HA/latency/scale
+distribution receipts); (b) NEW storage-corpus reconciler abfd6b...
+checking the concrete LSM-on-pack-tier design vs OBJECT_TIER/WAL/
+CONSENSUS/TRANSFER/VFS/FAULTS/RUNTIME/PROTOCOL (the prior 4-agent
+reconciliation checked the ARENA-framing draft, NOT this LSM design).
+Architect's own thin-spot list surfaced (recorded in
+$JOBTMP/iam_storage_design.md KNOWN-OPEN): (1) "compaction generalizes"
+was a SHORTCUT — pack copy-forward is OBJECT-granular, LSM merge is
+RECORD-granular NEW logic; (2) large-run CDC-chunking vs coherent
+merge-reads + bloom-over-logical-run unverified; (3) reachability index
+has NO memory budget/scope-partition (unbounded-growth risk); (4) local
+NVMe I/O contention compaction-vs-session-hot-path unpriced
+(non-interference law is network-only); (5) per-node LSM proliferation
+vs CN2 idle-zero-cost + RUNTIME task tracking; (6) manifest-churn as
+consensus records (log bloat?); (7) content-plane GC + run-retirement
+wiring (IAM manifest as mark-from-roots root); (8) PITR-below-floor
+typed failure. Design file written for reconciliation. Certify-or-revise
+when both agents land; then storage §3 folds into the full IAM
+re-presentation. NOT asserting maximal until diligence returns.
