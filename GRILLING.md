@@ -3615,3 +3615,49 @@ collection is already host-side regardless. Awaiting the 4th dossier
 (sidecar-placement a7ffa4ec — Istio/Ambient/Solo receipts corroborating
 the split) before presenting the full synthesized design + the threat-
 model ruling.
+
+**SIDECAR-PLACEMENT DOSSIER LANDED (2026-08-19, a7ffa4ec).** Numbers:
+per-pod sidecar = 0.20 vCPU + 60 MB EACH (historical 0.35/40), +1.7ms
+P90 two-proxy round trip, sized-to-worst-case→over-provisioned, LINEAR
+in N (100 agents ≈ 6GB+20vCPU just for observers). Istio AMBIENT
+correction = split by COST × CARDINALITY: cheap per-NODE ztunnel (0.06
+vCPU/12 MB, no L7, "significantly leaner", single instance/node,
+identity-scoped keys "requests for identities not running on the node
+are rejected") + expensive per-IDENTITY waypoint ("shared between apps
+in same namespace/SA", "only where needed", autoscalable pods). ~50×
+memory gap for the always-on layer = "the entire reason the industry
+moved". KEP-753 native sidecars = proof co-located-sidecar lifecycle/
+restart pain was real enough K8s added an API. W5 tamper counterweight
+(Buoyant): a sidecar "runs in the SAME SECURITY CONTEXT of the
+application instance" — a FEATURE for a data-plane proxy, a LIABILITY
+for a monitor that must not be tamperable; per-node shared proxy =
+noisy-neighbor + blast-radius + shared-key attack vector (mitigated by
+identity-scoping cross-node, not co-tenant). eBPF can't do L7/semantic
+work. THIN (JS-blogs/Wayback-blocked/WebSearch-exhausted): Solo exact
+latency #, ambient-vs-sidecar latency delta, Dapr/Cilium/OTel numbers.
+
+**ALL FOUR DOSSIERS IN — DESIGN CONVERGED + PRESENTED (2026-08-19).**
+The four agree on ONE architecture. KEY REALIZATION: Hecate ALREADY HAS
+the cheap-always-on-security-critical collection tier, and it's ALREADY
+Bar-B tamper-proof — it's the WARDEN (host-side) + SENSOR (in-guest) +
+health plane. That IS the ztunnel-equivalent; not built anew. So the
+"Scribe" is TWO+ jobs wearing one name, split by cost×cardinality×
+trust: (1) COLLECTION = existing host-side warden/sensor/health plane
+(Bar B, exists); (2) FAST DETECTION + score-signal compute = cheap,
+always-on, DETERMINISTIC, in the COLOCATION UNIT single-writer (score
+service + CUSUM), consuming the signal stream, NOT per-agent-pod, Bar B
+host-side; (3) SEMANTIC NARRATION = the Scribe's EXPENSIVE LLM part,
+per-identity ON-DEMAND/bursty (waypoint shape), a SEPARATE process
+(observe-not-feed, never co-resident-fed), consuming host-side streams,
+licensed at SENSOR TIER (Bar A) because the WARDEN is the Bar-B security
+backstop (same logic that licenses the sensor) + the score service is
+outcome-grounded (reads ledger) so spoofed Scribe signals have bounded
+authority + a Bar-B agent is a Guardian/warden hard-block SECURITY event
+not a perf-handoff concern. RESULT: the Scribe is NOT a per-agent
+always-on sidecar microVM (rejected: sidecar tax linear-in-N +
+lifecycle coupling + same-security-context tamper liability). THREAT-
+MODEL RULING RESOLVED BY EVIDENCE (not left to user): Bar A / sensor-
+tier for the narrator suffices because collection is already Bar-B
+host-side. Score service = single-writer authority per session group in
+colocation unit, outcome-grounded, push snapshots to RANK check (all 4
+dossiers concur). Design presented in-thread for verdict.
