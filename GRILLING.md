@@ -4062,3 +4062,42 @@ compute win + real data cost + design constraint don't beat
 pod-reconstruction); reserve WASM (if anywhere) for BOUNDED-COMPUTE tool
 execution (a separate decision, Shopify-Functions-shaped). gap-(ii)/§3
 decision now RE-OPENED for the user with the real evidence.
+
+**WASM CLOSURE + COMPANION-LOOP DESIGN CONFIRMED & ACCEPTED (user,
+2026-08-19): the Scribe-observes-→-bytes-cross-boundary point settled it
+("confirmed and accepted").** LOCKED: agent loops (primary + Scribe) are
+NATIVE RUST co-located ownership subtrees, NOT WASM (data-centric
+workload = the Prisma trap continuously; Scribe = purest case, all it
+does is read observations, no handle-mitigation possible for an observer).
+Baseline isolation = cheap cross-platform stack: Rust ownership (Bar-A) +
+runtime-counting preemption + in-guest eBPF/cgroups + supervision/
+pod-death-reconstruction. §3 code-exec tradeoff = accepted-as-documented
+(warden Bar-B backstop). Tools = isolated child processes (OS iso, no
+boundary tax — coding tools are data-heavy too). WASM's role in Hecate ≈
+none (correct for the workload). MPK also out (x86-only = a mode). The
+multi-exchange green-process/isolation/WASM arc RESOLVES to: native Rust
++ cheap stack, no WASM. Feeds MONITORING.md (companion loop + substrate +
+score) + the RUNTIME/PODS/AGENTS_RUNTIME amendments.
+
+**RETURN TO HANDOFF WORK (Branch 14 / D-5, 2026-08-19).** The HANDOFF
+spec was PRESENTED earlier (five tiers: gathering/weighing/storage/
+trigger-CUSUM/execution + Guardian-SPRT+fresh-context-probe +
+commissioning + HO1-16 Sylk-lesson tests) but BLOCKED on §3 (detector
+state placement — "where does it live"). The detour RESOLVED §3 and
+produced the MONITORING plane. RECONCILIATION (what the detour settled
+for HANDOFF): §3 detector CUSUM state = colocation-unit DETECTION
+SUBSTRATE (deterministic, single-writer, checkpointed, re-derivable —
+NOT pod/Scribe RAM; kills the Sylk split-brain + PODS-§7 discard
+problem); §1 collectors = the MONITORING host-side collection substrate
+(warden/sensor/ledger/gateway), consumed observe-not-feed; the Scribe =
+co-located companion loop = the AGENTIC handoff INITIATOR (reads the
+deterministic detection signal + applies judgment to REQUEST a
+performance handoff → Guardian adjudicates §5); the SCORE service (slow
+reputation, Rank) = SEPARATE colocation-unit substrate from the FAST
+CUSUM detector (two signals, two lifetimes — Sylk fault #9). Detection
+math (risk-adjusted CUSUM/Steiner, h=ln(ARL0), ARL0=T/δ, K-of-N),
+adjudication (SPRT+fresh-context-probe), execution (brief/claims/drain/
+re-bind under bumped epoch), commissioning (FIR/fleet-priors) = STAND as
+presented. NEXT: finalize HANDOFF w/ corrected §3 + MONITORING
+reconciliation; write MONITORING.md + HANDOFF.md as two specs (MONITORING
+= the plane/machinery; HANDOFF = detection-math + execution consumer).
