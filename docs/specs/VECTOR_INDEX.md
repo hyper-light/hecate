@@ -118,7 +118,18 @@ merge-gate/landing events are natural re-baseline points.
 - **Realm/tenant isolation = generation-lineage-per-scope** (the
   turbopuffer namespace-per-query-scope pattern): tenant predicates never
   enter the hot index. Session-private vectors exist only in that
-  session's overlay.
+  session's overlay. **This IS the authority plane's scope granularity for
+  the index** (amendment 2026-08-18, `IAM.md` §7.12 derived-data law):
+  source-scope visibility is enforced by **corpus selection (generation
+  lineage), never a per-vector predicate** — a per-vector scope filter is
+  exactly the tenant predicate this line bans, and post-filtering at scope
+  selectivity is the deferred-ACORN tripwire above. Baking a session overlay
+  into a lineage-scoped generation at a merge-gate/landing re-baseline is a
+  **governed scope-lift** (session→lineage), sound because session-private
+  overlays provably never leave their overlay until that lift; the
+  **generation manifest carries the scope set + authority epoch** alongside
+  the embedder pin, validated the same way (a generation without them fails
+  validation).
 - **Predicate filtering inside a corpus** (symbol kind, path scope):
   cell-level metadata bitmaps + post-filter under adaptive fanout.
   ACORN/Filtered-DiskANN machinery is billion-scale medicine, deferred

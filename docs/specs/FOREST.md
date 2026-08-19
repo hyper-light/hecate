@@ -226,18 +226,34 @@ agent's testament.
   There is no global forest tier, no ambient cross-session sync — advisories
   derive from a session's work, and osmosis across the fence is a data-leak
   channel by construction. Knowledge crosses sessions only by deliberate,
-  governed paths:
+  governed paths — which are **governed scope-lifts** in the authority plane's
+  sense (`IAM.md` §7b derived-data law): a knowledge item inherits the
+  most-restrictive scope set of its sources, and each door below is the explicit
+  up-chain lift that re-scopes it (not a cross-fence reach — that is why "the
+  session field is the only field" and these doors coexist):
   1. **Same-user continuity**: promoted advisories retire to the archive; a
      user's new session recalls **its own user's** prior knowledge via the
      Archivalist (cross-session recall / carry-forward) — pull-shaped,
      provenance-visible. Optional field-seeding at session open draws only from
-     that user's own archived advisories.
+     that user's own archived advisories. (The lift: promotion-to-archive
+     re-scopes session→user; recall is ordinary up-chain visibility within the
+     user scope, never a cross-fence grant.)
   2. **Publication, not sync**: sharing beyond the user means exporting an
      advisory as a **registry artifact** — Guardian staging,
      inventory-from-content, label-scoped visibility, explicit approval. Knowledge
      crosses isolation boundaries exactly like skills and tools do: as catalog
      entries someone chose to publish and someone else chose to install. Shipped
-     default patterns are this same tier, vendor-published.
+     default patterns are this same tier, vendor-published. (The lift:
+     publication re-scopes to the published scope.)
+  - **Ingestion is a registered emission surface** (`IAM.md` §7b; SECRETS §3
+    when written): the field's trace-ingest path is registered at boot like any
+    emission chokepoint, so nothing enters the field (or the archive, or a
+    published artifact) unscanned. **Every advisory/trail/trace carries
+    contributor identity + authority epoch** (H3-grade provenance) beyond
+    today's snapshot-level `contributed_by` — the field's prevalence/specificity/
+    trust weighting consumes verified provenance, so a poisoning contributor is
+    attributable and down-weightable by contributor × epoch; influence stays
+    advisory (the Forest authors nothing, gates nothing).
 - **Practical rules**: (1) **no network on the turn path, ever** — digests serve
   from the session-local field; imported knowledge is present because it was
   installed/recalled, never looked up mid-turn; (2) **curation cost scales with
