@@ -6520,3 +6520,91 @@ server). Each must add a "run-on-anyone's-laptop (zero-dep/embedded)"
 section + Hecate rec. FIRST-CLASS design constraint on all three
 (queue/cache/collector), shaping the PRIMITIVES (embeddable, no external
 service) not just their sizing.
+
+**USER SHARPENED THE 2 PRIMITIVES (2026-08-20):** "cache/pub-sub
+equivalent (think ValKey, but matches our global Meta scale AND local
+laptop)" + "at-least-once message delivery (think SQS, but Meta scale
+AND laptop)." ⇒ CACHE item is actually **CACHE + PUB-SUB (ValKey-
+equivalent)** — KV cache + publish/subscribe in one, ephemeral
+at-most-once pub-sub (invalidation/live-fanout/ephemeral coord) DISTINCT
+from the durable queue; QUEUE item is **at-least-once message delivery
+(SQS-equivalent)** — durable, visibility-timeout/redelivery/DLQ. Both
+Meta-scale (Valkey Cluster 16384-slot sharding+replication / SQS) +
+laptop (embedded moka+in-proc-bus / embedded durable log). Cache lane
+(a6a3fa67) extended via SendMessage to add the pub-sub half (Redis/
+Valkey pub-sub + sharded SSUBSCRIBE + cluster mechanics + moka; Streams
+as the straddle; recommend one-family-vs-two). Queue lane already
+SQS-targeted. Redis STREAMS informs the queue (at-least-once consumer
+groups).
+
+**SCALE-MECHANICS LANE LANDED (2026-08-20): MONARCH-GROUNDED, DECISIVE —
+supplies the missing mechanics + SETTLES per-session.** (Completed
+before the laptop SendMessage delivered ⇒ laptop addendum from
+a381c17c PENDING.) **MONARCH (Google planet-scale in-mem TSDB, VLDB'20)
+= THE precedent, validates Hecate at nearly every point:** zonal
+(regional) AUTONOMY + global query/config planes = Hecate's autonomous-
+local-first law VERBATIM ("local monitoring in regional zones combined
+with global management and querying"; a zone "can work continuously
+during transient outages of other zones, global components, and
+underlying storage"); CAP = trades consistency for availability ("drops
+delayed writes and returns partial data"); LOW-DEPENDENCY in-memory to
+avoid "a potentially dangerous circular dependency" on monitored storage
+(the Monarch trap, receipted). INGESTION = 2-level divide-conquer
+(ingestion routers regionalize by LOCATION field → leaf routers
+distribute by RANGE ASSIGNER); leaves = in-mem store + **BEST-EFFORT
+recovery logs (NO ack-wait, async-replicated ×3 clusters)**. SHARDING =
+TARGET-based (series keyed by monitored entity; location→zone;
+**lexicographic target RANGES** = shard unit; Slicer-style range
+assigner splits/merges/moves w/ recovery-log-mediated zero-loss handoff;
+replicas across failure domains, 1-3 user-tunable). COLLECTION
+AGGREGATION at ingest = cardinality collapse (36:1 typical, 1e6:1
+extreme). QUERY = 3-level tree (root mixer→zone mixers→leaves) + **Field
+Hints Index (Bloom-like) prunes fanout −99.5% zone / −80% root** +
+PUSHDOWN (95% of standing queries complete ZONE-LEVEL) + streaming
+scatter-gather w/ token flow-control + ZONE PRUNING (drop unresponsive
+zone past soft deadline, return partial + notify) + hedged reads. SCALE:
+38 zones, 950B series, 750TB mem, 2.2TB/s, 6M QPS, 144k leaves. SHARDED-
+TSDB (Cortex/Mimir/Thanos/VM): consistent-hash RING + RF=3 + quorum
+⌊N/2⌋+1 + WAL-replay-on-restart + flush-to-object-store-every-2h;
+handoff-on-death = DEPRECATED (converged on RF+WAL); Thanos global-view
+querier federates + dedups via replica-label; VM SHARED-NOTHING
+(vmstorage nodes don't know each other); compactor DOWNSAMPLES (raw/5m/
+1h) for fast long-range + per-resolution retention. TAIL-SAMPLING:
+loadbalancing-exporter routes by trace-ID consistent-hash so all spans
+→ one instance; 2-tier (agents→LB→tail); num_traces=50k circular buffer
+× decision_wait=30s = the memory wall; Canopy (1.3B traces/day) shards
+by TraceID (shared-nothing tailers), ingestion-time FEATURE AGGREGATION
+not raw-query ("computationally infeasible"), completion via triggers+
+timeouts, head-sample via distributed token-bucket (global+per-tenant).
+**DURABILITY/LOSS RULE (receipted across ALL): hot tier = in-memory,
+node-local or RF-replicated, BEST-EFFORT, loss-accepted-on-node-death;
+cold tier = flushed/compacted immutable blocks in durable object store =
+system-of-record, async off-hot-path. Replication/EC on COLD; hot trades
+durability for latency/cost. TELEMETRY HOT WRITES MUST NOT WAIT ON RAFT/
+derived-ω durable-ack — that reintroduces the MTTD cost Monarch rejects
+⇒ the Collector's hot tier RELAXES Hecate's ledger-grade WAL to a LOSSY
+model (the key divergence from the zero-loss ledger).** MULTI-REGION =
+regional collection + global query federation; regions autonomous (work
+if global down); prune unresponsive regions. **PER-SESSION SCOPING —
+DEFINITIVE ANSWER, REFUTED: NO planet-scale telemetry system runs
+per-tenant/per-session collectors; ALWAYS shared collection + query-time
+isolation** (Monarch shared-service + per-user cgroups + memory-accounting
++ cancel-on-overuse; Cortex X-Scope-OrgID over shared ingesters; VM
+accountID:projectID "data for all tenants evenly spread"; Canopy
+per-tenant token-bucket on shared tailers). CONFIRMS my per-session
+analysis: session = a LABEL on shared hot-ring + cold-blocks + serving-
+edge isolated reads + per-session resource caps + optional shuffle-
+sharding — NEVER a per-session collector. HECATE SYNTHESIS (W6, maps
+cleanly): (1) gateway sharding = target/lexicographic-range for metrics
++ trace-ID-HRW for traces + collection-aggregation; (2) replication =
+hot RF 2-3 in-region node-local-LOSSY quorum-ack (NOT Raft) + cold
+OBJECT_TIER copyset+EC for flushed blocks; (3) durability 3-tier (hot
+in-mem best-effort / warm node-local-WAL-derived-ω-for-loss / cold
+replicated-EC + downsample); (4) query = root→region→node scatter-gather
+fanout-5 + FHI-Bloom-prune + pushdown + region-local-ReadIndex reuse +
+single-flight + hedged + region-prune + COMPLETENESS MARKER (non-
+negotiable for a lossy plane); (5) multi-region = regional autonomy +
+global federation on root/region Raft groups, no-synchronous-WAN-on-hot-
+path; (6) per-session REFUTED → shared + serving-edge isolation. 2 lanes
+still out: queue (a3715779), cache+pubsub (a6a3fa67); + laptop addendum
+from a381c17c pending.
