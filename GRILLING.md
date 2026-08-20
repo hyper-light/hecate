@@ -5247,102 +5247,104 @@ how often benign work brushes boundaries) ⇒ the risk weight is
 load-bearing, not decorative. ALL THREE ARC LANES NOW LANDED. Corpus
 reconcilers (5 lanes) still in flight.
 
-**ARC LANE A LANDED (2026-08-19): INTERIOR ENFORCEMENT OBSERVABILITY.**
-SECCOMP DENIAL OBSERVATION: RET_ERRNO is SILENT (no log/counter; only
-the audit rules can log it); **RET_LOG is log-AND-ALLOW — it EXECUTES
-the syscall** ("Results in the system call being executed after it is
-logged") ⇒ can never be the denial primitive; the log route =
-RET_ERRNO + SECCOMP_FILTER_FLAG_LOG + actions_logged, and the ENTIRE
-seccomp log path is the audit subsystem (audit.h: audit_seccomp is a
-compiled NO-OP without CONFIG_AUDITSYSCALL); without auditd records
-fall back to RATE-LIMITED printk ("type=1326") = lossy as a counter.
-seccomp_unotify AS PURE DENY+COUNT IS SOUND: the documented TOCTOU
-("can not be used to implement a security policy!") attaches ONLY to
-FLAG_CONTINUE + target-memory reads; a supervisor that never
-continues, never dereferences, always responds spoofed-error has NO
-check/use window; supervisor death ⇒ ENOSYS fail-closed; cost = a
-synchronous cross-process round trip per event (acceptable iff denials
-rare-by-design); one NEW_LISTENER filter per task. **NO kernel counter
-of seccomp denials exists anywhere** (proc status = mode+filter-count
-only; cgroup-v2 grep 'seccomp' = 0) — NO-PRECEDENT; **Docker ships
-denial-BLIND** (default profile ERRNO; docs contain zero
-observe/count/debug guidance — NO-PRECEDENT); K8s observes via
-audit→syslog; systemd SystemCallLog= is the RET_LOG→audit route.
-CGROUP-BPF: **BPF_CGROUP_UNIX_CONNECT/SENDMSG landed in 6.7**
-(triple-receipted: uapi 6.6→6.7 diff, bpftool doc "since 6.7", commit
-859051dd) — libkrunfw 6.12 has them in-source; deny semantics =
-program ret≠1 ⇒ caller gets -EPERM (kernel/bpf/cgroup.c verbatim), and
-the program can ringbuf-record BEFORE denying = observed+counted
-denial; bpf_get_current_cgroup_id + ringbuf helpers are BASE-proto
-(no tracing configs). **§5.8's CONFIG assUMPTION VERIFIED:
-CONFIG_CGROUP_BPF=y in STOCK libkrunfw BOTH arches** — tripwires work
-on stock (interpreter-executed; BPF_JIT is OFF). Tracepoint cost
-receipted (bcc syscount 1.85× @3.5M calls/s ≈ ~120ns/event count-only;
-Falco 205ns avg sys_exit handler; >3k events/s/CPU = their difficulty
-line). Ringbuf drainer-death = counted drops, never blocking
-(BPF-ringbuf reserve-fails law; Falco drop actions + scap.n_drops;
-Tetragon lost-event metrics); **bpf_link pinning = enforcement
-survives drainer death** ("pin enforcement, supervise the drainer").
-CGROUP-V2 EVENT SURFACES (verbatim): memory.events{low,high,max,oom,
-oom_kill,oom_group_kill}(+.local), pids.events{max}, cgroup.events
-{populated,frozen} = KERNEL-PUSHED (file-modified ⇒ poll/inotify;
-"poll and [id]notify events are triggered when the value changes");
-PSI cpu/memory/io.pressure = kernel-evaluated trigger fds ("some|full
-<stall-µs> <window-µs>", ≤1 notification/window); **cpu.stat =
-POLLED-ONLY** (no modified-event clause). **STOCK CONFIG VERIFIED,
-BOTH ARCHES DIVERGE** (kernel 6.12.91): common =y: BPF/BPF_SYSCALL/
-CGROUP_BPF/SECCOMP_FILTER/PERF_EVENTS/all cgroup controllers/all
-namespaces; BOTH lack: BPF_JIT, BPF_LSM, BPF_EVENTS, TRACEPOINTS/
-FTRACE, KPROBES, DEBUG_INFO_BTF, IKCONFIG; **x86_64 has
-AUDIT+AUDITSYSCALL+SECURITY but NO PSI; aarch64 has PSI (on by
-default) but NO audit and NO SECURITY at all** — the fork MUST unify
-(zero-modes law). FORK-FLIP LIST (exact): (1) BPF_JIT=y both (perf +
-hard dep of BPF_LSM); (2) SECURITY+SECURITYFS=y aarch64; (3) BPF_LSM=y
-both ⇒ drags BPF_EVENTS ⇒ FTRACE + KPROBE_EVENTS, + boot lsm=…,bpf;
-(4) DEBUG_INFO_BTF=y both (CO-RE; Falco/Tetragon require BTF —
-production receipts); (5) PSI=y x86_64; (6) AUDIT+AUDITSYSCALL=y
-aarch64 IF the audit-log route is wanted (unneeded if unotify/
-cgroup-BPF count); (7) optional KPROBES, IKCONFIG(+_PROC) for in-guest
-config attestation. EXPORTER PLACEMENT: in EVERY shipped system the
-kernel-telemetry drainer is a DEDICATED SUPERVISED PROCESS, never PID
-1 (Falco daemon/DaemonSet; Tetragon agent DaemonSet; gVisor
-metric-server "meant to run unsandboxed as a sidecar", trace points
-"sent to a process running alongside the sandbox… isolated from the
-sandbox for security reasons"); **PID-1-drains-BPF-rings =
-NO-PRECEDENT** (nearest: kata-agent-as-init drains its own ttRPC
-policy surface, NOT kernel telemetry); kata agent-policy = the
-"policy compiled outside, installed at spawn, enforced inside"
-precedent (OPA in guest, default-policy baked or passed at creation).
-TRIPWIRE EVENT-CLASS TABLE delivered (12 rows, each w/ surface,
-push-vs-poll, cost class + STOCK-vs-FORK sequencing): works on stock
-TODAY = memory.events/pids.events/cgroup.events (pushed),
-cpu.stat (polled), PSI (aarch64), BPF_CGROUP_UNIX_* w/ cgroup-id
-attribution + ringbuf; needs flips = BPF-LSM ptrace_access_check
-(/proc/PID/mem reads funnel through it — fs/proc/base.c→mm_access→
-security_ptrace_access_check receipted), task_kill,
-bprm_check_security/file_open (hot-path: MUST filter in-kernel,
-Tetragon's stated model), raw-syscall-rate telemetry.
-
-**ARC LANE C LANDED (2026-08-19): CONDUCT DETECTION MATH.** AXELSSON
-(TISSEC 2000, PDF): "the false alarm rate is the limiting factor for
-the performance of an intrusion detection system" — at base rate
-2·10⁻⁵ the FA factor "completely dominated"; even detection rate 1.0
-needs FA ≈1·10⁻⁵ for P(intrusion|alarm)=66%; AND the original derives
-its requirement from a HUMAN ALARM BUDGET ("the SSO, being only human,
-can only react to a relatively low number of alarms"; "100 false
-alarms per day… met… with a false alarm rate of 1·10⁻⁵") = the
-δ-budget discipline receipted at its source. STATISTIC FAMILY:
-Bernoulli CUSUM per-opportunity (Reynolds&Stoumbos: "detect changes in
-p substantially faster than… grouping items into samples"; ≡ geometric
-ops-between-events CUSUM — formal equivalence quoted) + Szarka&Woodall
-(binned/Shewhart useless at high-quality low rates) + **Steiner
-risk-adjusted weights** (Biostatistics 2000 abstract = our problem
-verbatim: signals "as a result of changes in the referral pattern…
-rather than… actual… performance" — task-mix = referral-pattern);
-TBE/exponential CUSUM on inter-arrivals for sparse tripwire events
-(Gan 1994; Vardeman&Ray 1985 exact exponential ARLs); Poisson CUSUM
-for window-aggregated counts (Lucas 1985, incl. FIR; White&Keats
-Markov-chain ARLs at zero AND FIR starts); EWMA intensity for sensor
-behavioral aggregates (Ye et al. 2002/2003 — audit-stream precedent
-exactly). DISCRETE CALIBRATION: exact ARL equality unattainable at
-integer thresholds (Rossi 
+**LANE D LANDED (2026-08-19): RESPONSE VERBS + USER-PARAMETER PRECEDENT
++ THREAT-INTEL SOURCING — lands onto the PARKED response-authority
+branch (NO design work now; user sequencing: rounds out Scribe/
+observability/handoff first).** RESPONSE VERBS (each cgroup/kernel-
+receipted, reversibility-classed): FREEZE = write 1 to the pod-VMM
+cgroup's `cgroup.freeze`; completion signaled via cgroup.events
+"frozen"; v2 freezer = jobctl-stop-like, NOT observable from inside
+(v1 doc design intent: kernel freezer "prevent[s] the freeze/unfreeze
+cycle from becoming visible"; SIGSTOP/CONT ARE visible ⇒ freezer is
+strictly better), frozen tasks still KILLABLE + ptrace-inspectable
+(read registers) = evidence preservation WITHOUT execution or memory
+persistence; CAVEAT — freezing the VMM cgroup pauses vCPU threads
+without KVM's knowledge ⇒ kvmclock jump + spurious guest soft-lockup
+on thaw UNLESS the fork issues KVM_KVMCLOCK_CTRL per vCPU pre-freeze
+(sets the pvclock "paused" bit the guest watchdog checks — api.rst
+§4.70 + timekeeping.rst §4.6 receipted; the composite is THIN/
+fork-work). THROTTLE = live writes to cpu.max/memory.high(soft-reclaim,
+never-OOM)/io.max on the running VMM cgroup — enact-on-write, bite
+within one CFS period (~100ms); memory.high doc literally briefs the
+warden ("an external process monitors the limited cgroup"); guest sees
+only STEAL TIME, topology unchanged (resolves the PODS §1
+fixed-at-summon tension exactly as hypothesized). SEVER = warden
+refuses new flows at the egress gate (NetworkPolicy egress-isolation +
+AWS isolation-SG precedent — CAVEAT: AWS "existing tracked connections
+won't be terminated… only future traffic" ⇒ Hecate must NAME whether
+SEVER kills established flows; the per-flow gate CAN, unlike an SG).
+CORDON = SEVER + FREEZE + keep-resident; naming precedent kubectl
+cordon "Mark node as unschedulable" (≠ kill; uncordon reverses);
+Hecate cordon also = scheduler stops routing new work/claims while
+resident-for-inspection (cordon=no-new-work vs drain=evacuate = two
+knobs). RESTART = teardown + fresh summon from the content-addressed
+manifest rootfs (return to a VERIFIED state — stronger than K8s
+image-by-reference restart). KILL = `cgroup.kill` (SIGKILL whole
+subtree, fork-race-safe) — two grades in precedent, both need names:
+evict (graceful, respects in-flight commit — honors the
+pipeline-lifecycle-vs-disk-commit law) vs fail (immediate, 0-grace).
+INTERIOR-BLOCK = update the user-parameter objects so the NEXT
+admission/exec/flow decision differs (ResourceQuota "changes… will not
+affect already created resources" = prospective-by-default; explicit
+verbs above do retro-application). SNAPSHOT-FOR-FORENSICS = DELIBERATELY
+NOT offered for guest memory (PODS crit-10): practice captures memory
+FIRST (RFC 3227 order-of-volatility; AWS "PRIOR TO isolation/shutdown")
+— Hecate substitutes FREEZE-and-hold (inspectable-not-running) + the
+COMPLETE host-side per-flow effect record (RFC 3227's "remote logging"
+class, complete because the warden gates every crossing) + admission-
+time content hashes (disk-evidence equivalent). USER-PARAMETER
+SUPREMACY (the "human sets policy, automation executes within"
+precedent set): GuardDuty user threat/trusted lists = THE exact shape
+("stop generating findings from your trusted sources and generate
+findings for known malicious sources from your threat lists"; TRUSTED
+BEATS THREAT on collision = user-suppression precedence; formats incl.
+SHA-256 + STIX; bounded slots 1 trusted/6 threat; edit ⇒ re-activate,
+≤15min propagation — the disclosed-bound pattern); K8s LimitRange/
+ResourceQuota (user ceilings, platform-enforced, prospective);
+ValidatingAdmissionPolicy triad (policy-logic / paramKind / binding) +
+Gatekeeper ConstraintTemplate(logic+schema)-vs-Constraint(instance) =
+the TEMPLATE-VS-PARAMETER split, formalized; Falco override
+append/replace + author-bounded exceptions ("the author of the rule
+defines what construes a valid exception"; upstream ships NO exceptions
+= adopter fills tuples); SRE SLOs→alert rules + quantified overload
+goals ("paging events per shift < 2") + Rundeck runbook-automation
+("self-service access to the processes"); systemd resource-control =
+config lines compiling to kernel enforcement (CPUQuota=→cpu.max,
+MemoryHigh=main/MemoryMax=last-line, IPAddressDeny=→cgroup-BPF firewall
+with allow-over-deny ordering) = the "user directive → compiled
+residual" precedent in a shipped init. THREE PARAMETER-AUTHORING STATES
+(candidate from prior exchange, now precedent-backed): EXPLICIT
+(binding) / UNSET (platform-derived default — constants-from-anchors) /
+AUTO (delegated verb choice); Guardian discretion = choose among
+USER-PERMITTED verbs + timing, NEVER invent a verb (ASR "only when
+initiated by you… or when automated remediation has been enabled";
+MDE actions all-undoable + audit-mode-first = observe-mode-first +
+reversibility). THREAT-INTEL SOURCING: STIX 2.1 indicator (pattern
+lang, SHA-256 example verbatim) + TAXII 2.1 transport (collections,
+`added_after` delta cursor, HTTP-Basic-over-TLS-1.2-MUST, 0-RTT
+forbidden; NO content-signing in the spec = NO-PRECEDENT) / MISP core
+format alt; feeds: abuse.ch family (MalwareBazaar hashes / ThreatFox
+IOCs / URLhaus / SSLBL cert+JA3 — free Auth-Key, hourly/daily batches;
+CC0 NO LONGER asserted on current pages), OSV MAL- malicious-packages
+(Apache-2.0, the coding-agent-specific supply-chain vector) + GitHub
+Advisory type:malware + npm-placeholder/PyPI-quarantine, Spamhaus DROP
+(IP ranges, daily, SBL-removal auto-propagates = FP governance), NSRL
+= known-TRACEABLE not known-good (includes hacking tools — allowlist
+caveat), Team Cymru MHR (free known-bad hash lookup) vs VirusTotal
+public (500/day + "must not be used in commercial products" = legally
+excluded from the product). MATCHING LAYERS (MITRE T1496 + Falco
+verbatim honesty): NAME/cmdline "can generally be bypassed quite
+easily" (cheap first layer, not the control) < HASH (admission-time
+over the content-addressed rootfs manifest — image binaries hash-known
+BEFORE boot; tmpfs-built/downloaded binaries = the only exec-time
+hash-unknown class) < DESTINATION/behavior (mining-pool ports/domains,
+SSLBL JA3, Stratum cmdline, fd-dup-to-socket reverse shell) at the
+egress boundary Hecate already gates per-flow = the layer that survives
+renames. Falco→Talon ships terminate/cordon/drain/networkpolicy
+actionners = the response-verb set as deployed code; GuardDuty
+CryptoCurrency findings (BitcoinTool.B vs .B!DNS = flow-vs-DNS naming).
+STATUS: recorded on the parked branch; design deferred to after the
+Scribe/observability/handoff arc writes. Response-verb table +
+parameter-object families (block-lists / ceilings / phenomenon→action
+maps / feed-subscriptions, template-vs-parameter) + intel-ingestion
+shape all delivered as composed synthesis for that future design.
