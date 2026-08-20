@@ -5960,3 +5960,92 @@ have the design: the Scuba-shape cross-node fan-in aggregation tree).
 The plane stays Rust end-to-end. (Note: OTel Rust SDK exists and IS
 Rust, but it's the OTHER half of Depth C — Beta traces + per-record
 overhead; Depth B skips it too.)
+
+**USER CHALLENGE (2026-08-20): "Why not build our own collector? We
+don't fear complexity." — CORRECT; I under-sold it.** The real decision
+was NEVER collector-vs-no-collector; it's ADOPT-THE-GO-COLLECTOR
+(Depth C) vs BUILD-OUR-OWN-NATIVE-RUST-COLLECTOR. What I called "native
+per-node collection" IS a collector — I mis-framed "collector" as the
+Go artifact to avoid. FIRST-PRINCIPLES ANSWER: **build our own** (call
+it what it is: a first-class Hecate telemetry collector). REFRAMED
+DESIGN — the Hecate collector = a native Rust telemetry PIPELINE
+(receivers → processors → exporters, the OTel Collector's SHAPE as
+precedent) in TWO TIERS: per-node AGENT tier (the in-memory hot ring)
++ cross-node GATEWAY/fan-in tier (the Scuba-shape aggregation tree),
+speaking OTLP at BOTH EDGES (OTLP-IN + OTLP-OUT). RECEIVERS: native
+`tracing`/metric/log emission from every subsystem + **OTLP-IN from the
+instrumented workloads Hecate RUNS** (agent tool subprocesses, MCP
+servers, user code — they emit OTLP; we ingest it). PROCESSORS:
+aggregate-at-source, head+TAIL sampling (tail needs complete-trace
+buffering at the fan-in tier — a collector-only capability), bounded-
+cardinality enforcement, resource enrichment, trace-id correlation
+stitching, + TWO HECATE-NATIVE processors the Go Collector CANNOT do:
+**provenance-classing** (OTLP-in from a workload = guest-reported,
+never authoritative for detection; Hecate-emitted subsystem telemetry =
+host-observed) and **content-free-law enforcement** (HEALTH's no-
+work-content/no-ledger-content rule, structural at ingest). EXPORTERS:
+OTLP-OUT (interop — Prometheus/Datadog/ADOT/Grafana ingest directly) +
+internal fan-out to the detection substrate / score service /
+dashboards / durable spine (WAL + object-tier), ALL off ONE pipeline
+(no duplication). WHY OWN IT (beyond doctrine): a thin OTLP encoder
+CAN'T ingest workload telemetry, can't provenance-class at ingest,
+can't tail-sample (no fan-in buffer), can't be the single pipeline
+feeding both interop-export AND internal detection — the moment you
+want fan-in + tail-sampling + OTLP-in + multi-exporter you HAVE a
+collector, so own it. RIGOR (maximally-correct/robust/performant/
+efficient): correct (provenance + content-free structural at ingest;
+one authoritative pipeline); robust (no foreign runtime; Hecate
+supervision/scheduling; backpressure under no-drops/no-unbounded-growth
+rules; we design the fan-out, avoiding the Go Collector's documented
+sync-coupled-fan-out blocking hazard); performant (native Rust, no
+per-record SDK cost, 9ns enabled-check gate, tail-sampling at the right
+tier); efficient (one pipeline, N exporters; reuses the hot ring +
+fan-in tree + storage tiers already designed). This is Depth B done
+MAXIMALLY (= "own-collector"): STILL no SDK, STILL no Go — OTel
+Collector = pipeline-shape precedent, OTLP+conventions = the wire
+contract (in AND out), the implementation is ours. The companion
+"telemetry substrate" spec IS this collector spec. SCOPED to Hecate's
+needs (not OTel's 100+ receivers/exporters): the receivers/processors/
+exporters Hecate actually needs, extensible.
+
+**DECISION FINALIZED (2026-08-20, user): PORT THE GO OTEL COLLECTOR TO
+RUST + ADAPT to our needs/protocols.** Definitive method — not "build
+inspired by the shape" but PORT the actual OTel Collector (Go,
+Apache-2.0 ⇒ permissive, clean to derive) to Rust and adapt. WHAT WE
+PORT (the core, NOT the 100+ contrib components): the pipeline framework
+(receiver/processor/exporter abstractions + service wiring), the OTLP
+receiver + OTLP exporter, the batch + tail-sampling processors. WHAT WE
+ADAPT: config/wiring → Hecate's model (AgentRole/registry-shaped, not
+raw YAML); internal transport → hecate-wire + warden-gated vsock;
+external edges → standard OTLP (in AND out). WHAT WE ADD (Hecate-native
+components atop the ported framework): receivers = native `tracing`/
+metric/log emission from every subsystem + OTLP-IN from instrumented
+workloads over warden-gated vsock; processors = provenance-classing
+(guest-reported vs host-observed) + content-free-law enforcement +
+aggregate-at-source + adaptive-rate + the Scuba cross-node fan-in tree;
+exporters = OTLP-OUT (interop) + internal fan-out to detection substrate
+/ score service / dashboards / WAL+object-tier. WHAT WE FIX during the
+port (the Go Collector's DOCUMENTED faults, under Hecate rules): the
+SYNC-COUPLED fan-out blocking hazard → our fan-out under no-drops/
+no-unbounded-growth + explicit block-vs-drop; the FULL-TEARDOWN-on-
+config-reload → hot reconfiguration. TWO TIERS (ported topology): agent
+= per-node host-side (the hot ring; tamper-proof host collection) +
+gateway = placed region-local service (the fan-in tree, colocation-unit-
+adjacent). RUNTIME SUPPORTS IT (user, 2026-08-20: "our microvm + OCI
+runtime certainly has the ability to support it"): OTLP-IN from the
+workloads Hecate RUNS rides the EXISTING pod channel infra (registered
+vsock flow, warden-terminated, provenance-classed guest-reported — like
+the sensor channel); the collector hosts on Hecate's own runtime
+(agent tier host-side; gateway tier as a placed service, or dogfooded in
+a pod) — so a std OTel-instrumented workload (user code / tool subproc /
+MCP server) running in a Hecate pod gets its OTLP telemetry ingested,
+provenance-classed, correlated. This SUPERSEDES the A/B/C depth framing:
+the answer is "own a Rust collector PORTED from the OTel one," which is
+neither adopt-the-Go-Collector (C) nor thin-encoder (my under-sold B) —
+still NO SDK, still NO Go in Hecate; the ported Rust collector IS the
+OTLP client/server. NEW TREE ITEM: the Hecate Collector spec (= the
+telemetry substrate MONITORING §6 + the system-operational plane both
+consume). STILL OWED: the two-planes ruling (system log/telemetry-
+monitoring feeds the detection substrate vs a separate operational
+plane — my rec: two planes, one shared collector pipeline + correlation
+spine).
