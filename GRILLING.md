@@ -7808,3 +7808,48 @@ dossier.md. **LOG/SHARDING lane (ad634072: FuzzyLog/Tango/Delos/Scalog/Boki)
 STILL OUT — the full materializer design integrates both (per-instance
 sharding + partial-order = the coarse lever; parallel apply = the within-shard
 lever).**
+
+**MATERIALIZER RESEARCH — LOG/SHARDING LANE LANDED (2026-08-20, ad634072):
+partial-order shared logs + selective playback. BOTH materializer lanes now
+IN.** KEY FRAMING: append/order throughput ≠ single-materializer APPLY
+throughput — TWO ceilings. Order layer: CORFU 200K tokens/s, Tango 200K→2M
+batched, Scalog 255K real/52M emulated, Delos >1M 1KB appends/s, Boki 1.16M
+Op/s/log. A single serial applier doing REAL per-entry work = a SEPARATE LOWER
+ceiling — Tango names it "the playback bottleneck"; Delos apply =
+one-thread-per-state-machine, saturates when "writes are computationally
+expensive" (Hecate's ARE: parse claim + walk causal DAG + update claims-graph
++ testament-reconcile per entry ⇒ **assume apply IS the bottleneck day one;
+Delos's 'apply isn't the bottleneck' does NOT transfer**). TWO ORTHOGONAL
+LEVERS (want both): (PRIMARY/COARSE) shard state across MANY independent
+materializer instances, each replaying ONLY its sub-stream — Tango layered-
+partitioning (per-object streams + backpointers, read O(your objects) not
+O(whole log)), FuzzyLog colors (per-shard partial order; disjoint colors apply
+fully parallel), Delos many-state-machines, Boki many-LogBooks + metalog-
+vector-cut. Scales aggregate apply LINEARLY with #non-overlapping partitions
+UNTIL the ORDER LAYER saturates (Tango cap; Scalog/Boki shard the order layer
+too). (SECONDARY/WITHIN-SHARD) DAG-parallel apply (the apply-lane design),
+under PREFIX RECOVERABILITY. NUMBERS: FuzzyLog/Dapple 3M/s single-key vs 150K/s
+cross-shard (20× gap = cost of leaving the partial order), linear 1→16 servers
+@0% cross, WORSE than total order @100% cross; Tango 180K lin-reads/s @18
+clients; Boki 1.16M Op/s/log @32 nodes, aggregate scales with #physical-logs
+independent of LogBook density, 4.7×. **HECATE VERDICT: session = the natural
+COLOR/STREAM boundary** (claims within a session causally DENSE; across
+sessions NEARLY INDEPENDENT — one session = one coding task; the per-session
+region-local ledger is ALREADY the SESSIONS §2 structure). PRIMARY = one
+materializer per session (each session = its own log-instance, so selective
+replay is FREE — it reads only its own log; no Tango stream-multiplexing
+needed); aggregate apply LINEAR with active sessions; group under region
+colors; cross-session claims = explicit multi-log commits, ~10-20× costlier,
+must stay RARE. SECONDARY = DAG-parallel within a hot session. Aggregate ≈
+(#session-shards) × (per-session DAG-parallel rate) → tens-of-thousands INTO
+THE MILLIONS. **HARD GATE (honest): PARTITIONABILITY — MEASURE the
+cross-session edge fraction of the ACTUAL claim graph** (FuzzyLog worse-than-
+total-order when fully cross); the claims model strongly SUGGESTS near-
+independence but it needs MEASUREMENT, not assumption. Other caveats:
+order-layer is the ultimate ceiling; cross-shard txns need first-class
+recovery; whale-session skew ⇒ split/merge + data-derived sizing;
+prefix-recoverability is THE invariant an over-eager parallel materializer
+violates; deterministic apply required. Dossier: tmp/materializer_log_lane/
+dossier.md. **BOTH LANES IN ⇒ full materializer design ready (coarse
+session-sharding = already the ledger structure, validated + linear;
+within-shard DAG-parallel for a hot session).**
