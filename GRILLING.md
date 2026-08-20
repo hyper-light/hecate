@@ -7672,3 +7672,43 @@ OFFER as opt-in for SNS-compat, vs the content-free law (no system component
 reads payload plaintext for a routing verdict) as a hard floor even opt-in
 (principle-vs-accepted-law collision — user's call). Confirming the reframe
 before reworking the specs.**
+
+**BODY-FILTER RESOLVED (2026-08-20, user: "we absolutely offer that"): SNS
+body-filtering IS offered, OPT-IN. Reconciled w/ the content-free law — the
+law's CORE (mesh TRANSPORT + system VERDICTS/warden never need plaintext) is
+UNTOUCHED: attribute-filtering (DEFAULT) stays content-free (decides on frame
+metadata; body = ContentRef; nothing materialized on fast path or security
+plane). Body-filtering runs at the AUTHORIZED DELIVERY EDGE, which must read
+EVERY topic message body to filter (incl. filtered-OUT ones) ⇒ requires IAM
+content-read AUTHORIZATION on the topic = an explicit opt-in TRUST GRANT (not
+a hole in the floor — the default grants none of it). Cost profile (= why
+opt-in): off-fast-path, materialize+parse body per message, per-msg latency.
+**SNS NOW SETTLED: DEFAULT = reliable durable push + attribute-filter; OPT-IN =
+push-notify+pull-recover (log-cursor), ephemeral-at-most-once, body-filter
+(authorized delivery-edge, IAM content-read-gated, off-fast-path).** NEXT OPEN
+= the CACHE flash-vs-DRAM decision: does general mutable KV need FLASH-SCALE
+capacity (→ set-assoc small-object flash collides w/ OBJECT_TIER AC-1, resolve
+CacheLib-way: ONE Navy-style CACHE engine hosts both log-structured-region +
+set-assoc-small-object, AC-1 scoped to the ORIGIN store only) or is
+DRAM+recompute-on-miss enough (IAM likely yes, observability aggregates maybe
+no)? — needs the consumer capacity requirement from the user.**
+
+**SQS DURABILITY DEFAULT CORRECTED (2026-08-20, user: "3-replica for local
+seems extreme; environment aware and appropriate"): the DEFAULT is NOT a
+hardcoded 3-replica — it DERIVES from the failure-domain tree (= the §S
+N=1-collapse applied to durability; a DERIVATION, not a mode). Default = the
+STRONGEST durability the environment structurally affords = WAL-always-full-
+fsync EVERYWHERE (power-cut/crash safe) + replication DERIVED across fault
+domains WHERE THEY EXIST. Laptop (depth-1 tree, 1 node) ⇒ replica=1, single-
+node WAL-fsync (power-cut safe; node-death NOT survivable — no 2nd node exists,
+can't beat the env); cluster (N fault domains) ⇒ WAL-fsync + derived N-replica
+(node-death safe). SAME code path, derived param, no mode flag. OPT-IN
+(loss-tolerant): relax BELOW the env default (self-ack before fsync/replication)
+for reconstructible data = speed>durability. ACCEPTANCE CRITERION now ENV-
+PARAMETERIZED: acked writes survive power-cut EVERYWHERE (WAL fsync) + survive
+node-death WHERE the tree affords replicas; SIM sweeps 1-node→N-node. Rest of
+SQS split STANDS (user implicitly accepted): unordered DEFAULT / FIFO-
+MessageGroupId OPT-IN / dedup + log-backed-cursor OPT-IN / lease-epoch +
+notify-wake STAY-DEFAULT (strictly better). GENERAL PRINCIPLE EXTENDED: even
+the "safe default" is ENVIRONMENT-DERIVED, not a fixed setting — the opt-in
+relaxes below it; nothing is a hardcoded number.**
