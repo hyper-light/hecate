@@ -6440,3 +6440,64 @@ channels, no cross-shard sharing).** STRONGLY consider otel-arrow/
 otap-dataflow as prior-art-or-dependency vs re-deriving the async engine.
 ALL 4 LANES IN ⇒ NOW SYNTHESIZE THE FULL SPEC-GRADE HECATE COLLECTOR
 DESIGN (IAM/PODS granularity) + present in-message before write.
+
+**COLLECTOR SPEC PRESENTED (2026-08-20) THEN PULLED BACK — USER AUDIT
+FOUND 4 REAL GAPS + "lacks actual mechanics."** Full COLLECTOR.md spec
+presented in-message (§0 shape/two-planes/two-tiers, §1 port-ledger,
+§2 pdata→Rust compiler-enforced, §3 async-channel exec replacing sync
+fanout, §4 component/factory/config, §5 two tiers, §6 OTLP in/out, §7
+provenance-class + content-free processors, §8 durable spine, §9 maximal
+collection, §10 trace-context, §11 carriage, §12 two-plane separation,
+§13 placement/scaling/authz, §14 N=1, §15 instrumentation surface, §16
+scale walks, §17 test matrix CO1-15, §18 acceptance, §19 corpus
+amendments). USER AUDIT (verbatim-close): (1) **"we have NO queue
+primitive… we lack cache primitives. We need to design a queue and cache
+equivalent. Add these to the tree, they are next to design."** — the
+design LEANED on "persistent queue" (OTel-internal) + "cache role"
+(OBJECT_TIER-internal pack-volume policy, NOT a general primitive) as if
+they were Hecate primitives; they are NOT. QUEUE + CACHE = NEW TREE
+ITEMS, Collector dependencies, design-next. (2) "does this match Meta
+scale? Do you need more research?" — HONEST AUDIT: shape holds (Scuba
+proves the pattern) but 5 THIN SPOTS lack mechanics: gateway fan-in tree
+is a SKETCH (no topology/sharding/rebalancing); aggregate cardinality at
+scale unaddressed; tail-sampling-at-scale hand-waved (trace-aware
+routing + num_traces×size×decision_wait memory at 1.3B traces/day);
+cold-telemetry petabyte capacity model absent; NO query plane designed.
+YES more research. (3) "account for distributed AND multi-region. Do you
+need more research?" — YES; "region-local + federate upward" was a
+HAND-WAVE; Monarch (Google planet-scale, zonal-autonomy + global query)
+is THE precedent, undesigned. (4) "How should we handle sharding,
+replication, durability?" — the cross-cutting MECHANIC that was missing;
+Hecate HAS substrate (OBJECT_TIER copyset+EC, WAL Raft, SERVING HRW) to
+reuse EXCEPT where telemetry's LOSSY-TOLERANCE differs from ledger
+zero-loss. (5) "Should each session have its own collector?" — MY
+ANALYSIS (to validate via research): NO — collection = INFRASTRUCTURE
+(node agent + region gateway; node-rollup bounded by node-count not
+session-count, PODS T10; sessions spread across nodes); session =
+scope/read-isolation dimension at the SERVING EDGE (collection
+node-shared, reads session-isolated — IAM metadata/content split); the
+MONITORING plane (detection+score) IS per-session (colo-unit) but that's
+the SEPARATE authority plane. (6) **"solid design but it lacks actual
+mechanics"** = the core critique; the corrective = design the real
+mechanics (sharding/replication/durability, the tree topology,
+cardinality mgmt, tail-sampling routing, cold capacity, query plane,
+multi-region federation) grounded in research. COLLECTOR SPEC STATUS =
+PRESENTED-BUT-BLOCKED pending: queue+cache primitives designed +
+Meta-scale/multi-region mechanics researched+designed + per-session
+ruling. Core architecture (ported OTel, two planes, provenance/
+content-free processors, N=1, the async-channel fix) STANDS; the gaps
+are mechanics + primitives + federation. 3 RESEARCH LANES DISPATCHED
+(each → mechanics + Hecate-design-rec): SCALE MECHANICS (a381c17c —
+Monarch zonal/global + target-sharding + query tree, Cortex/Mimir/Thanos
+ingester-RF/consistent-hash-ring/object-store-flush, tail-sampling
+loadbalancing-exporter trace-ID routing, telemetry durability-tiers
+lossy-tolerance, multi-region autonomy + the per-tenant-vs-shared
+scoping answer); QUEUE PRIMITIVE (a3715779 — Kafka log-as-queue
+partitions/ISR/offsets, SQS visibility-timeout/redelivery/DLQ,
+exporterhelper persistent-queue crash-recovery, sharding/replication/
+tunable-durability, on WAL/object-tier substrate); CACHE PRIMITIVE
+(a6a3fa67 — W-TinyLFU admission + eviction, ARC/SIEVE/CLOCK, sharding,
+sizing-from-anchors, reconcile OBJECT_TIER cache-role). On landing:
+design QUEUE + CACHE specs, re-audit + design the Collector's Meta-scale/
+multi-region MECHANICS, settle per-session, re-present all three.
+TWO NEW TREE ITEMS: QUEUE primitive, CACHE primitive.
