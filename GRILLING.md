@@ -6792,3 +6792,69 @@ consumer-group fan-out shape) — vs the queue's SHARED dispatched-set
 (competing consumers). Shared substrate (WAL logical log + pack store),
 distinct disciplines — do NOT over-unify (the OBJECT_TIER two-planes-one-
 substrate law).** 1 lane out: fanout (a9bd127b).
+
+**CACHE+PUB-SUB COMPLIANCE ADDENDUM LANDED (2026-08-20, a6a3fa67
+resumed on the compliance msg) — 2 HARD CONFLICTS + 5 amendments; a
+MAJOR correction to my earlier moka-as-dependency claim.** **CONFLICT
+#1 (THE most important ruling): moka + tokio are PRECEDENT-ONLY, NEVER
+DEPENDENCIES. RUNTIME §3 bans (CI-FATAL) tokio/async-std/foreign
+runtimes + unbounded channels; §4 denies Arc/Rc workspace-wide. moka =
+tokio/Arc-based w/ BACKGROUND MAINTENANCE THREADS; tokio::broadcast/
+watch ARE the banned runtime. ⇒ the cache+pub-sub is a FROM-SCRATCH
+HECATE-RT-NATIVE implementation; moka/Caffeine/tokio-channels = SHAPE
+RECEIPTS not importable code. DESIGN CONSEQUENCE: eviction runs
+SYNCHRONOUSLY/AMORTIZED ON THE SHARD EXECUTOR (no background maintenance
+thread) ⇒ favors SIEVE/CLOCK-Pro "no-work-on-hit, work-at-eviction" +
+W-TinyLFU on-access maintenance over moka's async-maintenance model.
+[This CORRECTS my prior "moka is the likely dependency" — it is
+precedent only.]** **CONFLICT #2: determinism forces SEEDED NON-STD
+hashing. RUNTIME §3 bans std HashMap/HashSet in component state
+(randomized iteration = determinism leak) + rand/getrandom direct use;
+T1 = bit-identical SIM. Caffeine/moka use HashDoS-random hashing +
+random-seeded sketches ⇒ breaks determinism. ⇒ the cache map +
+shard-assignment hash + Count-Min sketch hashes MUST use deterministic-
+iteration maps + seed from `Driver::rng` (seeded in SIM) ⇒ admission/
+eviction-order/key→shard bit-reproducible.** COMPLIANT (shape): single-
+owner shards = RUNTIME §1 verbatim; **pub-sub fan-out MUST use RUNTIME
+§4's ARENA ACQUIRE/RELEASE-COUNT mechanism (the corpus ALREADY
+specifies "one payload referenced by N in-flight consumers… stored as
+data in the owning arena, visible in replay… NEVER a smart pointer")**;
+sizing = AC#7 anchors; typed-errors-not-panics + broadcast-Lagged-drop =
+typed outcome. CONSENSUS: the ephemeral/RAM/immutable face is
+WRITER-LESS (does NOT enter the durable single-writer roster) BUT must
+be EXPLICITLY boot-classified writer-less-ephemeral/CAS-first or fails
+the chokepoint; a replicated-MUTABLE KV face (if ever added) = lease+
+fence-per-slot-primary (v1 avoids by construction). HEALTH: content-free
+law governs the SIGNAL plane NOT the DATA plane ⇒ cache/pub-sub PAYLOADS
+legitimately hold work content; but cache/pub-sub TELEMETRY (hit-ratio/
+evictions/Lagged-drops/subscriber-counts) IS a health signal ⇒ content-
+free (counters+rates+UIDs/HASHES only; a cache key in a signal = opaque
+hash NEVER raw string, H8); admission/eviction self-contained never
+health-gated. SCHEDULER/AUTOSCALING COMPLIANT (SCHEDULER steers by
+chunk-cache locality; AUTOSCALING already "preserv[es] warmed caches" on
+scale-down + drops reconstructible cache on scale-to-zero; HRW absorbs
+failure "by spare capacity never load-rehash"). FAULTS COMPLIANT (cache/
+pub-sub loss = Masked/Degraded NEVER work-loss — nothing acked-durable
+lives only in cache/ephemeral-bus; at-most-once licenses the counted
+drop). **FAN-OUT MECHANISM ALREADY EXISTS IN THE CORPUS: LEDGER_CORE
+runs a per-node SUBSCRIBER INDEX (node→monitors) for durable-ordered
+delta fan-out ⇒ REC (corpus-minimal): reuse that subscriber-index +
+RUNTIME §4 arena acquire/release fan-out MECHANISM, add the ephemeral
+at-most-once DELIVERY CLASS on top = ONE fan-out mechanism, TWO delivery
+classes (durable-ordered vs ephemeral-lossy) — do NOT build a 2nd
+fan-out engine [directly informs the fan-out lane].** 5 AMENDMENTS:
+(1) PROTOCOL/WIRE add ephemeral-at-most-once (sheddable/unordered/
+counted-drop) DELIVERY CLASS to the closed enum + codec (co-exists w/
+the durable ordered delta-stream subscribe, kept DISTINCT — Streams-vs-
+PubSub); (2) IAM add closed capability actions cache_read/write +
+channel_publish/subscribe scope-fenced to the dedup-domain/session line
+(schema-version publish re-runs boot); (3) CONSENSUS §6 classify writer-
+less-ephemeral/CAS-first; (4) OBJECT_TIER §5 doc-sync (name general
+primitive as parent, declare the 2 installed traits); (5) RUNTIME
+implementation CONSTRAINTS (bans to honor: hecate-rt-native only, Driver-
+seeded deterministic hashing, synchronous/amortized eviction on shard
+executor, single-flight miss-fill). CROSS-PRIMITIVE STANDING RULE now
+firm: **ALL primitives are hecate-rt-native from-scratch — external
+systems (moka/tokio/Kafka/SQS/Redis/Valkey/SNS/Caffeine) are SHAPE
+RECEIPTS, never dependencies** (RUNTIME §3/§4 bans). CACHE+PUB-SUB lane
+FULLY COMPLETE. 1 lane out: fanout (a9bd127b).
