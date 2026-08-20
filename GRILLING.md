@@ -7152,3 +7152,73 @@ resolve conflicts, finalize the 4 specs (CACHE folds CacheLib one-engine
 re-present the maximally-complete family for acceptance → on accept
 write QUEUE.md + CACHE.md + FANOUT.md + COLLECTOR.md + the §A corpus
 amendments in ONE change + close Branch 39 in GAPS.
+
+**RECONCILER R-AUTH LANDED (2026-08-20, a193a5ee): authority/runtime
+set — CLEAN. 1 CONFLICT, ~13 additive GAPs, 3 amendment-collisions, 8
+NO-CHANGE; ALL RUNTIME bans verified honored; HEALTH content-free
+honored STRUCTURALLY (H8 type-walk).** ONLY CONFLICT: **SESSIONS §2
+colocation unit is a CLOSED list ("HOME SERVICES only (ledger core,
+merge proposer, frontier, field service)") — adding queue-core + topic-
+sequencer contradicts "only(…four…)"** → amend to include "any session-
+scoped durable-writer primitive (queue core + topic FIFO-sequencer per
+CONSENSUS §6)". 2 PRECISION CORRECTIONS TO MY STATEMENT (fold in): (i)
+**"writer-less-ephemeral" is NOT a 3rd CONSENSUS class — it means the
+cache/pub-sub has NO durable writer to classify ⇒ "introduces no new
+roster entry", NOT a new classification** (else boot-validation
+semantics blur); (ii) **my parenthetical "(merge serializer, ledger
+sequencer, SCORE SERVICE)" is WRONG — the score service is NOT a standing
+writer (RANK:72 "nothing touches the ledger"; it pushes snapshots as
+inputs)** — CONSENSUS §6 lists only "merge serializer, ledger sequencer,
++ any future open-write-stream holder". PLACEMENT SPLIT (resolves Q9):
+queue-core + topic-sequencer = **colocation-unit members** (quorum-
+durable, session-fenced, lease+fence writers → the SESSIONS §2 amend);
+cache hot-ring = **serving-plane HRW-placed** (reconstructible, no
+durable writer). SCALING: queue depth = the canonical valid autoscaler
+signal (latency is NOT; collector exporter-queue-depth already
+anticipated AUTOSCALING:25-26); cache scale-to-zero-DROP safe (re-fill
+from OBJECT_TIER durable); queue scale-to-zero KEEPS its WAL; no new
+resource kind (rides existing storage_write_bw/storage_cap/mem typed
+vector; cache flash-write IS the OT13 endurance servo SCHEDULER already
+reads). IAM (0 conflict, additive — §4 is extensible "schema-version
+publish re-runs boot"): NO taxonomy collision (closed per-resource-type
+enums ⇒ queue.snapshot_read ≠ volume.snapshot_read, topic.publish ≠
+registry.publish); NO §7b collision (primitives aren't ledger objects);
+GAP-3 = ONE SENTENCE needed: ledger deltas KEEP `subscribe_deltas`,
+general pub-sub uses `topic.subscribe` (reuse subscribe_deltas as
+PRECEDENT shape not same action — else double-mapping); **cache/channel
+actions OPEN-QUESTION: (a) warden CAPABILITY ATOMS under skill_tool.
+invoke [recommended — node-local pod-boundary caps the warden already
+gates, PODS §6 auto-compiles] vs (b) new resource types**; queue/topic =
+new resource types (cross-cutting lifecycle verbs need first-class
+audit). **GAP-4 (resolves Q8 authority-side): the bootstrap cycle
+(IAM-audit-rides-collector → collector-uses-queue → queue-needs-IAM) is
+BROKEN CLEANLY: system-service permits for collector/queue are BOOT-
+RESOLVED FROM ROOT ANCHORS (signed harness release, IAM §7.10/§7.14),
+NOT a running audit path; audit is EMITTED-AFTER-decision, async/
+observational (IAM:192 "no I/O mid-decision") — no synchronous cycle;
+add one clarifying §7.14 sentence.** REGISTRY: topic/queue/subscription/
+filter descriptors = config-registered kinds via §2b (set_ref_if =
+the CAS-first classification) — the AgentRole↔Role authority-vs-config
+split applied to messaging (IAM owns actions, registry owns descriptor).
+RUNTIME-CRITICAL: every ban honored (single-owner shards, bounded
+channels, no-Arc/Rc, no-foreign-runtime, no-std-HashMap, Driver-seeded,
+SYNCHRONOUS eviction+rebalance on shard executor = no bg thread, §4
+arena fan-out); moka/tokio→from-scratch mapping COMPLETE; **ONE WATCH-
+ITEM: CacheLib probabilistic-admission accept-draw MUST route through
+Driver::rng (seeded), not a sketch-only path**. HEALTH: no leak IF
+opaque-hash-key rule holds (H8 enforces structurally; a raw-key/channel/
+body field in a signal type fails CI). FOREST §98 "TinyLFU-style duel"
+= consistent shared PATTERN vocab, not a collision (different quantities,
+no shared chokepoint; optional: factor a canonical W-TinyLFU module both
+reference). VECTOR_INDEX cache-role reuse = the content-by-hash face,
+PRESERVED by the §5 doc-sync (cross-ref-integrity check on write).
+RANK/SIBYL/AGENTS_RUNTIME/PODS = NO-CHANGE w/ notes (PODS warden §6
+auto-covers new capability atoms; no no-persist-guest-memory collision —
+primitives are host-side authorized write paths). 3 AMENDMENT-COLLISIONS
+(land as ONE coherent edit each): IAM §4 taxonomy (all 4 designs +
+§16/§17), FAULTS §5 matrix (queue+cache+fanout rows, F4 boot-coverage
+one-artifact), CONSENSUS §6 roster (queue-partition+topic-sequencer+
+registry+cache-writer-less). 2 RATIFY-OPEN: IAM cache/channel home
+(a-warden-caps recommended); SESSIONS colo membership (queue+topic join
+recommended). 1 reconciler still out: storage/protocol (a8540133 —
+resolves the OTHER half of Q8 + Q3/Q4/Q5/Q6/Q10).
