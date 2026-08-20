@@ -7588,3 +7588,48 @@ mutator + IO-offload; WE shard the DATA (parallel command exec) — take its
 bounded-queue handoff discipline, invert its ownership. Per-subsystem detail
 in the dossier. a05f2ed's 3 leftover children (evict/expire/threading) now
 SUPERSEDED — the dossier already covers #1/#2/#8.**
+
+**FANOUT/SNS STUDY COMPLETE (2026-08-20, a1e4bfd0): 441-line dossier at
+tmp/fanout_refs_lane/dossier.md (RabbitMQ push + Kafka pull; all primary-URL
+fetched — WebSearch was exhausted, which RAISED source quality). CENTRAL
+ANSWER: the literature DECISIVELY backs PUSH-NOTIFY + PULL-RECOVER over
+pure-push/pure-pull for internal log-backed consumers — it PARETO-DOMINATES
+both (vs pure-pull: adds event-wake w/o weakening correctness since the cursor
+backstops any lost notify; vs pure-push: removes redundant broker delivery-
+state + publisher-blocking backpressure) — CONDITIONAL on an authoritative log
+existing to recover from (= our ledger).** THEOREM: End-to-End Argument
+(Saltzer/Reed/Clark, TOCS 1984) NAMES the fan-out-bus functions (dup-detection,
+sequencing, guaranteed delivery, receipts) as ENDPOINT functions with low-level
+mechanisms "justified only as performance enhancements" ⇒ push-notify = the
+perf hint, pull-recover-by-cursor = the endpoint correctness fn. Kafka
+design.md: pull chosen b/c push "tends to overwhelm the consumer… a DoS in
+essence"; offset = "a single integer… ack very cheap"; busy-wait solved by
+LONG POLL = exactly where our notify slots in. Kafka consumer-groups = N
+cursors over one log = validates fanout=first-consumer-of-the-delta-stream.
+VALIDATIONS: (1) "attributes, never body" filtering is validated by RabbitMQ
+(all 4 exchange types route on routing-key/headers, body opaque); Kafka does
+NO server-side filter (client-side = read-amp); SNS DID add body filtering
+(MessageAttributes OR MessageBody) ⇒ **our attributes-only rule is a DELIBERATE
+divergence from SNS, NOT from RabbitMQ** — confirms the design-statement
+framing, and it's the deliberate MIDDLE (Kafka none / SNS body / us
+attributes+projections). (2) RabbitMQ credit_flow {InitialCredit,MoreCreditAfter}
+validates credit-governed amplification BUT its backpressure PROPAGATES TO
+BLOCK THE PUBLISHER = the GOTCHA we isolate per-edge (our amplification is
+bounded per-subscription, publisher never blocks). PURE-PUSH genuinely needed =
+EXTERNAL subscribers that can't cursor our log (webhooks/SSE/mobile/email/
+3rd-party) — the ONE place we genuinely need broker-held delivery state
+(retries+DLQ) = our durable-queue fanout subscription at the boundary.
+PURE-PULL needed = slow/batch consumers, replay/rewind, + the correctness
+substrate under the hybrid. UNVERIFIED (honest): credit_flow {400,200} is
+config-driven (cite mechanism not number); RabbitMQ 4.x AMQP-1.0 filter-
+expressions couldn't be primary-verified (a lead). NET: FANOUT design VALIDATED
+as presented; push-notify+pull-recover is now theorem-backed.
+
+**★ ALL RESEARCH COMPLETE (2026-08-20): 5 lanes in — Lane A (ledger-on-log),
+Lane B (at-most-once-notify), ValKey (cache), Kafka/RabbitMQ/SmoothMQ (queue),
+RabbitMQ/Kafka (fanout). The primitive family is FULLY RESEARCHED. NEXT =
+FINALIZATION PASS: fold every dossier's adapt/improve/gotcha into the 3
+enriched primitive specs (+ COLLECTOR) → re-present for acceptance → on accept
+write QUEUE/CACHE/FANOUT/COLLECTOR.md + §A corpus amendments + close Branch 39
++ MONITORING/HANDOFF fold-in. Ledger-layering settle also ready (both lanes
+in). Awaiting user steer on order.**
