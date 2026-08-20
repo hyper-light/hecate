@@ -5654,3 +5654,86 @@ the corpus; 4 NO-CHANGE docs (TRANSFER, WIRE_FORMAT, WAL, SIBYL,
 VECTOR_INDEX + MERGE-substantive). NEXT: consolidate + resolve OQs w/
 recommendations + present for acceptance, then write MONITORING.md +
 HANDOFF.md + ADR-0006 + all corpus amendments + GAPS in ONE change.
+
+**USER RULINGS ON THE 3 LOAD-BEARING OQs (2026-08-19):** (1)
+provider-egress/agent-channel placement = host-side gateway chokepoint
+→ **ACCEPTED** ("Good"; resolves the PODS↔SUMMONING vsock-vs-virtnet
+disagreement in SUMMONING's favor; primary has no netns + AF_VSOCK
+EPERM; rustls TLS pool host-side at the gateway; in-guest speaks
+hecate-wire over pre-connected fds; claims ride the staging ring;
+PODS §3 agent-vsock row superseded; vsock = control + Scribe-flow +
+sensor). (2) warm-pool container timing = **OVERRULED my
+create-at-assignment** → the user wants images CACHED/kept-ready/
+minimal/near-instant-INCLUDING-LOADING, PRE-LOADING agent OCI
+containers pre-summon (they're role-keyed + IDENTITY-FREE ⇒
+pre-loadable without breaking the generic-pool proof; DAX shared-map
+one-host-copy-per-node, Scribe image = maximal dedup); user instinct:
+(a) internal hecate agents ship EXTREMELY-LIGHTWEIGHT CUSTOM containers
++ ability to install additional tools at runtime; (b) each default
+agent ships a MINIMAL TOOLS MANIFEST of what its work needs — and
+this became **a NEW TREE ITEM (see below).** (3) Forest vs score
+service = **CORRECTED (category error in the reconciler AND my
+resolution): they are ENTIRELY DIFFERENT MECHANISMS FOR DIFFERENT
+PURPOSES — the FOREST facilitates AMBIENT LEARNING; the SCORE SERVICE
+facilitates AUTHORITY in challenge/consult and red/green feedback.**
+NOT one drifting concept to consolidate. Fix = DECOUPLE: the Forest
+does NOT feed the authority score (FOREST:180-184 "Rank inputs …
+pushed to the score service" is the actual error — remove the
+coupling); the score service computes authority INDEPENDENTLY from
+ledger outcome deltas (challenges upheld, consults, red/green pass
+rates) + Scribe snapshots (statement §6 already correct); the
+Forest's aggregates drive its OWN advisory ambient-learning influence.
+The shared prevalence/specificity/trust VOCABULARY is a domain-model
+term collision (same 3 words, 2 mechanisms) → disambiguate in the
+CONTEXT glossary (they name different things: field-ambient vs
+authority). "fix root asymmetry" applies to the VOCABULARY, not the
+mechanisms (which stay separate).
+
+**BRANCH OPENED (2026-08-19): OCI HANDLING SUBSYSTEM (private-registry-
+level) — new tree item, its own spec owed.** Directive (user, verbatim-
+close): "add an item to our tree to define oci handling with respect to
+our registry, underlying filesystem storage the registry uses (the
+Tectonic FS), OCI image replication, hashing, authorization,
+compatibility, etc. This should function at the level of a private
+docker registry. Pin the image-pre-loading as a part of this tree
+item." GROUNDING (corpus checked): "Tectonic FS" = the OBJECT_TIER
+durable-plane chunk store (OBJECT_TIER IS Hecate's Tectonic-modeled FS,
+FAST'21 lineage). TODAY: OCI is only a borrowed PATTERN — REGISTRY:171
+"the registry hosts nothing; the resolver pins" (git/OCI refs → digests,
+content lives elsewhere by hash — VFS §6, OBJECT_TIER Venti/OCI
+any-copy-valid-by-hash). THE GAP: Hecate cannot natively HOST/SERVE/
+REPLICATE OCI images — it pins external refs. This branch elevates OCI
+to a FIRST-CLASS SUBSYSTEM functioning as a private docker registry:
+scope = (i) OCI Distribution-Spec + Image-Spec handling (manifest/
+config/layer blobs, push/pull/discovery) over (ii) the Tectonic FS
+(OBJECT_TIER) as content-addressable blob storage — OCI sha256 digests
+reconciled with Hecate chunk hashing; (iii) OCI image REPLICATION
+(OBJECT_TIER copyset/popularity-mirror mechanisms; the Scribe image =
+maximal-dedup replicated-everywhere case); (iv) AUTHORIZATION (IAM §7.9
+publish/stage_approve extended to OCI push/pull/stage — who may push/
+pull/serve images); (v) COMPATIBILITY (OCI-compliant so standard base
+images + tooling interoperate — agents pull standard bases + install
+tools); (vi) **IMAGE PRE-LOADING PINNED HERE**: pre-load/cache agent
+OCI containers pre-summon, DAX-shared, near-instant spin-up INCLUDING
+loading; minimal custom per-role images + per-role minimal tools
+manifest + runtime tool-install (warden-gated egress + hash-screened —
+ties to the parked response-authority lane-D threat-intel: runtime-
+built/pulled binaries = the exec-time hash-match residue class). TOUCHES
+on write: REGISTRY (§4b materialization, the "hosts nothing"→"hosts OCI
+images" shift), OBJECT_TIER (OCI blobs as a durable-plane content class),
+VFS (container rootfs subtrees, DAX), PODS (§2/§4 warm-tier pre-load,
+§4b pull path), IAM §7.9 (OCI push/pull/stage authz). RELATION TO THE
+MONITORING/HANDOFF WRITE: the container-loading/pre-staging design
+belongs to THIS branch; the reconciliation write references it as
+PINNED (PODS §4 warm-tier + VFS container-subtree wording point at the
+OCI branch for pre-loading mechanics). RESEARCH OWED (dispatch on
+user go): OCI Distribution/Image specs; private-registry impls
+(Distribution/Harbor/zot) + CAS storage; near-instant OCI loading
+(nydus/RAFS, stargz/eStargz, SOCI, overlaybd/DADI — measured cold-start)
++ DAX rootfs; pre-fetch/pre-warm (k8s image-puller, Kata pre-load);
+minimal images (distroless/wolfi/apko/melange) + tool-manifest precedent
+(apko lists, nix closures, devcontainer features); reconciliation with
+the content-addressed manifest-projection rootfs Hecate already runs.
+STATUS: tree item ADDED; design + research deferred to user direction;
+image-pre-loading pinned to it (unblocks the MONITORING/HANDOFF write
+via a pinned reference).
