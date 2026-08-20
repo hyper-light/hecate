@@ -8011,3 +8011,21 @@ holds regardless of the outcome. **TREE: (1) MONITORING/HANDOFF write; (2)
 COLLECTOR (closes Branch 39); (3) RESPONSE-AUTHORITY (parked); (4) SUMMONING
 mechanics (incl. G2 whale-provisioning); (5) NEW: CROSS-REGION / SIBYL
 federation.**
+
+**CROSS-REGION DIRECTION SETTLED (2026-08-20, user "region-local +
+sibyl-federation"): global-session REJECTED (WAN on the tight claim-loop; forces
+WAN hot paths across all 7 primitives; no planet-scale system does it). CHOSEN:
+region-local sessions (regional autonomy) — all 7 primitives stay region-local +
+unmodified — with cross-region as EXPLICIT, three-part: (a) CONTENT = async
+content-addressed replication (OBJECT_TIER; content-only per CONSENSUS §7,
+trivial — immutable, no coherence); (b) CROSS-SESSION/CROSS-REGION COORDINATION =
+the SIBYL as the federation broker (its existing cross-session-grant charter
+extended cross-region: locate/broker/return; the hot path never leaves its
+region) + behind-sibyl a distributed ASYNC eventually-consistent GLOBAL DIRECTORY
+it queries; (c) USER INGRESS = a gateway routing the user's requests to the
+session's home region. = the Monarch "regional-autonomy + global-federation"
+shape, sibyl = the global layer. BRANCH-5 CHARTER (to design, research +
+grilling): the sibyl federation mechanics + the global directory (research:
+Monarch global query/config layer, Spanner placement/directories/movedir,
+service-mesh multi-region ingress) + the ingress gateway. LEDGER_SUBSTRATE §5
+already region-local — consistent, no rework needed.**
