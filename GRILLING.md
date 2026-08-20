@@ -7502,3 +7502,26 @@ for determinism; inline bodies → inline-to-budget-else-ContentRef; ONE global
 ticker goroutine (violates our no-untracked-goroutine rule); the single-file
 NO-REPLICATION scale ceiling (our P-partition + consensus-replica-count is the
 whole point). Kafka + RabbitMQ children still assembling under aa8050bf.
+
+**VALKEY STUDY — coordination + crux hedge (2026-08-20): the twice-slept
+original agent (a05f2ed) AND the hardened re-dispatch (acdae87f) both ran;
+acdae87f is the CANONICAL writer of tmp/valkey_code_lane/dossier.md (authoring
+#5→#3→#4→#6→#1→#2→#7→#8; crux #5 tracking + #3 sharded-pubsub + #4 keyspace-
+notify already ON DISK, citations cross-verified by a05f2ed's independent
+read). VERSION PIN: Valkey unstable/dev 255.255.255, Redis-compat 7.2.4, git
+8.0.8-238. PREMISE CORRECTIONS (relayed to acdae87f): (i) NO dict.c in this
+checkout — keyspace = hashtable.c (Swiss-table, 64B cache-line buckets,
+2-table incremental rehash) wrapped by kvstore.c (slot→hashtable array); only
+pubsub_patterns is legacy dict ⇒ study hashtable.c rehash (MORE relevant to
+our deterministic per-shard index). (ii) #7: no EMBSTR_SIZE_LIMIT=44; robj =
+16-byte header (type:4|enc:4|lru:24|3 flag bits|refcount:29 + void* val_ptr,
+server.h:827-838); embed = computed "≤128B / 2 cache-lines" (shouldEmbed-
+StringObject, object.c:260-272); shared ints=10000, lock-free b/c refcount
+immutable → map to our 12-byte (slab,offset,gen) handle. (iii) **#5 invalidation-
+table BOUND = a 1M-key raxRandomWalk eviction (tracking.c:510-547; config.c:
+3566) — THE memory-bounding mechanism to adapt for our mutable-pointer
+subscriber-index; global rax pair tracking.c:44-45; one-shot invalidation
+:419-423.** (iv) sharded pub/sub: shard vtable pubsub.c:89-97, keyHashSlot→slot
+:531-534, shard-ignores-patterns :548-551; keyspace events publish sharded=0
+to GLOBAL channels (notify.c:151,165). a05f2ed's 3 leftover children (evict/
+expire/threading) still running; acdae87f covers those sections regardless.**
