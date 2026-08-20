@@ -7222,3 +7222,146 @@ registry+cache-writer-less). 2 RATIFY-OPEN: IAM cache/channel home
 (a-warden-caps recommended); SESSIONS colo membership (queue+topic join
 recommended). 1 reconciler still out: storage/protocol (a8540133 —
 resolves the OTHER half of Q8 + Q3/Q4/Q5/Q6/Q10).
+
+**RECONCILER R-STORAGE LANDED (2026-08-20, a8540133): storage/protocol
+set (WAL/OBJECT_TIER/CONSENSUS/PROTOCOL/WIRE_FORMAT/WIRE_SECURITY/SERVING/
+TRANSFER/VFS/MERGE/LEDGER_CORE/LEDGER). 4 CONFLICTS / 15 GAPS / 5 OPEN-Q /
+5 AMENDMENT-COLLISIONS / 2 NO-CHANGE (TRANSFER, MERGE) / 4 pre-existing
+SIBLING bugs. HEADLINE (all 4 load-bearing correctness results GREEN):**
+(1) **Q3 — queue "duplication = expected" does NOT conflict with the
+ledger's exactly-once**: LEDGER_CORE:100-102 "exactly-once is three layers
+— cursor-exact resume → windowed dedup LRU → content identity" is ITSELF
+built on at-least-once transport + dedup; the queue's at-least-once +
+consumer-dedup is the SAME composition made explicit at the transport
+layer. CAVEAT: a queue-consumer feeding the ledger must size its dedup
+window ≥ the queue's max redelivery span (visibility_timeout ×
+max_receive_count), because LEDGER_CORE:101 "beyond-window retransmits
+impossible" assumes cursor-exact and queue re-lease can span longer.
+(2) **Q4 — ephemeral-at-most-once fits as APPENDED delivery class 7, NO
+renumber** (WIRE_FORMAT:151 append-only enum evolution; legal). (3) **Q8
+storage-side — no hard cycle, confirms R-AUTH**: IAM authz is a compiled
+LOCAL artifact (LEDGER:389-393 "evaluated at the affordance guard from a
+core-local compiled artifact… zero cross-plane RTT"), IAM audit is
+async-observational; neither gates the queue hot path. (4) **Q10 — CACHE
+"distributed = emergent, no new mechanism" VALIDATES verbatim against
+SERVING §6**: HRW = SERVING:128; single-flight-minus-token = SERVING:138 +
+FS11; immutability-coherence = SERVING:25-27. Airtight for content-by-hash.
+
+**4 CONFLICTS (all one shape — an over-broad BLANKET claim that must be
+SCOPED to the right role/face; none are design breaks):**
+• **C1 (WAL §1:30-31 "content never enters the WAL" vs SPEC1 "else
+inline") — AND my statement is internally inconsistent (SPEC1 "else
+inline" vs Q6 "content never in WAL, bodies→pack store").** RESOLVE in
+favor of SPEC1: a logical-log client MAY inline a body up to the derived
+WIRE_FORMAT §3c budget (frame_cap − AAD − record_header) — governed
+EXACTLY as index/consumer-state deltas already are (small by derivation,
+flush batches stay dense); the "content never enters" law binds BULK
+content only. Amend WAL §1 to state the budget exception; delete the Q6
+strict-reading phrasing from my statement.
+• **C2 (OBJECT_TIER §5:188-190 "never spill" vs cache eviction→flash-
+admission).** RESOLVE by scoping: never-spill + typed-exhaustion binds the
+ORIGIN/STORE role; the CACHE role's DRAM-eviction→flash-ADMISSION-GATE is
+ALREADY sanctioned by §5:197-199 ("admission is the endurance governor;
+NVMe write budget = TBW÷lifetime; reject-first for scan") — most evicted
+items rejected, admission endurance-servo'd; NOT uncontrolled spill, and
+the SOLE sanctioned eviction-driven cross-tier flow. One §5 rewrite.
+• **C3 (OBJECT_TIER §5:205-206 blanket "no set-associative tier" vs the
+general-KV face).** RESOLVE by scoping to the content-by-hash face (CDC
+min-chunk floors object size). A general sub-KB KV face, IF ever added, is
+set-associative (SOC/BigHash/Kangaroo) under the SAME one engine; v1 does
+NOT build it.
+• **C4 (forward-conditional: OBJECT_TIER §2:50-51 + §5:202-204 immutability
+/ zero-invalidation vs the general-KV mutable, dirty-tracking face).** v1
+content-by-hash IS immutable → clean now; scope the immutability claims to
+the content-by-hash face when the §5 doc-sync lands, mutable-face
+invalidation delegated to the TAO clause + ledger-delta→FAN-OUT path.
+
+**5 OPEN-Q — my resolutions (3 self-resolved, 2 FLAGGED load-bearing):**
+• OQ-A (WAL inline body) = C1: SELF-RESOLVE budget-bounded inline. Fixes
+my SPEC1/Q6 contradiction.
+• **OQ-B (Q4 pub-sub ARCHETYPE: new 7th "ephemeral-at-most-once" vs reuse
+"supersession") — FLAG.** PROTOCOL:117 archetype set (supersession/
+idempotent-fenced-control/ordered-log/directed-request-response/quorum-
+critical-transfer/bulk) "determines carriage and lane." Ephemeral pub-sub
+CARRIAGE = supersession's DATAGRAM_SUPERSEDE no-retransmit datagram
+(identical wire). But P-AC-4 "drop taxonomy exhaustive, unknown-drop=bug"
++ counted-ephemeral-drop ≠ supersession's anti-information drop ⇒ RECOMMEND
+a NEW archetype (drop-accounting honesty; carriage reuses supersession's).
+Touches core PROTOCOL taxonomy → user's call.
+• OQ-C (Q8 boot-time audit before exporter-queue exists) = SELF-RESOLVE:
+hot-ring buffer flushed on queue-up (reuses the collector's OWN hot-ring =
+the CACHE primitive; no new path). Confirms R-AUTH GAP-4.
+• **OQ-D (Q10 subscriber-index: generalize LEDGER_CORE §3 monitor index →
+per-node DELTA-subscriber index serving monitors + cache-holders, vs a new
+co-sharded cache-holder index) — FLAG.** RECOMMEND generalize §3 (keeps the
+"no new structure / no 2nd outbox" claim literally true, LEDGER_CORE:130-
+137 + AC-3). Refactors a ledger-core structure → user's awareness.
+• OQ-E (general-KV face, FORWARD) = RECORD forward-constraint: IF ever
+built it MUST reuse the pack engine (no 2nd on-disk format; OBJECT_TIER
+AC-1 + VFS AC-1). Not a v1 decision.
+
+**5 AMENDMENT-COLLISIONS (ONE coherent edit each):** (1) WAL §6 checkpoint-
+ownership gains queue-partition logs + fan-out durable-sub logs together
+(floor = contiguous-acked-prefix; ack advances floor, leased-but-unacked
+retained for re-lease). (2) OBJECT_TIER §5 = ONE rewrite (never-spill→
+origin-scope + no-set-assoc→content-by-hash-scope + parent-primitive doc-
+sync w/ write-buffers+LOC-readmission+admission-menu + endurance-servo
+cite); the `queue` storage class (§1/§2 router + OT11 boot-validate) is a
+DISTINCT-but-coherent OBJECT_TIER edit. (3) PROTOCOL §3 ephemeral class
+ONCE (serves BOTH cache pub-sub + fanout ephemeral subs) + archetype decls
+(queue records→ordered-log, control cmds→directed-request-response, durable
+topic-sub→ordered-log-riding-a-QUEUE) + non-interference scale-walk gains a
+FAN-OUT-DEGREE axis (1→millions subs; flat p99+memory for control/quorum/
+claims). (4) CONSENSUS §6 roster: queue-partition + topic-sequencer =
+lease+fence; topic-registry = CAS-first; cache/pub-sub = registered-writer-
+less (chokepoint-covered-by-absence, aligns R-AUTH "introduces no roster
+entry"); fanout durable-subs ARE already-classified queue-partitions (do
+NOT double-classify). (5) WIRE_SECURITY §6 registers queue/topic/pub-sub
+lanes together (pub-sub rides existing DATAGRAM_SUPERSEDE frame class — NO
+new frame class, only new flow identities).
+
+**4 pre-existing SIBLING bugs (NOT design-caused; fix in the SAME §6/LEDGER
+pass per CLAUDE.md rule 7):** (a) **CONSENSUS:208 "merge serializer" is
+STALE — MERGE §2 deleted the separately-fenced serializer; the proposer is
+LEADER-FUSED (term-only fence, M13d).** This ALSO corrects R-AUTH's note
+(which quoted current §6 text "merge serializer, ledger sequencer") — the
+ONE CONSENSUS §6 roster edit now also carries merge-serializer→leader-
+fused. (b) LEDGER:182-183 delivery-class list omits StreamData (class 6) —
+doubly stale after ephemeral lands → better: §5 REFERENCE PROTOCOL as
+authoritative, stop re-enumerating. (c) LEDGER §7.1:234-251 "TCP plane"
+superseded (PROTOCOL:14-17 no-TCP; §7.1 lags its own §7.3). (d) LEDGER
+§8:334-337 "Outbox for projections" contradicts LEDGER_CORE:130-137 "no
+outbox table" + AC-3 — the fanout's cursor-consumer posture makes cleaning
+it timely.
+
+**KEY GAP FILLS:** WAL §3 record-kind byte-space + queue/topic kinds
+(append). OBJECT_TIER §7 liveness roots + queue-partition-referenced bodies
+(pin until ack floor advances; parallels MERGE:230). OBJECT_TIER "rarely
+deleted" premise vs queue ack-and-delete churn → GC/compaction cadence must
+absorb it (flag at derivation site). SERVING §4 names the FAN-OUT router as
+the version-advance push transport (formalizes MERGE §7 step 8; re-bind
+stays pod-initiated); collector metric range-sharding is collector-INTERNAL
+hot/warm routing, NOT an OBJECT_TIER placement rival (cold tier only).
+WIRE_FORMAT: new #[derive(Wire)] types append-only + committed vectors;
+queue bodies → ContentClass::Opaque. VFS: cache arena = VFS §1 slab/mmap +
+RUNTIME §4 generational handle (NOT a new store; AC-1 honored for content-
+by-hash); cache pools = budget-charged isolation domains. TRANSFER (NO-
+CHANGE): staging role holds UNADDRESSED pre-commit bytes, queue payload
+store holds ADDRESSED bodies — distinct roles of the ONE engine, sequential
+(staging→commit-gate→addressed→enqueue-ContentRef). MERGE (NO-CHANGE, one
+CONSTRAINT): fanout MUST be cursor-consumer / subscriber-index REUSE, never
+a 2nd delivery structure.
+
+**BOTH RECONCILERS NOW IN. Standing to finalize:** integrate → the 4
+CONFLICTS resolve by scoping (no breaks) → 3 OQ self-resolved, OQ-B
+(archetype) + OQ-D (subscriber-index) FLAGGED for user → 4 sibling bugs
+fold into the same §6/LEDGER pass → then present the 4 specs together
+(CACHE folds CacheLib one-engine+slab-arena+distributed-emergent; COLLECTOR
+full restatement) → on accept write QUEUE.md+CACHE.md+FANOUT.md+COLLECTOR.md
++ §A corpus amendments in ONE change + close Branch 39 in GAPS. IAM-AT-BOOT
+comprehension sub-thread (2026-08-20): user asked plain-English confirm
+"IAM applies to systems on boot, right?" → YES, unqualified — enforcement =
+local compiled artifact rooted in the signed release (no RTT, no running
+IAM server), audit = async-after-decision; the "bootstrap cycle" was a
+conflation of decision-enforcement (needs nothing) with audit-shipping
+(rides collector, best-effort). Confirmed by both reconcilers.
