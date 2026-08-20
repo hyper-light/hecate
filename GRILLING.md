@@ -6725,3 +6725,70 @@ SERVING §6 (HRW), VECTOR_INDEX §5 (cache-role reuse), runtime rules
 (single-owner/bounded/no-race/anchors) — the FULL Lane-D-style
 reconciliation still owed. 2 lanes out: queue (a3715779), fanout
 (a9bd127b).
+
+**QUEUE LANE LANDED (2026-08-20): superb + full corpus-compliance
+analysis (3 mandatory amendments surfaced).** CORE INSIGHT: **the
+durable queue = a TYPED WAL LOGICAL-LOG CLIENT — NOT a new storage
+engine.** The OTel exporterhelper persistent-queue KERNEL (monotonic
+write/read indices + currently-dispatched set + fsync; crash-recovery
+`retrieveAndEnqueueNotDispatchedReqs` re-enqueues dispatched-but-unacked
+= at-least-once across restart) is ISOMORPHIC to a WAL logical log (per-
+group ordered stream + single-owner sequencer + always-full fsync +
+floor-API reclaim + typed-retryable backpressure). MECHANICS receipted:
+Kafka log-as-queue ("persistent queue on reads+appends… all operations
+O(1)"; partitions=shard unit; per-partition total order ONLY; key-hash
+partitioning; offset-commit = cheap ack; at-least-once = commit-offset-
+AFTER-processing; ISR/acks/f+1 durability; Share-Consumer acquisition-
+lock = Kafka's OWN visibility-timeout). SQS: receive→invisible→delete
+lease lifecycle; redelivery-on-timeout-expiry = at-least-once (dups
+possible); in-flight BOUNDED (~120k cap → OverLimit / long-poll block);
+DLQ + maxReceiveCount; FIFO order per message-group (concurrency across
+groups). Embedded/laptop: OTel-persistent-queue IS the proven zero-
+broker shape (bbolt single-file, ACID, one-writer, 2-phase-fsync-COW),
+sled/RocksDB embedded archetypes. DURABILITY TIERS (Disruptor in-mem-
+bounded-ring / Kafka pagecache-node-local / replicated-acks=all;
+"fsync-every-write reduces perf 2-3 ORDERS" ⇒ tunable via acks).
+DESIGN: API enqueue(→offset=log_seq)/lease(n,visibility)/ack(→advance
+WAL floor)/nack/redelivery-sweep/DLQ-after-max-receive. **SHARDING = P
+partitions each its OWN logical log w/ single-owner sequencer; partition
+= stable-hash-of-key-over-P (REUSES WAL session→stream hash); P derived
+from throughput, collapses P=1 laptop. DURABILITY TUNABLE BY ONE DERIVED
+PARAMETER = the replica count of the partition's backing consensus group
+(N=1 self-ack lossy-telemetry ↔ 3-replica Raft zero-loss) — NOT a
+runtime flag, a per-queue DURABILITY CLASS recorded-at-create + boot-
+validated (OBJECT_TIER storage-class pattern); ONE commit path every
+replica count (WAL §5).** ON-DISK: index+consumer-state → WAL logical
+log (batched like OTel metadata+item); payloads → PACK STORE (staging
+role = closest fit; >derived-threshold = content-addressed chunk, below
+= inline). CONSENSUS: a queue partition = a **STANDING WRITER (lease+
+fence)** — §6 explicitly reserves "any future open-write-stream holder"
++ epoch-fence-at-resource. LAPTOP: in-proc logical-log-on-local-WAL +
+payloads-on-local-pack; P=1/RF=1 1-voter-self-ack; enqueue/dequeue/ack =
+in-proc channels NOT RPCs; lost only on disk-death (HONEST ceiling — one
+machine has no 2nd failure domain, stated not hidden). **CORPUS
+COMPLIANCE + CONFLICTS (the part I required): 3 MANDATORY AMENDMENTS
+BEFORE BOOT — (1) IAM CONFLICT [hardest]: NO `queue` resource type today;
+§4 existence law fails an unmapped action ⇒ MUST add `queue` resource
+type + closed action enum (create/enqueue/dequeue-lease/ack/nack/purge/
+dead_letter_read/snapshot_read) + PEP mapping + schema-version; (2)
+CONSENSUS: §6 single-writer roster MUST gain the queue-partition entry
+w/ epoch scope (region-group for session-local) or startup fails; (3)
+FAULTS CONFLICT: add queue matrix cells — DUPLICATION → OK/EXPECTED (at-
+least-once redelivery is BY DESIGN, a genuine departure from the default
+"duplication is a fault" stance, must be STATED), loss→Degraded-priced,
+corrupt→rebuild-from-quorum(replicated)/Refused(N=1), region-loss→
+Degraded. + 2 RATIFICATIONS: OBJECT_TIER `queue` storage class (payload
+placement per durability tier); WAL named-logical-log-client checkpoint
+discipline (floor = contiguous-acked prefix).** COMPLIES cleanly: WAL
+(new logical-log client, +record kinds), PROTOCOL (replicated enqueue =
+the ORDERED-LOG archetype, already exists; telemetry=class-1-sheddable /
+zero-loss=reliable class; embedded queue never touches the wire), RUNTIME
+(single-owner task/partition, bounded, no-drops/no-panic), SCHEDULER/
+AUTOSCALING (SYNERGY: queue exports DEPTH = enqueue−ack lag = the EXACT
+autoscaler target-tracking signal; latency NOT a signal, depth IS).
+**CROSS-PRIMITIVE INSIGHT for the fan-out lane: fan-out = per-subscriber
+INDEPENDENT read-indices over ONE shared partition log (the Kafka
+consumer-group fan-out shape) — vs the queue's SHARED dispatched-set
+(competing consumers). Shared substrate (WAL logical log + pack store),
+distinct disciplines — do NOT over-unify (the OBJECT_TIER two-planes-one-
+substrate law).** 1 lane out: fanout (a9bd127b).
