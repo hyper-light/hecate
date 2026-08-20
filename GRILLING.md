@@ -7888,3 +7888,43 @@ are summoned + scaled). TREE STATE: ledger-layering branch CLOSING (pending
 LEDGER_SUBSTRATE acceptance). REMAINING BRANCHES: (1) MONITORING/HANDOFF write;
 (2) COLLECTOR re-statement (closes Branch 39); (3) RESPONSE-AUTHORITY (parked,
 undesigned); (4) NEW: SUMMONING mechanics.**
+
+**SUBSTRATE RECON — PRIMITIVES LANE LANDED (2026-08-20, af395176):
+LEDGER_SUBSTRATE vs CACHE/QUEUE/FANOUT/WAL/CONSENSUS/SERVING/PROTOCOL. 1 CONFLICT
+(the crux), 1 GAP, several COHERENCE; core DESIGN sound.** CRUX CONFLICT (as
+suspected, + worse): §1's "the ledger, queue, topics, AND cache are sibling
+INSTANCES of one shared-LOG primitive" is a category error for TWO of the four —
+table cell 3 (advance_floor↔topic-router) WRONG: the router owns NO log/floor
+(FANOUT owns routing not storage; its durable subs ARE queue partitions); cell 4
+(replicate↔cache) WRONG: CACHE is writer-LESS, no durable state, "nothing to
+replicate," registered writer-less-by-absence, NO consensus roster entry. **LS1
+FAILS its own AC** — the CONSENSUS §6 boot roster classifies cache=writer-less,
+topic-registry=CAS-first, topic-sequencer=lease+fence — NONE as a log engine.
+ROOT = vocab drift: every primitive spec says "sibling on the shared SUBSTRATE"
+(a bundle: durable-log-for-things-that-have-one + arena + shards + HRW + N=1 +
+Driver + chokepoint), NOT "sibling instances of one shared-LOG primitive";
+"shared-log primitive" in the corpus = the LEDGER alone. FIX: log-siblings =
+LEDGER + QUEUE only (durable topic subs inherit AS queue partitions); CACHE = a
+writer-less SERVING-PLANE PROJECTION the ledger USES for reads (substrate
+sibling, NOT a log instance); FANOUT = a COMPOSED ROUTER over the primitives.
+Retitle §1 "The shared substrate and its instances"; table → 2 true log rows;
+rewrite LS1 to the CONSENSUS §6 roster; cite CACHE §0/§9/§10, FANOUT §1/§2,
+CONSENSUS §6. GAP: §5 "cross-region replicas (async delta replication, no
+synchronous WAN)" UNRECONCILED with CONSENSUS §7 ("session groups NEVER span
+regions; cross-region durability is ASYNC + CONTENT-ONLY; sessions do NOT fail
+over across regions") — FIX: scope to async replication of the CONTENT deltas
+reference (cite §7), or justify a cross-region delta mirror head-on. COHERENCE:
+(a) §5/§6/inv-3 "cursor" overload → qualify inv-3 as the only EXTERNAL-DELIVERY
+cursor; in-core monitor dispatch is NOT a delivery structure (LEDGER_CORE §3).
+(b) §5 "external" overload → cursor-recoverable PROJECTIONS (at-most-once-notify)
+≠ external NON-RECOVERABLE integrations (durable at-least-once). (c) §4 → split
+within-node (direct local) vs cross-node (FANOUT) invalidation; name
+content-by-hash as the OPT-IN specialization. (d) "fork-2" undefined outside the
+subject → "instantiated separately per owner" + cite LEDGER_CORE §3. (e) LS5
+MIS-CITES LEDGER_CORE AC-3 for the "first+only cursor" → cite FANOUT §6; keep
+AC-3 for no-outbox. (f) latent LEDGER_CORE §5 sync (projectors as "cursor
+consumers of the delta stream", pre-FANOUT) → add §5 reconciliation clause +
+update LEDGER_CORE §5 same-change. VERIFIED CLEAN: §1 cells 1-2, §4 read-path,
+"first-and-only cursor" (no conflict w/ fan-out-to-many), consensus-in-one-place.
+LEDGER/SESSIONS/SCALING lane (a2d86c88) STILL OUT — integrate BOTH before fixing
++ flipping LEDGER_SUBSTRATE to ACCEPTED.**
