@@ -4637,3 +4637,27 @@ SINGLE_ISSUER+DEFER_TASKRUN+multishot-recv single-thread ingestion;
 tokio current-thread + outbound-only side pool = the reactor shape
 grounding "secondary thread only for outbound"). On landing: the channel
 design + thread model fold into MONITORING §2/§4 and re-present.
+
+**HISTORY-STREAM PURPOSE CONFIRMED (user, 2026-08-19): "the purpose of
+the scribe ingesting and observing primary agent actions is to help keep
+history for handoff, etc."** Pins the intra-VM stream's consumer
+purposes: (1) HANDOFF BRIEF assembly — the Scribe's running window IS
+the source of the Scribe brief that resume-by-reconstruction consumes
+(AGENTS_RUNTIME R3: successor reconstructs from claims graph + Scribe
+brief at watermark); (2) history SERVING (peers consult the Scribe for
+its primary's recent activity; Archivalist beyond the window); (3)
+narration. All ENRICHMENT/CONTINUITY — never detection authority
+(the split holds). DESIGN CONSEQUENCES: (a) the Scribe's outbound
+thread's primary duty = periodic history/narration FLUSH to the
+Archivalist (the durability path — R3's "no in-memory state is
+load-bearing across instances" preserved: durable continuity = claims
+graph + archived narration; the live window is a quality enhancer, not
+a durability dependency); (b) CONTAINER-DESIGN BENEFIT now explicit:
+because the Scribe is a separate container, its live history window
+SURVIVES the primary's death — on a primary crash or performance
+handoff the Scribe assembles a rich brief from the intact window
+(vs pod-death = archive+claims reconstruction only); (c) window sizing
++ flush cadence = derived constants (window from handoff-brief needs —
+turns-to-reconstruct; cadence from window size × loss tolerance).
+Folds into MONITORING §4/§7 + HANDOFF §8 on re-present when the three
+channel lanes land.
