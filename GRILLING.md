@@ -6501,3 +6501,22 @@ sizing-from-anchors, reconcile OBJECT_TIER cache-role). On landing:
 design QUEUE + CACHE specs, re-audit + design the Collector's Meta-scale/
 multi-region MECHANICS, settle per-session, re-present all three.
 TWO NEW TREE ITEMS: QUEUE primitive, CACHE primitive.
+
+**LAPTOP-USECASE REMINDER (user, 2026-08-20): "Don't forget to also
+research the laptop usecase (i.e. 'run on anyone's laptop')."** Stronger
+than N=1-as-formula: the ZERO-EXTERNAL-DEPENDENCY, EMBEDDED, in-process,
+minimal-footprint degenerate — NO separate collector process, NO
+external object-store/Kafka/Redis/broker/cache-server, single-binary,
+"just works" on a dev machine, SAME code path as fleet by DERIVED
+PARAMETERS (no mode). Pushed as a required dossier section into ALL 3
+running lanes via SendMessage (queued for next tool round): scale
+(a381c17c — Prometheus-single-node-default / Mimir monolithic mode /
+Grafana Agent embedded / the minimal single-binary story); queue
+(a3715779 — embedded durable queue: exporterhelper-persistent-queue is
+embedded single-file, sled/bbolt/SQLite-as-queue, Redpanda-single-node,
+no broker); cache (a6a3fa67 — in-process bounded cache: Caffeine/**moka**
+the Rust Caffeine-port as candidate dep, W-TinyLFU as a LIBRARY not a
+server). Each must add a "run-on-anyone's-laptop (zero-dep/embedded)"
+section + Hecate rec. FIRST-CLASS design constraint on all three
+(queue/cache/collector), shaping the PRIMITIVES (embeddable, no external
+service) not just their sizing.
