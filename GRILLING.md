@@ -6858,3 +6858,94 @@ firm: **ALL primitives are hecate-rt-native from-scratch — external
 systems (moka/tokio/Kafka/SQS/Redis/Valkey/SNS/Caffeine) are SHAPE
 RECEIPTS, never dependencies** (RUNTIME §3/§4 bans). CACHE+PUB-SUB lane
 FULLY COMPLETE. 1 lane out: fanout (a9bd127b).
+
+**FAN-OUT LANE LANDED (2026-08-20): FINAL lane — factoring SETTLED
+(COMPOSED, not standalone).** SNS mechanics: topics/subscriptions/PUSH-
+delivery/filtering (attribute + body)/FIFO (group-id order + dedup-id/
+content-hash)/retry-policies/DLQ (PER-SUBSCRIPTION, itself a queue).
+**SNS→SQS = THE load-bearing pattern: durable fan-out = a topic-ROUTER
+composed with ONE durable queue PER SUBSCRIBER** (SNS = ephemeral push
+router owning NO storage; SQS = the durable at-least-once per-consumer
+buffer). Design space = 2 families: A router-with-per-subscriber-buffers
+(SNS/GCP-PubSub) vs B shared-log-multi-reader (Kafka consumer-groups);
+**NATS core(ephemeral at-most-once) vs JetStream(durable at-least-once)
+= Hecate's 2 siblings VERBATIM**. DDIA fan-out-on-WRITE vs -on-READ:
+write wins when read-rate ≫ publish-rate (Twitter "2 orders of
+magnitude"); celebrity problem (30M followers = 30M writes); hybrid =
+DERIVED CROSSOVER not a mode. Amplification sharded by group-id (SNS
+300 msg/s/group, scale by distinct groups). Laptop: RUNTIME §4 shared-
+immutable-fan-out is the native equiv (tokio broadcast banned).
+**FACTORING RECOMMENDATION (DECISIVE): COMPOSED — one topic-ROUTER
+(topics+subscriptions+filter-policies+the 1→N replication step+FIFO
+group-sequencing+DLQ-wiring) that targets EITHER delivery backend
+PER-SUBSCRIPTION: ephemeral-sub → PUB-SUB sibling (at-most-once);
+durable-sub → QUEUE sibling (at-least-once) → its own DLQ queue.** WHY:
+(1) the industry canon IS a composition (SNS→SQS, NATS core+JetStream,
+Kafka log+consumer-groups) — NONE builds a 3rd storage engine; (2)
+standalone would DUPLICATE the just-designed queue+pub-sub (no-
+duplication doctrine conflict — the composition IS the conflict-
+avoidance); (3) genuinely NEW = the router's ~15% (topic/subscription
+REGISTRY, per-subscription filter policies, the 1→N replication step +
+amplification-bound + non-interference guarantee, FIFO group-sequencing
+across subscriptions "no affinity between group and subscription", the
+write↔read crossover); (4) "one router, per-subscription backend" IS the
+SNS model. **KEY CORPUS FINDING (confirms cache lane): Hecate's `Delta`
++ PROTOCOL §4 delta-streams (Subscribe{subject,from_seq}, ordered,
+no-gap, RESYNC) + IAM subscribe_deltas is ALREADY a durable fan-out
+(topic = per-(session,subject) ledger stream); the general fan-out
+GENERALIZES this SAME machinery — ledger-delta emission = the canonical
+FIRST CONSUMER of the router; do NOT fork a 2nd subscribe/cursor
+mechanism.** COMPLIANCE: WAL [C/A] (durable-sub records reuse WAL
+per-group logs, bodies=ContentRef never-in-WAL; [X] own-log=duplication,
+rejected); OBJECT_TIER [C] + [X]-flag (the DURABLE path must NOT inherit
+the telemetry-scale-lane hot-LOSSY relaxation — at-least-once=zero-loss;
+2 durability classes typed-distinct); CONSENSUS [A/X] (fan-out step =
+single-writer, boot-classify CAS-first/lease+fence + epoch-scope or boot
+fails; cross-region fan-out MUST be ASYNC — no synchronous WAN on hot
+path); IAM [A/X] (**new `topic` resource type + actions publish/
+create_subscription/subscribe/set_filter_policy/delete_subscription/
+redrive, each needs compile_to_pep or boot fails**; [X] SNS body-filter
+vs metadata-completeness law → attribute-only + declared-inline-
+projection; reuse subscribe_deltas precedent); PROTOCOL/WIRE [C/A]
+(archetype-per-kind + transport-registry-classify; **amplification-vs-
+non-interference law CRITICAL — a 1→millions storm cannot starve
+control/quorum/HOL-block**; the delta-streams = canonical machinery to
+GENERALIZE); RUNTIME [C] (router=single-owner task + §4 shared-immutable
+fan-out no-Arc); SCHEDULER/AUTOSCALING [C/A] (session router in colo-
+unit; autoscaler target load-proportional; scale-down graceful-drain no
+message lost); FAULTS [A] (add cells; ephemeral-under-partition→Degraded
+accepted-loss confined to ephemeral class; every drop counted); SIBLING
+[X-if-standalone] (router provisions one queue per durable subscription
+= SNS→SQS; pub-sub used directly).
+
+**★ ALL 4 PRIMITIVE-FAMILY RESEARCH LANES COMPLETE (2026-08-20) — full
+research base for the messaging/data primitives + the collector. ★**
+THE FAMILY (all hecate-rt-native from-scratch; external systems = shape
+receipts ONLY): (1) QUEUE = SQS-shape durable at-least-once = a typed
+WAL logical-log client, durability tunable by backing-group replica
+count. (2) CACHE+PUB-SUB = ValKey-shape ONE family: W-TinyLFU cache
+(sync eviction on shard executor, Driver-seeded hashing) + ephemeral
+at-most-once pub-sub (RUNTIME §4 arena fan-out); OBJECT_TIER cache-role
+= a specialization (pluggable admission/eviction traits). (3) FAN-OUT =
+SNS-shape COMPOSED router over queue(durable)+pubsub(ephemeral) siblings;
+generalizes the existing Delta/delta-stream fan-out. (4) COLLECTOR =
+ported OTel-arrow, Monarch-grounded scale mechanics (target/trace-id
+sharding, hot-lossy/cold-EC durability, scatter-gather query + Bloom
+prune, regional autonomy + global federation, per-session REFUTED).
+CONSOLIDATED CORPUS AMENDMENTS across the family (one coherent change):
+IAM (new `queue` + `topic` resource types + actions; cache/channel
+capability actions — all schema-version publishes re-running boot);
+CONSENSUS §6 roster (queue-partition lease+fence; topic-router CAS/
+lease+fence; cache/pubsub writer-less-ephemeral/CAS-first); FAULTS
+matrix (queue duplication=EXPECTED; cache/pubsub loss=Masked/Degraded;
+fan-out ephemeral-loss=Degraded); PROTOCOL/WIRE (ephemeral-at-most-once
+delivery CLASS + codec; fan-out archetypes; transport-registry classes);
+OBJECT_TIER (`queue` storage class; §5 cache-role specialization doc-
+sync); WAL (named logical-log clients: queue, fan-out durable subs);
+RUNTIME (implementation CONSTRAINTS: hecate-rt-native, Driver-seeded
+hashing — bans to honor, not amendments). NEXT: DESIGN the 4 specs
+(primitives are collector dependencies ⇒ design QUEUE + CACHE+PUBSUB +
+FAN-OUT as one coherent set on shared substrate FIRST, then rebuild the
+COLLECTOR on them) + run the THOROUGH per-primitive corpus-reconciliation
+(the compliance lanes = strong first pass; the Lane-D-depth pass still
+owed) + present all at full spec granularity for acceptance.
