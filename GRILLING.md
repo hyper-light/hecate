@@ -5944,3 +5944,19 @@ at-export-boundary-only, fits own-the-hot-path posture)** / C full SDK+
 Collector (highest dep, Beta traces, duplicates per-node collection).
 BOTH LANES IN — consolidating + presenting the branch design w/ the
 Depth-B recommendation.
+
+**CLARIFICATION (user caught, 2026-08-20): the upstream OTel Collector
+is a GO service** (the testbed cost numbers are from Go files) — cited
+only as a PROPERTY of Depth C, never something Hecate builds. Its
+Go-ness is one MORE reason Depth C is wrong for a Rust system: adopting
+it = bolting a foreign-runtime service (own process/supervision/
+lifecycle) onto Hecate that DUPLICATES the native per-node collection.
+**Depth B (recommended) has NO Collector and NOTHING Go: native Rust
+per-node collection (already built for agent metrics) does receive/
+aggregate/sample; a RUST OTLP ENCODER (vendored proto submodule,
+Protobuf message-building, no SDK) speaks OTLP at the export boundary.**
+Any future collector-like fan-in/routing = built in Rust (we already
+have the design: the Scuba-shape cross-node fan-in aggregation tree).
+The plane stays Rust end-to-end. (Note: OTel Rust SDK exists and IS
+Rust, but it's the OTHER half of Depth C — Beta traces + per-record
+overhead; Depth B skips it too.)
