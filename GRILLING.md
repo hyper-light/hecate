@@ -4279,3 +4279,46 @@ only pattern as the observe-not-feed fit. ALSO: the two SRE detection
 passes (metric catalog; perf-curves+detector-math+SRE-alerting) were
 killed and RE-DISPATCHED fresh. Six agents in flight total. On landing:
 present containers-vs-accepted-design + the SRE detection design.
+
+**CONTAINERS LANE 1 LANDED (2026-08-19): OCI spec + runtime layer +
+COSTS.** CONFIRMED: a container = a DECLARATIVE JSON encoding of exactly
+the primitives the raw-process design hand-wires ("uses various kernel
+features like namespaces, cgroups, capabilities, LSM, and filesystem
+jails"; youki docs: "a container is just another process in Linux, which
+has control groups, namespaces, pivot_root and other mechanisms applied
+to it"). config.json vocabulary captured verbatim: 8 namespace types
+incl. path-JOIN semantics (the K8s-pod sharing trick is first-class);
+cgroup resources incl. device-allowlist + raw cgroup2 `unified`
+passthrough; full seccomp (incl. SCMP_ACT_NOTIFY listenerPath); 5
+capability sets + noNewPrivileges; rlimits; idmapped mounts
+(MOUNT_ATTR_IDMAP — projecting one VFS subtree into two containers under
+different uid maps); maskedPaths/readonlyPaths. Lifecycle: 4 states, 13
+steps, CREATE/START SPLIT (stage everything privileged in create,
+inspect, then fire — load-bearing for a supervisor), 6 hook kinds. runc
+SPEC.md gives the exact choreography (unshare → mounts → devices →
+cgroup-join-BEFORE-init-runs via FD-3 sync pipe → pivot_root →
+caps/seccomp → exec) + default 15-cap set; seccomp profile = the
+ENGINE's job (hecate-init owns its own profile). COSTS (measured/
+published): crun 100×/bin/true = 16.9ms/container vs runc 33.4ms
+(-49.4%); youki hyperfine full create+start+delete cycle = 47.3ms crun /
+111.5ms youki / 224.6ms runc (UPPER bounds — 3 sudo process spawns per
+cycle; embedded/library-call spawn latency = NO-PRECEDENT, unpublished);
+a crun container runs under a 512KB cgroup limit where runc fails at
+4MB; binaries runc 10.9MiB / crun 3.4 (2.0 no-systemd) / youki 7.8MiB
+musl-static. PROCESS MODEL: create/start detaches — ZERO resident
+runtime processes; monitor duty (subreaper/stdio/exit-record) = conmon
+per-container, conmon-rs POD-LEVEL (Rust), or ABSORBED INTO hecate-init
+when embedded. EMBEDDING: runc = Go /proc/self/exe re-exec, NOT usable
+from Rust; libcrun = real C API (load_from_memory/create/start/kill/
+update/pause/exec); **youki libcontainer = Rust crate 0.7.0 ("Library
+for container control", 116k downloads, musl-static + v2-only feature
+builds, Executor override, double-fork topology) with PRODUCTION
+EMBEDDERS: runwasi (containerd's wasm shim) + rk8s — runwasi = the exact
+architectural precedent for hecate-init embedding container-spawn
+in-process (zero extra process census).** Lane price tag: tens-of-ms
+once per container at pod start, ~0 steady-state processes, 2-8MiB code
+bite — buys spec'd lifecycle/hooks/live-update/freeze/exec/stats +
+conformance suite over a hand-maintained choreography; buys ZERO new
+kernel primitives (isolation delta = sibling lane's verdict). Scratch
+source cache left for siblings. 3 container lanes + 2 SRE passes still
+in flight; containers-vs-accepted-design presents when the set lands.
