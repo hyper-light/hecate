@@ -4690,3 +4690,50 @@ history capture continues when the model is mid-inference (it's
 runtime-level). Folds into MONITORING §4 (emitter = runtime
 instrumentation) + §7 (division of labor) + the CONTEXT.md Scribe
 definition annotation on re-present.
+
+**CHANNEL LANE 3 LANDED (2026-08-19): IDENTITY/OBSERVABILITY/METERING +
+SCRIBE THREAD MODEL.** IDENTITY: SO_PEERCRED (kernel-attested, at
+connect/socketpair time — stale-PID race noted) → **SO_PEERPIDFD (Linux
+6.5) = the race-free modern primitive** ("allows programmers not to care
+about PID reuse"; -ENODATA fail-closed; NOT yet in man pages — receipted
+from kernel source + 6.5 changelog; guest-kernel ≥6.5 = a boot-check
+item; libkrunfw is 6.12 ✓); SCM_CREDENTIALS kernel-checked per-message
+(forgery needs CAP_SYS_ADMIN/SETUID/SETGID — de-capped containers can't
+spoof); **fd-provenance = possession-is-identity** (capsicum "makes file
+descriptors into capabilities"; supervisor-minted channel = no name, no
+connect race, endpoints exhaustively known at boot = ideal for the
+transport registry; socketpair keeps SO_PEERCRED/PIDFD for audit,
+pipes/memfds don't); veth = interface-is-identity (supervisor-assigned,
+non-forgeable-from-inside); vsock-loopback intra-guest = WEAKEST (both
+ends CID 1, identity = port only, no peer-cred equivalent =
+NO-PRECEDENT) → vsock stays guest↔host only. OBSERVABILITY/METERING:
+`ss -xmpe` alone = full audit tuple (path+inode+uid+pid+queue depths+
+drop counter); sock_diag/UNIX_DIAG programmatic (PEER inode = pairwise
+topology!, RQLEN, SK_MEMINFO array); bcc undump/sofdsnoop kprobe
+patterns (even SCM_RIGHTS handoffs eBPF-auditable); **BPF_CGROUP_UNIX_*
+attach types = per-CONTAINER interception of UDS connect/sendmsg — the
+runtime tripwire that makes the boot-classification law enforceable
+after boot** (connect to an unregistered path = caught); veth = the ONLY
+kernel-enforced rate cap (tc-tbf/police) + ABI-stable byte counters.
+ACCOUNTING ASYMMETRY (registrable attribute per transport): pipe pages
+= memcg-charged to the WRITER (__GFP_ACCOUNT receipted); shm =
+indeterministic sharer-charging (pin by pre-faulting); **UDS buffers =
+NOT memcg-charged at all** (af_unix.c negative-searched) → cap via
+SO_SNDBUF/RCVBUF + meter via UNIX_DIAG. HONEST HOST-VISIBILITY LAW:
+intra-guest traffic is INVISIBLE to the VMM unless exported — the
+warden's window = an in-guest sensor shipping derived telemetry over a
+registered vsock flow; provenance-class the metrics ("as reported by
+guest sensor" vs host-observed). THREAD MODEL (kernel-enforced!):
+io_uring IORING_SETUP_SINGLE_ISSUER (-EEXIST on violators = a KERNEL
+assertion of the one-thread invariant) + DEFER_TASKRUN (completion
+batching; "reduce request latency by 50%" in-kernel receipt) + multishot
+recv w/ provided buffers (one submission → stream of CQEs); eventfd
+doorbell epoll-integrable + cheaper than a pipe; tokio current-thread +
+spawn_blocking (cap max_blocking_threads to outbound-channel count, not
+default-512) = the packaged reactor-with-side-pool; capacity: Redis
+single-thread ≈180k req/s unpipelined / >1.5M batched vs agent-history
+O(10²-10³)/s = 2-4 orders headroom → INGESTION NEVER NEEDS THREAD #2;
+secondary lane = outbound-only, justified exactly when outbound involves
+blocking libs or vsock backpressure. Registry tuples per channel type
+delivered (fd-pair/UDS-mount/shm+doorbell/veth/vsock). 2 lanes still
+out: mechanisms+numbers (a2ad7636), one-way stream design (a2c7ce1a).
