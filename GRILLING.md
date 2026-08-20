@@ -4467,3 +4467,55 @@ convergence, plan, calibration. "Exhaustion" as a named metric =
 NO-PRECEDENT (Hecate names a composite the industry measures piecewise).
 FINALIZES HANDOFF §1 (gathering = this catalog, tiered). Remaining: SRE
 pass B (curves+detector-math+alerting) + container lane 2 (feasibility).
+
+**CONTAINERS LANE 2 LANDED (2026-08-19): KATA MECHANICS + LIBKRUN
+FEASIBILITY — the set of four is COMPLETE.** THE LOAD-BEARING FINDING:
+**libkrunfw (6.12.91) ships a container-capable kernel config TODAY**,
+both arches — NAMESPACES/PID/NET/USER/UTS/IPC/TIME_NS, full CGROUPS
+(MEMCG/PIDS/DEVICE/FREEZER/BPF), SECCOMP_FILTER, OVERLAY_FS +
+TMPFS_XATTR (overlay-on-tmpfs works), DEVTMPFS, VETH/TUN/NFTABLES,
+VSOCK/VIRTIO_FS/FUSE_DAX all =y. NOT set: **CONFIG_SECURITY → NO LSM in
+the guest — NO LANDLOCK, no SELinux/AppArmor** (cross-lane correction:
+the raw-process toolbox's Landlock leg is UNAVAILABLE on the stock
+libkrunfw kernel; a fork-config flip if wanted); no OVERLAY_FS_
+REDIRECT_DIR/METACOPY (EXDEV-on-lower-rename, tolerated); kernel carries
+libkrun's ~30-patch out-of-tree queue (TSI etc.) = THE recurring fork
+cost across kernel bumps. LIBKRUN 2.0 = the init seam is SUPPORTED:
+init split into libkrun_init.so, krun_fs_add_overlay_file injects any
+init binary as a virtual inode ("no rootfs modification needed");
+teardown-on-workload-exit is PURE INIT POLICY (exec.rs receipted:
+waitpid(main)→set_exit_code(ioctl 0x7602)→reboot); krun_add_virtiofs3
+gives RO root + DAX first-class. KATA MECHANICS (pinned-commit source):
+do_create_container 11-step pipeline; Start = exec-FIFO one-byte kick
+(create/start split runc-style); persistent sandbox IPC/UTS ns via
+bind-mount to /var/run/sandbox-ns (pid ns can't persist —
+first-container-as-infra pattern); storage = driver registry →
+baremount; bundle = bind rootfs under /run/kata-containers/<cid>;
+RUSTJAIL = re-exec-self-with-"init"-subcommand (one static binary =
+supervisor + container-init scaffold; spec/process/state/cgroup-mgr as
+JSON over sync pipes; pidns-unshare-then-fork; userns uid_map handshake;
+pivot_root exact runc dance; seccomp-before-capdrop ordering;
+parent-applies-cgroups; ≈7k lines REDUCIBLE for Hecate's 2-container/
+no-userns/no-hooks/no-systemd case — kata itself forces cgroupfs when
+agent-is-init). GUEST PREP: kata INIT_ROOTFS_MOUNTS checklist ≈ what
+libkrun stock init ALREADY mounts (incl. cgroup2); delta = nsdelegate +
+/dev/pts/ptmx symlink + /run tmpfs + per-container cgroup subtrees;
+manifest projection needs only empty dev/proc/sys/run mountpoint dirs
+(libkrun synthesizes as virtual dirs). ROOTFS RECIPE: lowerdir = RO
+manifest SUBTREE of the projection (same virtio-fs device, host-side RO)
++ upper/work = GUEST TMPFS + kernel overlayfs → bind → pivot;
+ANTI-RECIPE receipted: upper on host-shared virtio-fs BREAKS
+(muvm #199: trusted.overlay xattr EPERM + rename EACCES on FUSE).
+PRECEDENT LEDGER: containers inside a libkrun-VMM VM = CONFIRMED
+production (podman machine on macOS) BUT boots EFI/distro-kernel — does
+NOT exercise libkrunfw-kernel+minimal-init; crun's krun handler =
+inverse direction; **containers spawned INSIDE a libkrunfw-kernel guest
+by a custom PID 1 = NO-PRECEDENT — every ingredient individually
+receipted (kernel config + init seam + rustjail/vminitd/kata-agent as
+3 independent architecture precedents) but Hecate would be FIRST to
+assemble it**; muvm #199 = the one recorded similar attempt, stalled on
+guest-prep gaps Hecate's design avoids (tmpfs upper, no rootless, no
+pasta/tun). hecate-init build sketch: contract +her spawn-container verb;
+embedded rustjail-pattern spawner; W3 prep delta; W4 rootfs recipe.
+CONSOLIDATED CONTAINERS-VS-ACCEPTED RE-PRESENTATION assembled in-thread
+(four lanes complete). Remaining agent: SRE pass B only.
