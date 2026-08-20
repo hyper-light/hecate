@@ -7421,3 +7421,54 @@ STILL OUT — the ledger-layering settle integrates BOTH lanes.** Also
 2026-08-20: user directed referencing the actual VALKEY SOURCE (../valkey,
 present as a full C checkout) for the cache — ADAPT/EXTEND/IMPROVE, not copy;
 dispatched a code-study lane (eviction/expire/pubsub/notify/TRACKING/dict).
+
+**RESEARCH LANE A LANDED (2026-08-20, adaa99): ledger-as-state-machine-over-
+a-reusable-shared-log. VERDICT = PROVEN AT META SCALE; ADOPT.** DELOS
+(Meta control-plane DB, OSDI'20 + SOSP'21) = THE direct precedent: a
+replicated ACID DB DEFINED as a state machine materialized by CURSOR-PLAY
+over a shared log (the VirtualLog over pluggable Loglets). >1.8B txns/day;
+DelosTable 3.3B + Zelos 36.5B ≈ 40B ops/day. **CRITICAL FOR OUR EXACT
+QUESTION: Meta SHIPS a distributed QUEUE (DelosQ, built by an intern over a
+summer) + a namespace as materialization layers over the SAME VirtualLog ⇒
+"queue + ledger as SIBLINGS on one log primitive" is SHIPPED, not
+hypothetical.** Twine Resource Broker "maintains a ledger" over Delos.
+MECHANICS: append the command to the log WITHOUT executing → execute on
+cursor-encounter as a failure-atomic txn (LocalStore = a DETERMINISTIC
+function of the log). VirtualLog chains Loglets (NativeLoglet no-consensus /
+ZK / LogDevice / Raft — swappable, hot-swapped 10× in prod, zero downtime).
+**MetaStore = a single versioned register w/ conditional-write = the ONLY
+fault-tolerant-consensus source, implemented ONCE; the per-instance Loglet
+needs only a fault-tolerant `seal` (WEAKER than consensus).** Reconfig =
+seal→conditional-install→fetch. SOSP'21 "log-structured protocols": engines
+stack like a network stack (per-engine headers, each mutates its isolated
+LocalStore slice in a nested sub-txn); TWO production DBs on ONE engine
+stack. CORROBORATION: Aurora "THE LOG IS THE DATABASE" (SIGMOD'17; 6-way
+4/6 quorum, no 2PC); FoundationDB (Sequencer=LSN + LogServers + StorageServers
+pull-and-apply; Apple/Snowflake); CORFU/Tango (origin — "the log IS the
+object", per-object STREAMS, selective playback); Kafka (offset cursor;
+independent consumer groups = independent materializers).
+**4 CAVEATS WE MUST DESIGN FOR (these shape the ledger-layering):** (1)
+**PLAYBACK CEILING** — the log absorbs MILLIONS of appends/sec but any ONE
+materializer replays at only TENS OF THOUSANDS ops/sec (Tango; Delos
+"bottlenecks on log playback"; single apply thread) ⇒ design around
+per-materializer playback throughput, NOT log append; **SCALE = MANY LOG
+INSTANCES/STREAMS, not one hot log** (reinforces the user's "multiple
+instances" + fork-2 separate-instances). (2) **DETERMINISM MANDATORY** on
+the apply path — Meta's ONLY production correctness incident was engine
+roll-out ("the only source of inconsistency in production so far"); new
+engines need log-gated rollout + checksums ⇒ **Hecate ALREADY has the
+mitigation (Driver-determinism, SIM bit-repro)**. (3) ONE shared-log INSTANCE
+= a global throughput cap once saturated (Tango) ⇒ queue/pub-sub/ledger must
+be genuinely DISTINCT instances. (4) CONSENSUS in exactly ONE reusable place
+(Delos MetaStore); per-log needs only `seal`; wrong split rebuilds the
+monolith. MAPPING: ledger = SMR over a reusable replicated-log primitive
+(WAL+consensus); queue+pub-sub = separate instances/streams of the same
+primitive; consensus factored into ONE reconfiguration layer; per-log data
+plane needs only seal. Dossier: tmp/ledger_log_lane/dossier.md.
+
+**BOTH RESEARCH LANES NOW IN (A ledger-on-log VALIDATED + B at-most-once-
+notify VALIDATED) ⇒ the LEDGER-LAYERING reframe is FULLY BACKED and ready to
+SETTLE (a separate exchange from accepting the 3 primitives).** Open queue-
+reference study dispatched per user (Kafka/RabbitMQ/SmoothMQ — none checked
+out locally, so RESEARCH mode: KRaft+tiered-storage / quorum-queues-Raft+
+credit_flow / SQS-clone-semantics+single-node).
