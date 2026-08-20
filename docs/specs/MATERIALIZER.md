@@ -1,6 +1,6 @@
 # SPEC: MATERIALIZER — the ledger's scale-free deterministic apply path
 
-Status: presented for acceptance 2026-08-20 (grilling; materializer research
+Status: ACCEPTED 2026-08-20 (grilling; materializer research
 lanes on file, GRILLING.md: APPLY = Calvin SIGMOD'12, Aria VLDB'20, BOHM
 VLDB'15, PWV VLDB'17, Caracal SOSP'21, Raft ATC'14, Flink-ABS 2015; LOG =
 FuzzyLog OSDI'18, Tango SOSP'13, Delos OSDI'20/SOSP'21, Scalog NSDI'20, Boki
