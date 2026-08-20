@@ -4952,3 +4952,46 @@ design the interior coverage + conduct path, fold into MONITORING
 (§3/§5/§6 + new §) + HANDOFF (§1 metric family + §4 phenomenon row +
 §6 runbook line + §7 Guardian line) + PODS §1/§3/§6 amendments +
 re-present. All three §2-ruling-agnostic.
+
+**BRANCH OPENED THEN PARKED (2026-08-19): THE RESPONSE AUTHORITY CHAIN
+— UNDESIGNED, requirements recorded.** User directive (verbatim-close):
+warden/sensor must be able to reach an EXTERNAL agent that can
+restart/block/cordon/etc. a malignant VM — the Guardian takes informed
+action, BUT "this side of functionality ultimately needs to respect
+human, end-user configuration and specifications": users set the
+runbook parameters; the Guardian respects and automates them, adjusting
+for deployment shape/scale/environment like an experienced SRE. Worked
+requirements given: user block-list of processes / external resources ⇒
+must clearly respect; user max-vCPU threshold per pod ⇒ maintain and
+enforce with discretion; user policy "pods running well-known malignant
+processes are cordoned and isolated, NOT killed" ⇒ respected (the
+malignant-process DATA sourcing = commissioned research). Refinements
+(same exchange): Guardian also provides sensible defaults
+(environment/scale-relevant) for inexperienced users, with proper APIs
+always exposed for professionals to specify exactly; the user may also
+specify KILL outright, or "AUTO" (= Guardian discretion). STATUS: NONE
+of this machinery is defined, designed, or researched (user correction
+recorded: "We haven't defined any of this machinery or researched it
+yet" — I overstated by presenting authoring semantics as adopted; the
+explicit/unset-derived-default/auto three-state framing is a CANDIDATE
+to test against receipts, nothing more). SEQUENCING (user): "we need to
+round out the Scribe/observability/handoff work first" — this branch
+PARKS until that arc completes. Lane D research (response-verb
+mechanics: cgroup.freeze/KVM-freeze caveats/clock-jump, cpu.max live
+adjust + steal time, K8s cordon naming, IR memory-forensics receipt for
+the documented-non-goal; user-parameter precedent: GuardDuty user
+threat lists, K8s LimitRange defaults, Gatekeeper template-vs-parameter,
+Falco overrides, systemd resource directives→cgroup/BPF; threat-intel
+sourcing: STIX/TAXII/MISP, abuse.ch, OSV MAL- entries, NSRL known-good,
+Falco miner/reverse-shell rules, GuardDuty CryptoCurrency findings,
+MITRE T1496 layering) is IN FLIGHT and lands onto this parked record.
+Two observations logged for the future design, status = untested
+hypotheses: cordon=sever+freeze+keep-resident is compatible with PODS
+crit-10 (no guest-memory persistence — the resident pod is the
+forensic artifact); PODS §1 fixed-at-summon vs live ceilings resolves
+host-side (VMM is a host process; its host cgroup is the
+throttle/freeze point; guest sees steal time, never topology change).
+NEXT (user): re-present the Scribe/observability/handoff planning
+documents (MONITORING + HANDOFF as last presented, §5 channel
+included), work from there; the three in-flight arc lanes (interior
+observability / VMM visibility / conduct math) fold in on landing.
