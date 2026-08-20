@@ -6229,3 +6229,157 @@ OBSERVED ⇒ 9ns fast path keeps instrument-everything true at N=1;
 N=1-is-degenerate = COMPOSED (the 3 formulas are node-count-free). 3
 lanes still out: A (core+port), C (instrumentation surface), D (corpus
 integration).
+
+**COLLECTOR LANE C LANDED (2026-08-20): INSTRUMENTATION SURFACE (all 32
+docs read, exhaustive per-subsystem inventory — the BREADTH piece).**
+HEADLINE SPLIT: the corpus ALREADY emits a rich, mostly-BOUNDED signal
+set (constants-from-data + counted-drops + five-outcome-accounting +
+ratcheted floors are pervasive design law) ⇒ the Collector's job is
+**~70% OBSERVATION/CONSOLIDATION of already-named signals + ~30% NEW
+performance instrumentation** (CPU/mem, LLM-call spans, provider detail,
+distributed trace context, self-telemetry). TWO PLANES ARE CLEAN
+PER-COMPONENT: AUTHORITY signals (verdicts/deltas/validations — already
+owned by ledger/health, the Collector OBSERVES not re-authors) vs
+TELEMETRY (performance: latency/throughput/errors/saturation/CPU/mem —
+the new mandate). CROSS-CUTTING LAWS the Collector inherits: (i)
+**CARDINALITY = THE CONTENT-FREE LAW** (HEALTH H8 + WIRE_FORMAT §3c):
+labels are BOUNDED closed hecate-wire enums ONLY (node/shard/office(10)/
+participant_kind(4)/principal_kind(5)/delivery_class(0-6)/archetype(6)/
+drop_reason(8)/verdict/disposition/fault_class(16)/storage_class/…);
+FORBIDDEN as labels (⚠️ span-attr/exemplar ONLY): claim_uid/testament_
+uid/request_id/session_uid/pod_uid/agent_uid/path/symbol/chunk_hash/
+content_hash/flow_key/HLC/manifest_hash/green_version (IAM19 + H6/T10:
+bounded by NODE count never POD count); the Collector enforces this on
+ITS OWN labels by type-walk; `collector.cardinality.series` = its most
+important self-signal. (ii) **TIMING READS Driver::now()→Tick** (SIM-
+deterministic; RUNTIME bans std Instant/SystemTime in core crates; T1);
+wall-clock telemetry-only, never a correctness path. (iii) runs on
+hecate-rt (single-owner tasks, bounded queues, no-panic). **TWO HARD
+ARCHITECTURAL GAPS (🔩 must be minted):** (1) **TELEMETRY CARRIAGE is
+UNDESIGNED** — no spec assigns spans/metrics/logs a delivery class or
+traffic archetype; health rides UDP gossip "under the datagram budget"
+(HEALTH §2/PODS §3/PROTOCOL §1.1 class-1) which CANNOT carry heavy
+telemetry; needs its OWN opportunistic-class operational-log lane
+(PROTOCOL §1.2 hecate-quic or bulk-adjacent) that respects the
+non-interference law (telemetry = opportunistic-by-purpose, NEVER enters
+another class's critical path) — and PROTOCOL P19 FAILS BOOT on an
+unclassified kind, so it MUST be minted. (2) **NO trace/span-id in the
+envelope** — PROTOCOL §1.1 envelope has request_id + caused_by + HLC but
+NO trace_id/span_id; distributed traces reconstruct from caused_by
+parentage (the causal spine, stamped where the turn is minted) +
+request_id + HLC, OR add an append-only span-context field (WIRE_FORMAT
+§5 additive). OTHER NEW HOOKS: per-task CPU/mem meters (arenas give mem,
+no CPU-time meter — read Driver::now()); provider-gateway detail surface
+(token accounting required but per-provider latency/error/token/429/
+failover histograms + LLM-call spans provider/model/stage/effort/TTFT/
+stop-reason/cache-hit = the single highest-value new trace for cost/
+latency attribution); `panic.aborts` counter (RUNTIME §4b requires
+"counted, root-caused" but names none); the Collector's own self-
+telemetry. REUSE LIST (10, don't duplicate): health's 6 signals +
+freshness + AbsenceIs; five-outcome accounting (ONE shared instrument
+across PODS/SCHEDULER/TRANSFER/AUTOSCALING); drop taxonomy (8 closed);
+fault dispositions (Masked/Degraded/Refused × 16, boot-validated);
+ratcheted latency floors (warden µs/shard/placement/WAL/merge/serve/
+seal/loopback — all already declared); named saturation gauges (warden
+hold-queue/frontier-lag/retirement-debt/monitor-closure/NVMe-endurance/
+warm-pool/per-office-queues = the autoscaling signals); scaling+quality
+signals (speculation-accuracy/memoization/locality/recall@k/dedup/
+scrub/Forest-value-gate); named ALARMS (stuck-cursor ×3/summon-budget-
+miss/closure-breach/merge-divergence-fatal/sensor-silence/warden-frozen/
+signal-staleness); idle-cost ratchet (CN2/IAMS3 — prove ~zero); the
+NON-INTERFERENCE SCALE-WALK (per-class latency AND memory FLAT MB→PB,
+PROTOCOL §3 = the single richest telemetry surface). BOTTOM LINE: ~70%
+observe/consolidate + ~30% new instrument; the 2 hard gaps = carriage +
+trace-context; the FAULTS failure×obligation matrix (16 classes ×
+disposition) = the natural top-level Collector dashboard. 2 lanes still
+out: A (core+port), D (corpus integration).
+
+**COLLECTOR LANE D LANDED (2026-08-20): CORPUS INTEGRATION MAP (18
+specs + GRILLING accepted-design read; per-spec integration/conflict/gap
++ N=1 + two-planes placement — the RECONCILIATION piece).** MOSTLY
+REUSE, few new mechanisms. **RECONCILES Lane C's "carriage gap": Lane C
+overstated "undesigned" — PROTOCOL:113 ALREADY classes telemetry as
+"1 Observation (SHEDDABLE)" and PROTOCOL:23-29 says the bare-UDP control
+plane carries "class-1 telemetry" (loss absorbed by supersession, never
+retransmitted) — so LIGHT telemetry/federation carriage EXISTS as law;
+never-shed = classes 0/3/5 (claims shed NEVER, telemetry sheds FIRST).
+What's genuinely NEW: HEAVY telemetry (bulk spans/metrics/logs + cold
+archival) rides OPPORTUNISTIC BULK (PROTOCOL:132-135 "durable-plane
+archival replication") under the non-interference law (CANNOT block
+control/claims), and the OTLP-IN lane — both need transport-registry
+classification (WIRE_SECURITY:146-153, else boot fails).** INTEGRATION
+DECISIONS (per spec): OBJECT_TIER — hot ring = MUTABLE-SIDE node-local
+(not in tier hierarchy; enters tier at SEAL); persistent-queue backing
+= the STAGING ROLE (lease-reclaimed, scan-recoverable, not-yet-addressed
+append buffer — near-exact fit, REUSE); cache-role for hot query; GAP =
+NEW COLD-TELEMETRY DURABLE CLASS (class-at-root, boot-validated OT11,
+**TTL-retention-governed NOT liveness-rooted** — unlike every current GC
+root); EC cold tail applies. WAL — the queue REUSES WAL's durability
+PRIMITIVES (derived-ω always-full, typed-retryable-never-block
+backpressure, floor-API reclaim) but is NOT a ledger-WAL logical-log
+client (content-never-in-WAL; telemetry = bulk content → OWN store on
+WAL primitives, OFF the consensus commit path — avoids the MONARCH
+circular-dependency: monitoring can't depend on the storage it
+monitors); Branch-25 encrypt-at-rest flag named. PROTOCOL/WIRE — OTLP-IN
+= registered warden-terminated vsock lane (like the SENSOR channel),
+per-workload flow-key ⇒ guest-reported provenance STRUCTURALLY;
+CONFLICT→content-free PROCESSOR (OTLP unbounded attrs/log-bodies vs
+WIRE_FORMAT:117-127 inline-vs-reference law ⇒ ContentRef or reject/
+bound, counted). PODS — agent tier ALREADY EXISTS IN EMBRYO (PODS:68-71
+node rollup, T10 node-count-bound — the Collector FORMALIZES it as the
+hot ring); warden+sensor = instrumentation SUBJECTS (two outputs). 
+SCHEDULER — gateway IS a scheduled service, region-local, colo-unit-
+ADJACENT (NOT a member); GAP = name the gateway placed-service class,
+agent tier is host-infra-not-a-summon. CONSENSUS — **the Collector is
+WRITER-LESS (append-only, any-copy, sharded single-OWNER not fenced) ⇒
+does NOT enter the single-writer roster — EXACTLY what separates it from
+the monitoring-plane single-writers (score service + detection-checkpoint
+writer) that DO get region-scope-epoch classified**; GAP = still
+explicitly classify the durable writers (CAS-first ref-flip for the
+manifest; single-owner non-fenced queue) for chokepoint-coverage.
+IAM — **`observability` resource type ALREADY EXISTS** (read_stream/
+read_health/trace, PEP=health serving edge); §7.12 Scribe-its-primary-
+only; ingestion = registered emission surface (provenance = contributor-
+identity+epoch, influence advisory = the structural bar on guest-
+reported ever being a detector input); OTLP-in authz via
+peer_channel.send(telemetry_lane) warden-enforced per-frame (keeps
+telemetry OFF the authority-object model); **IAM audit RIDES the
+Collector** (IAM:434 "Branch-39 substrate: session stream / operational
+stream" — the Collector is the SINK for IAM decision audit, two-stream
+shape owed). HEALTH — H5 NOT violated (Collector ≠ a health subsystem);
+the load-bearing re-source CONFIRMED (turn/stop/usage → provider gateway
+host-observed + PROVENANCE column host-observed|guest-reported +
+divergence-as-tamper-signal); content-free processor reconciles OTLP.
+MONITORING/HANDOFF — **SEPARATION VERIFIED STRUCTURALLY (3 guarantees):
+(1) provenance-class processor marks OTLP-in guest-reported "never
+authoritative for detection" at ingest; (2) detection's DURABLE inputs
+BYPASS the Collector entirely (WAL-logged ledger deltas + host-side
+warden verdicts + provider-gateway host-observed usage read directly);
+(3) the host-observed/guest-reported DIVERGENCE is itself a cross-view
+tamper signal.** REGISTRY — ported factories → registry DESCRIPTORS;
+config-as-DocValue (canonical closed-schema, replaces YAML); Guardian
+staging for custom components. SESSIONS — collection NODE/REGION-scoped,
+identity PER-SESSION; colo-unit: detection+score ARE members, Collector
+agent-tier is NOT, gateway is ADJACENT; CONFLICT→serving-edge isolation
+(collection node-SHARED, reads session-ISOLATED — the ledger metadata/
+content-split pattern, IAM §7b). AUTOSCALING — agent tier structural-
+per-node; gateway load-driven (signal = ingest-rate/fan-in-depth,
+latency only via target-derivation); overload = SHED not block (class-1
+sheddable) ⇒ maximal-collection bounded by retention-tiering+tail-sample
+NOT producer-backpressure. N=1 NO-MODES: doctrine cited verbatim across
+PODS(derived-param-never-mode)/OBJECT_TIER(§10 both-planes-collapse,
+class-labels-inert)/WAL(ω→1, no-local-shortcut)/CONSENSUS(§8 1-voter ≡
+N-voter, no-branch)/HEALTH + the telemetry law itself ("N=1 is a zone of
+one running the identical binary"); THE COLLAPSE = two tiers → ONE
+in-process pipeline (fan-in fan-out is a DERIVED-CARDINALITY parameter
+reaching ZERO-upward at N=1, like hedged-reads→no-ops / warm-pool→~zero
+/ cross-region→inert), durable spine = object-tier/WAL laptop-degenerate,
+memory-bound collect-everything (9ns fast path), same encoder/processors/
+schema, permanent N=1≡fleet CI gate. OWED (GAP register, 10 items): cold-
+telemetry class; queue=WAL-primitives/staging-role-reuse-not-logical-log;
+transport-registry classify 3 telemetry lanes; CONSENSUS classify the
+durable writers (writer-less hot path stated); IAM emit-authz decision +
+the audit-sink two-stream shape; HEALTH re-source amendment; content-free
+processor exact rules; serving-edge session isolation; REGISTRY Collector
+kinds + DocValue config; AUTOSCALING gateway scaling class; N=1 CI gate.
+1 lane still out: A (OTel core + port work).
