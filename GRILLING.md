@@ -7043,6 +7043,70 @@ construction; "linearizability if same key" is FREE) ⇒ CacheLib =
 SHAPE RECEIPT, Hecate model structurally STRONGER; the "no-work-on-hit"
 insight already captured. DRAM↔flash async-fill consistency THIN in
 source ⇒ Hecate specifies via completion-shaped Driver + single-flight.
+**DISTRIBUTED-HYBRID CACHE LANE LANDED (2026-08-20): DECISIVE +
+ELEGANT — Hecate does NOT need a new distributed-cache mechanism for
+the content/serving-plane cache; it's EMERGENT from existing
+substrate.** THE CENTRAL FINDING: Hecate's serving-plane cache IS a
+distributed hybrid DRAM+NVMe+cold cache ALREADY = SERVING §6 (HRW
+placement + four-tier read + single-flight) × OBJECT_TIER §5 (T0-T5
+tiers) × **content-addressed-immutability coherence** — because shared
+cache objects are IMMUTABLE by BLAKE3 hash, the ENTIRE memcache/TAO
+coherence edifice is STRUCTURALLY ABSENT: (i) STALE SET → unrepresentable
+(two concurrent sets of one key = byte-identical, nothing to arbitrate;
+"any-copy-valid-by-hash"); (ii) THUNDERING HERD → SERVING §6 FS11
+single-flight = memcache leases MINUS the token (result deterministic by
+hash); (iii) INVALIDATION → needed ONLY for mutable POINTERS (green@
+version rebinds, refs/manifest heads), NOT content. RECEIPTS: Memcache
+NSDI'13 (look-aside+delete-not-update; LEASES for stale-sets+herds;
+GUTTER ~1% spare absorb-failure-without-rehash = the EXACT SERVING §6
+"failure absorbed by spare capacity never load-rehash" receipt; MCSQUEAL
+commit-log-driven invalidation fan-out; regional pools; cold-warmup;
+cross-region best-effort-eventual + master/slave + remote-markers).
+TAO ATC'13 (consistent-hash + hot-shard CLONING; VERSION-STAMPED async
+invalidate/refill embedded in the replication stream — "a version number
+allows it to be ignored when it arrives later"; TAO+memcache SHARE one
+invalidation pipeline; read-after-write within a tier; critical-reads→
+master; leader coalescing = thundering-herd guard). COHERENCE MODELS:
+TTL < versioned(TAO) < lease-arbitrated(memcache) < synchronous(nobody
+on the hot path); every scale system = eventual+async+reliable-log-
+replay-for-lost-invalidations. Redis keyspace-notifications = ephemeral
+fire-and-forget + **NODE-LOCAL not broadcast** (the receipt for
+co-sharding invalidation channels with the key's HRW owner). TIERED
+DRAM→NVMe→cold DISTRIBUTED (Cloudflare tiered-cache upper-tier-shield-
+single-flights-to-origin; Netflix OCA RAM+flash+disk control-plane-
+popularity-placement + off-peak+peer-fill = declared-future admission;
+Alluxio MEM→SSD→HDD SYNCHRONOUS-eviction-on-write + promote-on-read-
+async) — UNANIMOUS: hot tiers PER-NODE, cold shared+authoritative,
+misses cascade up-then-out, hot best-effort/reconstructible, only cold
+durable/replicated = OBJECT_TIER §5 T0-T5 already. **VERDICT: NO new
+distributed-cache mechanism for content — SERVING §6 HRW + OBJECT_TIER
+§5 tiers + cache/pubsub/fanout ALREADY compose into it (each mechanic
+has a named home in an accepted spec; content addressing makes it
+STRICTLY SIMPLER than every precedent — no leases, no version
+reconciliation, no mcsqueal, no remote markers for content). ONE small
+NEW BINDING owed (WIRING not an engine): the MUTABLE-POINTER
+INVALIDATION FAN-OUT — ref-flip/green-append (the "commit") →
+ledger-delta/PROTOCOL §4 delta-stream (Hecate's reliable commit log) →
+FAN-OUT router → SHARDED ephemeral at-most-once pub-sub co-sharded with
+the key's HRW owner (Redis node-local-events receipt) → per-node cache
+drop/re-bind; = memcache's mcsqueal + TAO's replication-stream
+invalidation as ONE Hecate mechanism reusing the delta-stream + the
+LEDGER_CORE subscriber index (the fan-out lane already ruled this "the
+canonical FIRST consumer; do NOT fork a 2nd cursor"). new code = the
+CO-SHARDING of the invalidation channel with HRW placement.** IF a
+mutable-KV face is ever added (v1 AVOIDS it): that face needs the
+memcache/TAO kit (versioned invalidate/refill + async cross-region +
+region-local reads + critical-read escape), CONSENSUS lease+fence-per-
+slot-primary. HONEST DIVERGENCES: memcache/TAO cache MUTABLE ROWS ⇒ the
+faithful precedent for Hecate's content cache is CDN(Cloudflare/Netflix)
++Alluxio NOT memcache (applying memcache's lease/marker kit to the
+content cache = importing a solution to a DELETED problem); Alluxio
+synchronous-eviction AGREES with the cache lane's shard-executor-
+eviction; cross-region for content is CHEAPER than every precedent
+(immutable ⇒ async content replication, NO cross-region invalidation).
+BOTH CACHE-ENRICHMENT LANES IN ⇒ ALL RESEARCH COMPLETE (queue, cache+
+pubsub, fanout, collector-scale, cachelib, distributed-hybrid).
+
 **CACHE SPEC REVISIONS (W6, to apply): (a) ONE ENGINE + eviction→
 admission cross-tier flow replaces 2-static-faces — reconciled w/
 OBJECT_TIER §5 "never spill" (the admission GATE is the safety: most
