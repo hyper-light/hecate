@@ -4995,3 +4995,21 @@ NEXT (user): re-present the Scribe/observability/handoff planning
 documents (MONITORING + HANDOFF as last presented, §5 channel
 included), work from there; the three in-flight arc lanes (interior
 observability / VMM visibility / conduct math) fold in on landing.
+
+**CONDITIONAL ACCEPTANCE (2026-08-19): MONITORING + HANDOFF.** Both
+documents re-presented in full with the four confirmed gaps carried as
+explicit pending-amendment markers (MONITORING crit-14 / HANDOFF
+crit-13: amendments land BEFORE files are written). User verdict:
+"let's wait for the research regarding the warden/sensor metrics to
+return, incorporate that, and then this is accepted." = ACCEPTED
+conditional on incorporating the three arc lanes (interior enforcement
+observability af03…, VMM-side visibility a09c…, conduct detection math
+a7a8…). On landing: record each dossier, compose the interior-coverage
++ conduct-family design, present the incorporated sections in-message,
+then write docs/specs/MONITORING.md + docs/specs/HANDOFF.md + the
+corpus amendments (MONITORING crit-15 list incl. PODS §1/§3/§6) in one
+change; update GAPS (closes D-5/Branch 14) + this tree. FLAG STILL
+OPEN: the §2 ruling (Design A containers-per-loop [recommended] vs
+Design B shared-runtime) — the accepted document cannot carry "THE
+OPEN RULING" to disk; needs the user's explicit call at incorporation.
+Parked separately: response-authority branch + its lane D (adbe…).
