@@ -4590,3 +4590,50 @@ CONFIRMED parts. FINALIZES HANDOFF §4 (detector suite replaces the
 single CUSUM) + §5 (alert schema + Scribe-as-SRE) — both presentations
 (containers + SRE detection) now assembled in-thread; ALL agents
 complete; awaiting user verdicts.
+
+**INTRA-VM CHANNEL + SCRIBE THREAD MODEL — USER REFINEMENT (2026-08-19).**
+Two directives on the MONITORING presentation: (1) the Scribe RECORDS A
+RUNNING HISTORY of its colocated primary; its SECONDARY thread should
+largely exist only for OUTBOUND reach-out (Archivalist/external) — the
+main loop consumes the history stream; (2) "we *should be able to
+identify communication and networking internal to the microVM for comms
+between the two OCI containers*" — a DESIGNED, IDENTIFIED, CLASSIFIED
+intra-VM channel is REQUIRED. HONEST REVISION this forces on observe-not-
+feed (named, not buried): the presented design routed ALL Scribe input
+guest→host→guest, taxing the highest-rate flow (colocated history) with
+VMM hops. RESOLUTION = the AUTHORITY/ENRICHMENT split: authority signals
+(warden verdicts, ledger deltas, gateway) STAY host-side tamper-proof —
+detection/scoring reads ONLY those; the HISTORY/narration stream flows
+INTRA-VM primary→Scribe over a designed channel whose safety shape is:
+emitter NEVER blocks (non-blocking, overflow=counted drop — the kernel
+observability channel shape: BPF ringbuf/perf-buffer/ftrace all do
+exactly this), seqnum+drop-counter gap detection cross-checked against
+host streams (silence/tamper is itself a detectable signal the primary
+can't hide because warden/ledger streams don't lie), protection
+asymmetry (writer-RW/reader-RO or kernel-mediated), supervisor-created
+fd-passed (no name to squat), and the channel is a FIRST-CLASS
+CLASSIFIED lane in the transport registry (identity via
+SO_PEERCRED/SO_PEERPIDFD/fd-provenance; metering/rate-enforcement
+hooks; honest note: intra-guest traffic is invisible to the VMM unless
+exported — in-guest sensor/cgroup stats are the host visibility path).
+Primary LYING in its own history = bounded (enrichment only; authority
+is host-side) — the Sylk distinction preserved: Sylk's fault was
+feed-as-SOLE-input + self-score; this is emit-as-enrichment + host-side
+authority. THREE RESEARCH LANES DISPATCHED: (1) mechanisms+NUMBERS
+(a2ad7636: UDS stream/seqpacket vs pipes/splice vs shm+eventfd-doorbell
+vs TCP-lo/shared-netns vs veth-pair/separate-netns vs vsock-CID_LOCAL —
+latency/throughput/syscalls-per-msg/copies/backpressure table); (2)
+one-way tamper-bounded stream DESIGN (a2c7ce1a: BPF-ringbuf/perf
+data_head-data_tail/PERF_RECORD_LOST/ftrace-overwrite-vs-drop
+semantics; LMAX single-writer+sequence; seqlock; memfd_create sealing
+esp. F_SEAL_FUTURE_WRITE writer-keeps-RW/new-maps-RO asymmetry —
+VERIFY; journald suppressed-N + K8s stdout + Vector when_full=
+block-vs-drop_newest precedents; the layered-trust untrusted-producer/
+trusted-control-plane cross-check pattern); (3) identity/observability/
+classification + THREAD MODEL (a9e1a810: SO_PEERPIDFD, sock_diag/
+UNIX_DIAG, tc-on-veth rate enforcement, memcg sock accounting,
+boot-classification tuples per channel type; epoll-ET/io_uring
+SINGLE_ISSUER+DEFER_TASKRUN+multishot-recv single-thread ingestion;
+tokio current-thread + outbound-only side pool = the reactor shape
+grounding "secondary thread only for outbound"). On landing: the channel
+design + thread model fold into MONITORING §2/§4 and re-present.
