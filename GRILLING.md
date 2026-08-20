@@ -6659,3 +6659,69 @@ filtering, the SNS→SQS pattern; factoring question = own-primitive vs
 router+queue+pubsub composition. PRIMITIVE FAMILY NOW: CACHE+PUBSUB
 (ValKey), QUEUE (SQS at-least-once), FAN-OUT (SNS), all Meta-scale +
 laptop. 3 lanes out: queue, cache+pubsub, fanout.
+
+**CACHE+PUB-SUB LANE LANDED (2026-08-20): superb — settles the
+primitive shape + UNIFIES with OBJECT_TIER's cache role.** ADMISSION
+(the modern differentiator): **W-TinyLFU** (Caffeine) = Count-Min 4-bit
+frequency sketch + doorkeeper bloom (one-hit-wonders) + aging (halve at
+sample W) + admission DUEL (candidate-vs-victim frequency) ⇒ admission
+beats pure eviction (SCAN RESISTANCE at the gate, not by workload
+classification); Hecate ALREADY speaks "TinyLFU-style duel" (FOREST
+§96) ⇒ no new vocab. EVICTION tradeoffs (all receipted): LRU (read=write
+mutex, not scan-resistant), LFU (Morris+decay), 2Q (scan-resistant,
+ghost), ARC (adaptive self-tuning, ghost B1/B2, 0.75% overhead),
+CLOCK-Pro (lock-free hits, reuse-distance, 3 hands), SIEVE (NSDI'24:
+single hand + visited bit, lock-free, −63% miss vs ARC for WEB but
+EXPLICITLY NOT scan/loop-designed). **REC: W-TinyLFU default** (near-
+optimal ≈ARC/LIRS, scan-resistance via admission, self-tunes window by
+hill-climbing); SIEVE only per-shard where provably scan-free (e.g.
+immutable content-by-hash); moka (Rust Caffeine port) = the concrete
+prior-art. SHARDING = 2 ORTHOGONAL AXES: single-node sharded-for-
+CONCURRENCY (partition local cache into N single-OWNER shards, lock-free
+hits via ring-buffer/visited-bit, NEVER RocksDB read=write mutex) +
+distributed PLACEMENT (HRW/rendezvous = ALREADY SERVING §6; HRW subsumes
+consistent-hashing). SIZING = bound by count OR weigher(bytes); TTL
+(expire-after-write/access/variable); **max_items × per-entry-cost NEVER
+literal MiB** (ARC's own tables state pages×bytes; OBJECT_TIER AC#4);
+no-unbounded-growth = admission-bound + evict-to-budget + **ghost/sketch
+state ITSELF bounded+counted in the anchor** (else it's the leak).
+PUB-SUB (the ValKey co-equal half): Valkey pub-sub = EPHEMERAL AT-MOST-
+ONCE fire-and-forget, NOT persisted ("delivered once if at all… if no
+subscribers, the message is lost"); pattern-subs (PSUBSCRIBE); KEYSPACE
+NOTIFICATIONS = cache emits invalidation events on its own channels;
+SHARDED pub-sub (SSUBSCRIBE/SPUBLISH co-shards channels with keys by the
+SAME hash ⇒ invalidation node-local not cluster-broadcast); cluster =
+16384 slots + CRC16 + migration (MOVED/ASK) + primary/replica +
+gossip/vote failover. **STREAMS = THE STRADDLE** (append-only persisted
+log + consumer groups + XACK/PEL/XCLAIM = at-least-once "what Kafka does
+with consumer groups") ⇒ **informs the DURABLE QUEUE (SQS) side, NOT the
+ephemeral pub-sub**; Valkey KEEPS Pub/Sub and Streams SEPARATE = the
+receipt for NOT collapsing fire-and-forget fan-out with durable-acked
+consumption. **OBJECT_TIER §5 RECONCILIATION — DECISIVE: the content-
+by-hash NVMe cache role is a SPECIALIZATION of the general cache
+primitive, NOT a sibling. ONE primitive, TWO ANCHOR-DERIVED FACES via
+PLUGGABLE (admission-policy, eviction-granularity) TRAITS: RAM/hot-ring
+face = (frequency-W-TinyLFU, per-entry evict, anchor=hit-ratio/byte,
+TTL+explicit-invalidate); NVMe pack-store face = (endurance-servo
+admission [TBW÷lifetime] + declared-future, whole-region-FIFO evict
+[flash write-amp], ZERO invalidation [sealed-immutable]).** LAPTOP
+(zero-server): **moka** (in-process Rust Caffeine port, W-TinyLFU,
+production-proven on home routers, MSRV 1.71) for the cache half +
+**tokio broadcast** (at-most-once fan-out; Lagged-drop = Valkey's
+at-most-once-under-pressure EXACTLY) + **tokio watch** (last-value =
+keyspace-notification invalidation) for pub-sub — NO Redis/Memcached/
+Valkey server; distributed layer (HRW/slots/replication/gossip)
+degenerates to {self} by SAME formulas (OBJECT_TIER §10 no-modes).
+DESIGN (F1-F9): **ONE PRIMITIVE FAMILY = KV cache + ephemeral pub-sub
+(ValKey-shape); the durable at-least-once queue = SEPARATE primitive on
+the SHARED sharding/replication substrate** (3 faces: cache, ephemeral-
+pubsub, durable-queue; first two = one family, third = sibling —
+because cache-invalidation IS pub-sub + sharded-pubsub co-shards with
+keys + Valkey keeps pubsub/streams separate). Single-owner sharded tasks
+= race-free WITHOUT locks (satisfies runtime rules); every shard+
+subscriber = tracked tokio task. CORPUS-COMPLIANCE (partial, in-dossier):
+reconciled OBJECT_TIER §5 (specialization), FOREST §96 (duel vocab),
+SERVING §6 (HRW), VECTOR_INDEX §5 (cache-role reuse), runtime rules
+(single-owner/bounded/no-race/anchors) — the FULL Lane-D-style
+reconciliation still owed. 2 lanes out: queue (a3715779), fanout
+(a9bd127b).
