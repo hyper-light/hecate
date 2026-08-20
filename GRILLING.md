@@ -7765,3 +7765,46 @@ primitive; both research lanes (A ledger-on-log + B at-most-once-notify) IN,
 ready to settle. (3) MONITORING/HANDOFF fold-in — the warden/sensor/Scribe
 observability work + its corpus amendments, staged from earlier; the collector
 consumes it.**
+
+**MATERIALIZER RESEARCH — APPLY LANE LANDED (2026-08-20, af135c5e):
+deterministic-parallel-execution of an ordered log. VERDICT: a proven,
+decade-deep pattern; and a declared-dependency CLAIMS-DAG is a STRONGER
+starting point than Calvin — it declares the conflict EDGES themselves (the
+BOHM/PWV "graph is given" model, for FREE: no set-intersection, no OLLP
+reconnaissance).** MECHANISMS: Calvin (SIGMOD'12 — deterministic sequencer +
+declared r/w sets → ordered locking → parallel exec, no 2PC; ~500K TPC-C
+txn/s @100 nodes, linear past 10, ~5K/node); Aria (VLDB'20 — NO pre-declared
+sets: frozen-snapshot batch + runtime WAW/RAW detect on smaller-TID, losers
+replay next batch, deterministic-reorder 3× @skew; ~1M txn/s/node, 75%
+H-Store, 7.4% CC overhead — CLOSEST fit to a claims ledger); BOHM/PWV/Caracal
+(multiversion, explicit dep-graph; Caracal 2.12M txn/s @32 cores, near-linear
+8→32; split-on-demand for hot keys); Raft (SMR prefix-apply — State-Machine-
+Safety, apply-in-log-order, lastApplied watermark); Flink-ABS (consistent-
+prefix snapshots); Kafka-Streams (production keyed-parallel). **DESIGN
+(verdict): epoch the ordered log (size from arrival rate, no magic constant) →
+read the conflict graph from DECLARED claim deps → apply in parallel on N
+workers, TOPOLOGICAL over declared edges with LOG-INDEX tiebreak (keyed-
+disjoint claims = Kafka/Flink fast path) → Aria-style runtime detection
+against a frozen snapshot as the MANDATORY SAFETY NET (undeclared WAW/RAW →
+deterministic abort + reschedule ~7.4%, so incomplete declarations degrade to
+deterministic re-apply, NEVER corruption) → DETERMINISM from log-index-
+tiebreak + frozen-snapshot + pure-apply-fn + seeded Driver → PREFIX-
+RECOVERABILITY from monotone apply-watermark (all ≤k applied) + commit-in-
+order-despite-out-of-order-exec + input-log + deterministic-suffix-replay.**
+NUMBERS (honest): serial ~10^4 ops/s → ~1–2 ORDERS OF MAGNITUDE on one
+multicore box under low conflict, near-linear with cores until conflict/
+dependency density saturates the serial fraction — NOT a guaranteed 32×.
+RESEARCH-GRADE CAVEATS: (1) per-epoch BARRIER STALLS (slowest claim gates the
+epoch); (2) CONFLICT DENSITY is the ceiling (a hot claim forces serial unless
+you SPLIT hot state, Caracal split-on-demand); (3) speedups WORKLOAD-
+CONDITIONED (Caracal loses 9.7% to static partitioning under uniform
+contention); (4) DECLARATION SOUNDNESS load-bearing (pure-Calvin unsafe w/o
+complete declarations ⇒ Aria hybrid MANDATORY); (5) APPLY-BODY bit-
+reproducibility is a DISCIPLINE the SIM must enforce (no hash-iter/allocator-
+addr/float-NaN/races — a deterministic SCHEDULE doesn't rescue a
+nondeterministic apply STEP); (6) prefix-recovery throughput GATED BY THE
+WATERMARK, not the fastest worker. Dossier: tmp/materializer_apply_lane/
+dossier.md. **LOG/SHARDING lane (ad634072: FuzzyLog/Tango/Delos/Scalog/Boki)
+STILL OUT — the full materializer design integrates both (per-instance
+sharding + partial-order = the coarse lever; parallel apply = the within-shard
+lever).**
