@@ -5115,3 +5115,234 @@ attribution (guest-authoritative-WITH-HOST-VETO via boundary signature
 boundary probing (host-authoritative: the guest cannot suppress the
 host's count of its own refused attempts). 2 arc lanes still out:
 interior observability (af03…), conduct math (a7a8…).
+
+**ARC LANE A LANDED (2026-08-19): INTERIOR ENFORCEMENT OBSERVABILITY.**
+SECCOMP DENIALS: RET_ERRNO is SILENT by design (VINDICATES gap 1 — no
+log, no counter); the kernel keeps NO per-process/per-cgroup seccomp
+denial counter anywhere (proc_pid_status has only mode+filter-count;
+cgroup-v2.rst grep seccomp=0 — NO-PRECEDENT). Three routes to COUNT a
+denial: (a) SECCOMP_RET_USER_NOTIF listener fd — deny-only (never
+FLAG_CONTINUE, never deref target memory) has NO TOCTOU window (the
+man page's "can not be used to implement a security policy" applies to
+CONTINUE, not to deny+count), supervisor-death ⇒ ENOSYS fail-closed;
+cost HIGH (target sleeps + cross-process round trip per event) ⇒ only
+if denials rare-by-design. (b) RET_ERRNO + SECCOMP_FILTER_FLAG_LOG +
+actions_logged + CONFIG_AUDIT(SYSCALL) ⇒ audit record; no auditd ⇒
+ratelimited pr_notice type=1326 in kernel log (LOSSY as a counter).
+(c) cgroup-BPF (below). RET_LOG is log-AND-EXECUTE (cannot be the deny
+primitive). BPF LSM: observe-and-deny in one hook ("Return an -EPERM or
+write information to the perf events buffer"); needs CONFIG_SECURITY +
+BPF_LSM + BPF_EVENTS→FTRACE chain (all fork flips). **BPF_CGROUP_UNIX_*
+landed in 6.7** (uapi diff 6.6=0/6.7=5; commit 859051dd); libkrunfw =
+6.12.91 ⇒ source present; **CONFIG_CGROUP_BPF=y on STOCK BOTH ARCHES**
+(+ BPF=y + BPF_SYSCALL=y) ⇒ **my MONITORING §5.8 tripwire assumption is
+VINDICATED — cgroup-attached UNIX connect/sendmsg interception works on
+stock**, program returns 0 ⇒ caller EPERM (kernel/bpf/cgroup.c), emits
+ringbuf record + bpf_get_current_cgroup_id (base helper, no tracing
+config) = per-container attribution for free. BUT BPF_JIT is OFF stock
+(interpreter only — a perf fork-flip). CGROUP v2 EVENT SURFACES (the
+per-container interior metrics, mostly FREE + KERNEL-PUSHED via
+poll/inotify on file-modified): memory.events{low,high,max,oom,
+oom_kill,oom_group_kill,sock_throttled}(+.local), pids.events{max},
+cgroup.events{populated,frozen} — all pushed; cpu.stat{nr_throttled,
+throttled_usec} POLLED-only; PSI cpu/memory/io.pressure = kernel-
+evaluated trigger fds (poll/epoll, ≤1/window). **CONFIG ASYMMETRY (the
+fork must harmonize): x86_64 has AUDIT+SECURITY but NO PSI; aarch64 has
+PSI-on-by-default but NO AUDIT and NO CONFIG_SECURITY AT ALL (no LSM
+layer whatsoever).** FORK-FLIP LIST (explicit, DAX-style tracked): (1)
+BPF_JIT=y both; (2) SECURITY+SECURITYFS=y aarch64; (3) BPF_LSM stack
+both (drags BPF_EVENTS→FTRACE/KPROBE_EVENTS, + lsm=…,bpf boot/CONFIG_
+LSM); (4) DEBUG_INFO_BTF=y both (CO-RE/LSM attach — THIN on kernel-doc,
+CONFIRMED by Falco/Tetragon requiring BTF); (5) PSI=y x86_64; (6)
+AUDIT+AUDITSYSCALL=y aarch64 IF the seccomp-audit route is chosen; (7)
+optional KPROBES, IKCONFIG(+_PROC for in-guest /proc/config.gz kernel
+attestation); (8) raw-syscall tracepoint telemetry needs #3's chain.
+On stock TODAY (no flips): seccomp+unotify, full cgroup-event surface
+(minus PSI-on-x86), cgroup-BPF UNIX interception+ringbuf+cgroup-id.
+Fork-flip unlocks: BPF LSM hooks (ptrace_access_check=cross-container
+ptrace/proc-mem-read; task_kill=cross-container signal; bprm_check/
+file_open=exec+sensitive-open — hot, must in-kernel-filter), raw-
+syscall-rate telemetry. EXPORTER PLACEMENT (settles gap 2): in EVERY
+shipped system (Falco DaemonSet, Tetragon agent, gVisor unsandboxed
+sidecar, Kata) the kernel-telemetry drainer is a DEDICATED SUPERVISED
+process — **PID 1 as BPF-ring drainer = NO-PRECEDENT**; nearest is
+kata-agent-as-init which drains its own ttRPC/policy, NOT kernel rings.
+bpf_link PINNING (bpffs) is the tool that lets ENFORCEMENT survive the
+drainer's death (default fd-owned links detach on owner exit) ⇒ the
+shipped pattern is "PIN enforcement, SUPERVISE the drainer" — so
+interior enforcement (seccomp/BPF/cgroup residuals) is installed+pinned
+by hecate-init pre-spawn, and a DEDICATED in-guest sensor-exporter
+process (supervised by hecate-init, NOT init itself) drains the rings
+to the sensor vsock channel. Ringbuf drainer-death = records persist
+until ring fills, then reserve fails/no blocking (drops counted, never
+blocks the workload). KATA AGENT POLICY = the "policy compiled OUTSIDE,
+installed at spawn (rootfs or base64 pod-creation annotation), enforced
+INSIDE by the agent" precedent — VINDICATES the warden-compiled-
+residual hypothesis (IAM §6 compile-and-distribute extends one hop into
+the guest). Event-class table delivered (12 rows, each surface +
+push/poll + cost + stock-vs-flip).
+
+**ARC LANE C LANDED (2026-08-19): CONDUCT DETECTION MATH.** Axelsson
+base-rate fallacy (TISSEC 2000, PDF-verbatim): "the false alarm rate is
+the limiting factor"; at P(I)=2e-5 "the factor governing the detection
+rate … is completely dominated by the factor … governing the false
+alarm rate" — and he DERIVES the requirement from a human alarm budget
+("the SSO, being only human, can only react to a relatively low number
+of alarms"; "100 false alarms per day … met by a false alarm rate of
+1e-5") = the EXACT δ→threshold / ARL₀=T/δ shape Hecate already uses,
+now source-licensed for conduct streams: at conduct base rates, δ (not
+detection power) is what makes an alarm mean anything. PER-STREAM
+STATISTIC ASSIGNMENT (composed, premises receipted): (1) warden policy
+denials = per-op OPPORTUNITY stream ⇒ **risk-adjusted Bernoulli CUSUM**
+(Reynolds&Stoumbos 1999: per-item Bernoulli CUSUM "detect changes in p
+substantially faster than … grouping items into samples"; binned charts
+useless at low rates — Szarka&Woodall) with the **Steiner risk weight**
+(Biostatistics 2000: standard CUSUM "may signal as a result of changes
+in the referral pattern … rather than … a change in the actual …
+performance" — replace patient→op, referral-pattern→task-mix = the
+Hecate confounder verbatim); (2) tripwire firings / escalations = sparse
+timed events (often zero/session) ⇒ **TBE exponential CUSUM** on
+inter-arrival times (Gan 1994 / Vardeman&Ray 1985 "controlling the
+intensity of a Poisson process"; = geometric ops-between-trips CUSUM,
+same statistic by R&S equivalence) or **Poisson CUSUM** (Lucas 1985,
+k-from-two-means + FIR) for window-aggregated counts; (3) sensor
+behavioral aggregates ⇒ **EWMA intensity** (Ye 2002/2003 EWMA on
+audit-event intensity — feeds the EXISTING residual-EWMA stack, no new
+mechanism). δ ON DISCRETE STREAMS: threshold via Markov-chain/Monte-
+Carlo run-length (Brook&Evans; JSS 70(10) verbatim "chose a value of 2
+for h so that the probability of a false alarm within the 56 timepoints
+… is less than 0.1") = a BOUND statement at the achieved discrete h
+(exact-equality designs exist only at sparse points — Rossi 1999);
+report achieved P alongside δ. FIR head-starts on REPLACEMENT/fresh
+agents (Lucas/White&Keats) — a successor that resumes tripping is
+caught fast (mirrors handoff FIR-seeding). SEVERITY: separate CATEGORY
+(interior-boundary vs egress vs scope — different base rates, benign-
+trip likelihoods, risk weights) from RATE; per-category charts (or one
+categoricalCUSUM) with category-specific k/R; egress-category carries
+higher out-of-control odds than scope-category; NEVER collapse to one
+trip counter (hands benign noise to the hostile threshold). THE
+REPLACEMENT LINE (production-standard, receipted): warden already
+denied every op pre-effect ⇒ NO damage question ⇒ the detector alarm is
+purely ACTOR-level ("pattern no longer consistent with learned in-
+control profile ⇒ replace/escalate"). MDE attack-disruption states the
+split verbatim: incident-level action "differs from … blocking based on
+a single indicator of compromise"; GuardDuty "terminate … and replace
+it with a new instance"; Falco-Talon ships terminate/cordon/drain/
+networkpolicy actionners; MDE holds "99% or higher [precision] based on
+real production data" + audit-mode-before-release + all-actions-undoable
+= exactly the observe-mode-first + reversibility discipline. CONVERSELY
+a SINGLE confirmed-hostile act = Guardian HARD-BLOCK (enforcement, not
+detection — routing it through a CUSUM only adds latency + a false-
+negative channel; Wagner&Soto mimicry: pattern detectors are EVADABLE
+so the hard line must NOT depend on them). BASE RATES (priors for the
+learned layer): measurable + nonzero but swing orders of magnitude with
+framing (Anthropic agentic-misalignment 96/96/80/79% blackmail under
+adversarial framing vs 55.1% "real" vs 6.5% "eval"; Apollo scheming
+0–15%/model/action; METR o3 reward-hacking 1–2% of task attempts) ⇒
+universal thresholds statistically INCOHERENT ⇒ learned per-(agent-type,
+task-class) λ₀/p₀ + Steiner weighting, MANDATORY. Benign boundary-brush
+is real (o1-preview Docker-API "benign … systems administration"
+reward-hack; Claude Code sandboxing "84% fewer permission prompts" =
+how often benign work brushes boundaries) ⇒ the risk weight is
+load-bearing, not decorative. ALL THREE ARC LANES NOW LANDED. Corpus
+reconcilers (5 lanes) still in flight.
+
+**ARC LANE A LANDED (2026-08-19): INTERIOR ENFORCEMENT OBSERVABILITY.**
+SECCOMP DENIAL OBSERVATION: RET_ERRNO is SILENT (no log/counter; only
+the audit rules can log it); **RET_LOG is log-AND-ALLOW — it EXECUTES
+the syscall** ("Results in the system call being executed after it is
+logged") ⇒ can never be the denial primitive; the log route =
+RET_ERRNO + SECCOMP_FILTER_FLAG_LOG + actions_logged, and the ENTIRE
+seccomp log path is the audit subsystem (audit.h: audit_seccomp is a
+compiled NO-OP without CONFIG_AUDITSYSCALL); without auditd records
+fall back to RATE-LIMITED printk ("type=1326") = lossy as a counter.
+seccomp_unotify AS PURE DENY+COUNT IS SOUND: the documented TOCTOU
+("can not be used to implement a security policy!") attaches ONLY to
+FLAG_CONTINUE + target-memory reads; a supervisor that never
+continues, never dereferences, always responds spoofed-error has NO
+check/use window; supervisor death ⇒ ENOSYS fail-closed; cost = a
+synchronous cross-process round trip per event (acceptable iff denials
+rare-by-design); one NEW_LISTENER filter per task. **NO kernel counter
+of seccomp denials exists anywhere** (proc status = mode+filter-count
+only; cgroup-v2 grep 'seccomp' = 0) — NO-PRECEDENT; **Docker ships
+denial-BLIND** (default profile ERRNO; docs contain zero
+observe/count/debug guidance — NO-PRECEDENT); K8s observes via
+audit→syslog; systemd SystemCallLog= is the RET_LOG→audit route.
+CGROUP-BPF: **BPF_CGROUP_UNIX_CONNECT/SENDMSG landed in 6.7**
+(triple-receipted: uapi 6.6→6.7 diff, bpftool doc "since 6.7", commit
+859051dd) — libkrunfw 6.12 has them in-source; deny semantics =
+program ret≠1 ⇒ caller gets -EPERM (kernel/bpf/cgroup.c verbatim), and
+the program can ringbuf-record BEFORE denying = observed+counted
+denial; bpf_get_current_cgroup_id + ringbuf helpers are BASE-proto
+(no tracing configs). **§5.8's CONFIG assUMPTION VERIFIED:
+CONFIG_CGROUP_BPF=y in STOCK libkrunfw BOTH arches** — tripwires work
+on stock (interpreter-executed; BPF_JIT is OFF). Tracepoint cost
+receipted (bcc syscount 1.85× @3.5M calls/s ≈ ~120ns/event count-only;
+Falco 205ns avg sys_exit handler; >3k events/s/CPU = their difficulty
+line). Ringbuf drainer-death = counted drops, never blocking
+(BPF-ringbuf reserve-fails law; Falco drop actions + scap.n_drops;
+Tetragon lost-event metrics); **bpf_link pinning = enforcement
+survives drainer death** ("pin enforcement, supervise the drainer").
+CGROUP-V2 EVENT SURFACES (verbatim): memory.events{low,high,max,oom,
+oom_kill,oom_group_kill}(+.local), pids.events{max}, cgroup.events
+{populated,frozen} = KERNEL-PUSHED (file-modified ⇒ poll/inotify;
+"poll and [id]notify events are triggered when the value changes");
+PSI cpu/memory/io.pressure = kernel-evaluated trigger fds ("some|full
+<stall-µs> <window-µs>", ≤1 notification/window); **cpu.stat =
+POLLED-ONLY** (no modified-event clause). **STOCK CONFIG VERIFIED,
+BOTH ARCHES DIVERGE** (kernel 6.12.91): common =y: BPF/BPF_SYSCALL/
+CGROUP_BPF/SECCOMP_FILTER/PERF_EVENTS/all cgroup controllers/all
+namespaces; BOTH lack: BPF_JIT, BPF_LSM, BPF_EVENTS, TRACEPOINTS/
+FTRACE, KPROBES, DEBUG_INFO_BTF, IKCONFIG; **x86_64 has
+AUDIT+AUDITSYSCALL+SECURITY but NO PSI; aarch64 has PSI (on by
+default) but NO audit and NO SECURITY at all** — the fork MUST unify
+(zero-modes law). FORK-FLIP LIST (exact): (1) BPF_JIT=y both (perf +
+hard dep of BPF_LSM); (2) SECURITY+SECURITYFS=y aarch64; (3) BPF_LSM=y
+both ⇒ drags BPF_EVENTS ⇒ FTRACE + KPROBE_EVENTS, + boot lsm=…,bpf;
+(4) DEBUG_INFO_BTF=y both (CO-RE; Falco/Tetragon require BTF —
+production receipts); (5) PSI=y x86_64; (6) AUDIT+AUDITSYSCALL=y
+aarch64 IF the audit-log route is wanted (unneeded if unotify/
+cgroup-BPF count); (7) optional KPROBES, IKCONFIG(+_PROC) for in-guest
+config attestation. EXPORTER PLACEMENT: in EVERY shipped system the
+kernel-telemetry drainer is a DEDICATED SUPERVISED PROCESS, never PID
+1 (Falco daemon/DaemonSet; Tetragon agent DaemonSet; gVisor
+metric-server "meant to run unsandboxed as a sidecar", trace points
+"sent to a process running alongside the sandbox… isolated from the
+sandbox for security reasons"); **PID-1-drains-BPF-rings =
+NO-PRECEDENT** (nearest: kata-agent-as-init drains its own ttRPC
+policy surface, NOT kernel telemetry); kata agent-policy = the
+"policy compiled outside, installed at spawn, enforced inside"
+precedent (OPA in guest, default-policy baked or passed at creation).
+TRIPWIRE EVENT-CLASS TABLE delivered (12 rows, each w/ surface,
+push-vs-poll, cost class + STOCK-vs-FORK sequencing): works on stock
+TODAY = memory.events/pids.events/cgroup.events (pushed),
+cpu.stat (polled), PSI (aarch64), BPF_CGROUP_UNIX_* w/ cgroup-id
+attribution + ringbuf; needs flips = BPF-LSM ptrace_access_check
+(/proc/PID/mem reads funnel through it — fs/proc/base.c→mm_access→
+security_ptrace_access_check receipted), task_kill,
+bprm_check_security/file_open (hot-path: MUST filter in-kernel,
+Tetragon's stated model), raw-syscall-rate telemetry.
+
+**ARC LANE C LANDED (2026-08-19): CONDUCT DETECTION MATH.** AXELSSON
+(TISSEC 2000, PDF): "the false alarm rate is the limiting factor for
+the performance of an intrusion detection system" — at base rate
+2·10⁻⁵ the FA factor "completely dominated"; even detection rate 1.0
+needs FA ≈1·10⁻⁵ for P(intrusion|alarm)=66%; AND the original derives
+its requirement from a HUMAN ALARM BUDGET ("the SSO, being only human,
+can only react to a relatively low number of alarms"; "100 false
+alarms per day… met… with a false alarm rate of 1·10⁻⁵") = the
+δ-budget discipline receipted at its source. STATISTIC FAMILY:
+Bernoulli CUSUM per-opportunity (Reynolds&Stoumbos: "detect changes in
+p substantially faster than… grouping items into samples"; ≡ geometric
+ops-between-events CUSUM — formal equivalence quoted) + Szarka&Woodall
+(binned/Shewhart useless at high-quality low rates) + **Steiner
+risk-adjusted weights** (Biostatistics 2000 abstract = our problem
+verbatim: signals "as a result of changes in the referral pattern…
+rather than… actual… performance" — task-mix = referral-pattern);
+TBE/exponential CUSUM on inter-arrivals for sparse tripwire events
+(Gan 1994; Vardeman&Ray 1985 exact exponential ARLs); Poisson CUSUM
+for window-aggregated counts (Lucas 1985, incl. FIR; White&Keats
+Markov-chain ARLs at zero AND FIR starts); EWMA intensity for sensor
+behavioral aggregates (Ye et al. 2002/2003 — audit-stream precedent
+exactly). DISCRETE CALIBRATION: exact ARL equality unattainable at
+integer thresholds (Rossi 
