@@ -4212,3 +4212,39 @@ small-n magnitudes (direction robust); OpenHands 4/3/3/6 + LangGraph-25
 UNREACHABLE (repo moved) — load-bearing loop evidence CONFIRMED (MAST
 15.7% + pause_turn=10). MONITORING.md + HANDOFF.md write on the metric-set
 verdict.
+
+**HANDOFF DETECTION → SRE-GRADE OBSERVABILITY REFRAME (user, 2026-08-19,
+5 precise points).** Metrics dossier fell short — didn't deliver (a) the
+comprehensive metric suite, (b) performance-curve-grounded detector math,
+(c) a SUITE (not monolithic CUSUM), (d) SRE alerting. USER'S SRE ANALOGY
+(adopted wholesale): (1) METRICS = Datadog-style + well-targeted-LLM-EVAL
+numeric assessments (intent-adherence, error-rate=exhaustion, failed-
+validations, repetitiveness, misalignment) — measure PRECISELY/RUTHLESSLY/
+COMPREHENSIVELY (note: includes LLM-EVAL numeric scores, NOT just
+deterministic — corrects architect's over-restriction). (2) DETECTION =
+LEARNED + DETERMINISTIC, grounded in the WELL-ESTABLISHED LLM/agent
+PERFORMANCE CURVES (sudden intent-shift, long-running sessions,
+context) — RESEARCH the curves, then derive the math FROM them. (3) NOT
+monolithic — a SUITE of detectors, each w/ the appropriate learning-
+curve/formula for its phenomenon as related to LLM perf curves. (4) On
+trip, the DETECTOR provides SRE context: frequency, timing, duration,
+severity — the AGENT NEVER derives these itself. (5) The SCRIBE = a
+seasoned SRE: examines alerts/tripwires, acts via RUNBOOKS (skills+tools).
+Corrects architect's earlier missteps (over-restricted metrics to
+deterministic; proposed one vector-CUSUM). TWO RESEARCH PASSES: (A,
+a4d24e5e) comprehensive METRIC CATALOG — LLM-obs platforms (Datadog LLM
+Obs, Arize, LangSmith, OTel GenAI semconv, Langfuse) + LLM-EVAL metrics
+(RAGAS/DeepEval/G-Eval/LLM-as-judge intent-adherence + reliability
+caveats) + agent metrics (tool-correctness, trajectory, pass^k) →
+deterministic-vs-eval catalog mapped to the 5 named factors; (B,
+a491f37e) PERFORMANCE CURVES (context-rot/lost-in-middle/lost-in-multi-
+turn-39%-non-recovery/turn-count curve SHAPES + functional forms) +
+DETECTOR SUITE MATH (CUSUM/risk-adj-CUSUM/Page-Hinkley/EWMA/BOCPD/GLR/
+ADWIN/DDM-EDDM/SPRT/regression-residual → mapped per-phenomenon) +
+LEARNED-yet-DETERMINISTIC recipe (fit-to-curve/baseline, DPCL, ARL0=T/δ,
+replay-safe; Sylk anti-pattern = fitted-but-never-read) + SRE ALERTING
+(Google SRE book, SLO multi-window multi-burn-rate severity math, alert
+enrichment freq/timing/duration/severity fields, runbook model). Present
+when both land; then finalize HANDOFF (metric suite + detector suite +
+alert schema + Scribe-as-SRE-runbooks) + MONITORING.md. Design NOT
+written until the SRE-grade detection is grounded.
