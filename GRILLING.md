@@ -6949,3 +6949,57 @@ FAN-OUT as one coherent set on shared substrate FIRST, then rebuild the
 COLLECTOR on them) + run the THOROUGH per-primitive corpus-reconciliation
 (the compliance lanes = strong first pass; the Lane-D-depth pass still
 owed) + present all at full spec granularity for acceptance.
+
+**FAMILY DRAFT PRESENTED (2026-08-20): §S shared substrate + §A
+consolidated amendments + SPEC 1 QUEUE + SPEC 2 CACHE+PUBSUB + SPEC 3
+FANOUT + SPEC 4 COLLECTOR-revised (mechanics folded), in-message, user
+chose "design all four then present together."** THEN USER: (1)
+"incorporate Meta's CacheLib"; (2) "is this maximally correct/robust/
+performant/efficient? compliant+compatible? ZERO corners cut?" HONEST
+AUDIT (I did NOT rubber-stamp — 3 CORNERS FOUND): (a) **CACHE UNDER-
+SPECIFIED**: no memory-management/slab-allocation story; the DRAM+SSD
+hybrid modeled as 2 STATIC FACES (RAM/NVMe trait-installs) rather than
+ONE ENGINE with cross-tier item flow — CacheLib (OSDI'20) IS the
+production hybrid-DRAM+SSD general cache (RAM cache + Navy flash engine:
+BigHash small / BlockCache region-FIFO large + flash admission for
+endurance) and its CENTRAL contribution is the memory allocator (slab
+classes, fragmentation) = the exact hole; CacheLib's Navy = OBJECT_TIER
+§5's endurance-servo+region-FIFO (validates/enriches the unification);
+CacheLib's thesis (Meta consolidated dozens of bespoke caches into one
+engine) = Hecate's cache thesis. (b) **COLLECTOR COMPRESSED to a delta**
+("§0-§19 holds + changed sections") — a length shortcut; full
+restatement owed. (c) **THOROUGH corpus reconciliation DEFERRED** to
+before-write; the compliance lanes = strong FIRST pass, the Lane-D-depth
+sweep (every primitive × every spec + cross-primitive interactions)
+owed AS PART OF the design, not after. VERDICT: the family = a strong
+well-researched DRAFT, NOT the final maximally-correct/compliant/
+zero-corners version. CACHELIB LANE DISPATCHED (ab7cf1d8 — hybrid
+DRAM+SSD one-engine + cross-tier item flow, memory mgmt/slab allocation,
+Navy flash admission↔OBJECT_TIER §5, item lifecycle↔arena acquire/
+release, eviction recommendation, C++→hecate-rt-native mapping [shape
+receipt only]). ON LANDING: (i) revise CACHE spec — hybrid-one-engine +
+slab/arena allocation section + §5-as-Navy validation + item-lifecycle;
+(ii) FULLY restate COLLECTOR at spec granularity; (iii) run the THOROUGH
+per-primitive corpus reconciliation across all four (Lane-D depth);
+(iv) re-present the maximally-complete family. Design NOT accepted —
+pulled back to draft+gaps-identified.
+
+**+ DISTRIBUTED HYBRID DRAM+NVMe CACHE LANE (user, 2026-08-20: "not
+just cachelib — hybrid dram+nvme DISTRIBUTED cache research").** CacheLib
+= single-node engine; the DISTRIBUTED dimension is separate: how a
+tiered DRAM+NVMe(+cold) cache SHARDS/REPLICATES/INVALIDATES/ROUTES/TIERS
+across a cluster + multi-region, then collapses to a laptop. LANE
+DISPATCHED (a4933b19 — Scaling-Memcache-at-FB NSDI'13 [pools/regions/
+LEASES/mcrouter/mcsqueal-invalidation/cold-warmup], consistent-hash+HRW
+routing, invalidation+coherence at scale [leases/commit-log-invalidation/
+TAO consistency/versioned], tiered DRAM→NVMe→cold [Netflix Open Connect/
+Cloudflare tiered-cache/Alluxio], laptop degenerate, + reconcile:
+placement=SERVING §6 HRW, tiers=DRAM-ring+NVMe-pack+object-cold,
+invalidation=cache-pubsub+fanout, cross-region=regional-autonomy-async,
+thundering-herd=single-flight — DOES Hecate need a NEW distributed-cache
+mechanism or do SERVING HRW + OBJECT_TIER tiers + cache/pubsub/fanout
+ALREADY compose into it?). 2 CACHE-ENRICHMENT lanes now out: cachelib
+single-node (ab7cf1d8), distributed-hybrid (a4933b19). On both landing:
+revise the CACHE spec (single-node hybrid engine + memory/slab + the
+DISTRIBUTED tiered+invalidation+cross-region story), restate COLLECTOR
+fully, thorough corpus reconciliation, re-present.
