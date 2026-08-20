@@ -5889,3 +5889,58 @@ discipline generalizes VERBATIM to all subsystems); (4) log-monitoring
 feeds same substrate (symptom-level golden-signal detectors) vs separate
 operational plane — OPEN; (5) correlation = one id + two link
 affordances. 1 lane still out: OTel depth (a68d41da).
+
+**OTEL LANE LANDED (2026-08-20): DECISIVE.** HEADLINE: OTel splits into
+3 INDEPENDENTLY-ADOPTABLE LAYERS; the interop value lives in the CHEAP
+layers (OTLP wire + conventions), ALL the cost/risk lives in the SDK +
+Collector. W1 DATA MODEL: trace-id 16B / span-id 8B (native-mintable);
+metrics sum/gauge/histogram/exp-histogram, DELTA temporality "enables
+sampling and supports shifting the cost of cardinality OUTSIDE the
+process" (+ SINGLE-WRITER requirement = matches Hecate discipline);
+**logs WRAP not replace — a "Logs Bridge API" for appenders over
+existing logging** (LogRecord carries trace_id/span_id = log→trace
+correlation); exemplars = metric→trace (trace_id/span_id in metric
+points); resource = shared attrs = correlation third leg. **W2
+(LOAD-BEARING) — CRUX ANSWERED YES: OTLP is a STABLE, SELF-CONTAINED
+wire format a NATIVE (non-SDK) emitter targets directly** — proto
+"consumed as GIT submodules or copied and built directly"; parties
+defined by ROLE not SDK ("sending side of telemetry collectors" ⇒ a
+native Rust emitter IS an OTLP Client); stability = no field/number/
+name changes, additive-only, NO version numbers (Protobuf schema
+evolution); gRPC :4317 / HTTP :4318; partial-success + retry tables +
+throttle/backpressure + size limits (64MiB req/4MiB resp rec); dup-data
+"deliberate right tradeoff for telemetry" (relevant to at-most-once).
+W3 COLLECTOR: receiver→processor→exporter, one-codebase agent+gateway,
+FULL-TEARDOWN-on-reload, SYNC COUPLED fan-out (blocking caution);
+testbed CI cost 10k spans/s OTLP-gRPC = 20% core / 100MiB (attr-size
+sensitive: 100attrs×50B ⇒ 120% core) — **the Collector DUPLICATES
+Hecate's own per-node collection; needed ONLY to speak OTLP to
+arbitrary backends.** W4 (LOAD-BEARING) SDK OVERHEAD: Rust SDK Traces
+still BETA (Metrics/Logs Stable); logs = bridge API, **maintainers
+recommend the `tracing` crate** (CONVERGES with syslog lane); per-op
+(NoOp, all-cores): logs 27M/s enabled vs 1.4B/s disabled = **~50× gap**
+(cost is BUILDING the record ⇒ cheap enabled-check must gate hot paths);
+metrics counter 1.65M/s @1000-time-series (**cardinality is where cost
+concentrates**); traces 5.2M/s; prod "removed-OTel" anecdotes THIN
+(search budget exhausted) but first-party SDK numbers are stronger. W5
+CONVENTIONS: YAML spec you FOLLOW NATIVELY (no SDK); **gen_ai.* =
+Development-grade, JUST MOVED to a dedicated repo (churning) but has
+EXACTLY the multi-agent-coding-harness vocabulary**: usage.input/output/
+reasoning.output/cache_read/cache_write tokens, execute_tool.duration,
+invoke_agent.duration, invoke_workflow.duration, TTFT, time_per_output_
+token; provider files (anthropic.md, mcp.md); following natively (PIN a
+version) insulates from churn. W6: lineage OpenTracing+OpenCensus merger
+(OpenCensus = Google Census/Dapper heritage), CNCF, "NOT a backend
+itself"; OTLP-as-ingestion adopted by Prometheus (native OTLP receiver),
+Datadog Agent, AWS ADOT, Grafana — NO SDK needed to feed them;
+Meta/Google-internal-vs-OTel NO-PRECEDENT this run. W7 THE ASYMMETRY
+(verbatim): "the interop benefit of OTel is almost entirely capturable
+at Depth A/B, while essentially all of the overhead, maturity risk, and
+dependency cost lives in Depth C. The SDK is not a prerequisite for OTLP
+compatibility; it is one (heavyweight, partly-Beta) implementation of
+it." 3 DEPTHS: A conventions-only (zero dep) / **B native-collection +
+OTLP-export + conventions (low bounded dep, MAXIMAL interop, serialize-
+at-export-boundary-only, fits own-the-hot-path posture)** / C full SDK+
+Collector (highest dep, Beta traces, duplicates per-node collection).
+BOTH LANES IN — consolidating + presenting the branch design w/ the
+Depth-B recommendation.
