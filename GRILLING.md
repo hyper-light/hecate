@@ -7472,3 +7472,33 @@ SETTLE (a separate exchange from accepting the 3 primitives).** Open queue-
 reference study dispatched per user (Kafka/RabbitMQ/SmoothMQ — none checked
 out locally, so RESEARCH mode: KRaft+tiered-storage / quorum-queues-Raft+
 credit_flow / SQS-clone-semantics+single-node).
+
+**QUEUE-REF SUB-RESULT — SmoothMQ (2026-08-20, a1f2c12e, child of the
+queue-refs agent aa8050bf): SOURCE-VERIFIED (github.com/poundifdef/SmoothMQ;
+Go + SQLite-via-GORM; AGPL ⇒ read-only, never vendor). It IS "a SQLite table
++ one index + a scan"; every SQS verb is a query.** ADAPT: the SQS action
+set + verb→storage mapping (SendMessage/ReceiveMessage/DeleteMessage/
+ChangeMessageVisibility/CreateQueue/GetQueueUrl/ListQueues/PurgeQueue → our
+enqueue/lease/ack/extend/create/metadata); the visibility state as
+(deliver_at, delivered_at, tries, max_tries) + a queued/in-flight/failed
+PROJECTION (not a stored status); single-binary/single-file/`endpoint_url=
+localhost` laptop ergonomics = exactly our N=1-collapse DX target. IMPROVE
+(SmoothMQ lacks): real DLQ as a QUEUE-TO-QUEUE MOVE at max_receive_count (it
+wedges "failed" in-table forever); **receipt handles MUST carry a LEASE-EPOCH
+so a stale ack from an expired-then-redelivered lease is REJECTED, not applied
+to the current generation — SmoothMQ's ReceiptHandle is the bare msg-id
+(`fmt.Sprintf("%d",ID)`), a classic ack-wrong-generation hazard; VALIDATES +
+sharpens our lease token = (offset, lease-epoch/deadline)**; enqueue-NOTIFY
+wake, not a 1s busy re-SELECT long-poll; honor CreateQueue/SetQueueAttributes
+(it hard-codes VT=30/-1/-1 + drops attrs); FIFO/dedup FIRST-CLASS =
+MessageGroupId→partition key, MessageDeduplicationId→content-identity (it
+parses-then-ignores both). REJECT (gotchas): SQLite/GORM-as-engine (banned +
+structurally wrong); table-scan `deliver_at`-index polling → our log-floor +
+lease-set + derived-cadence sweep (O(in-flight), not O(table)); WALL-CLOCK
+visibility (`time.Now()` in enqueue/dequeue/change-vis) → seeded/logical clock
+for determinism; inline bodies → inline-to-budget-else-ContentRef; ONE global
+`sync.Mutex` serializing ALL queues → per-partition single-owner sequencers
+(P× parallelism, same at-most-once-dispatch safety); an UNTRACKED infinite
+ticker goroutine (violates our no-untracked-goroutine rule); the single-file
+NO-REPLICATION scale ceiling (our P-partition + consensus-replica-count is the
+whole point). Kafka + RabbitMQ children still assembling under aa8050bf.
