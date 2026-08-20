@@ -5823,3 +5823,69 @@ quotes: tracing/slog/RFC5424/SRE-workbook/Scuba). RESUMED post-reset
 with 2 lanes (a68d41da OTel; a973c132 syslog), each told to build on the
 retained downloads + fetch only gaps + NOT fan out (avoid multiplying
 session budget). Awaiting.
+
+**SYSLOG LANE LANDED (2026-08-20): SYSTEM TELEMETRY + TRACING + LOGGING
++ CORRELATION + COST.** Findings map ~1:1 onto Hecate's EXISTING
+patterns (strong design signal). W1 TRACING: Dapper — un-sampled
+tracing is UNAFFORDABLE; **1/1024 head sampling within experimental
+error** (Table 2: 1/1→+16.3% latency, 1/16→+2.12%, 1/1024→−0.20%);
+ADAPTIVE-BY-TARGET-RATE ("parameterized not by uniform probability but
+by a desired rate of sampled traces per unit time… low traffic
+auto-increases, high traffic lowers… actual probability recorded with
+the trace") = EXACTLY Hecate's existing adaptive-rate agent sampling,
+now receipted for tracing; out-of-band collection (in-band would
+perturb app net dynamics). Canopy (Meta, 1.3B traces/day): "Evaluating
+interactive queries over raw traces is computationally infeasible" ⇒
+AGGREGATE-AT-SOURCE (extract features → Scuba/Hive), per-tenant TOKEN
+BUCKET (5 traces/s default), probability|rate, LEVEL-OF-DETAIL knob.
+Jaeger: HEAD-vs-TAIL is THE explicit decision (tail = "runtime overhead
+… record and export ALL traces" + backend memory). Tempo: NO INDEX,
+trace-id lookup, object storage — "orders of magnitude more trace data
+for the same cost" (the cold-tier argument). W2 STRUCTURED LOGGING:
+Rust **`tracing` crate** = the fit (structured event-based; "span =
+period, event = moment"; typed data; async/tokio rationale: interleaved
+task logs need spans — DIRECTLY fits Hecate's task-native runtime);
+slog (KV type-preserving JSON); RFC 5424 STRUCTURED-DATA + enumerated
+severity 0-7; journald KV fields + PRIORITY + TRUSTED underscore-fields
+(provenance, matches Hecate's validation-provenance discipline);
+Honeycomb wide-events/high-cardinality. W3 STORAGE: **Loki = "does NOT
+index the contents of the logs, but only indexes metadata … as labels"
+(THE canonical cost statement)**; LogDevice (append-only, TRIM-by-
+retention = hot-ring eviction analog, decouple ordering-from-storage via
+sequencer for write-availability); **Scuba (VLDB'13) = the at-Meta-scale
+PROOF of Hecate's per-node in-memory hot ring**: all-in-memory,
+sampled (1-in-100 to 1-in-1M), >6× compression, "MEMORY not cpu is the
+scarce resource", + FAN-IN AGGREGATION TREE (Root→Intermediate
+fanout-5→Leaf, partial aggregates propagate up, avg→sum+count for
+end-compute, sub-second queries) = THE MISSING CROSS-NODE PIECE for
+Hecate's aggregate-at-source; Scribe (sample at emission edge); Vector
+(bounded buffers, backpressure, EXPLICIT block-vs-drop — Hecate must
+pick deliberately per no-drops/no-unbounded-growth rules). W4
+LOG-MONITORING: Google Cloud logs-based-metrics + Loki LogQL
+(rate/count_over_time) → logs BECOME metrics feeding the SAME alerting
+plane (empirical answer: log-derived signals CAN feed the same
+detection machinery); BUT SRE-book discipline: "spend much more effort
+on catching SYMPTOMS than causes", 4 golden signals (latency/traffic/
+errors/saturation), white-box-vs-black-box, "alert rules as simple,
+predictable, reliable as possible" (matches Hecate doctrine #10
+no-string-matched-roll-ups). W5 CORRELATION: one propagated trace_id +
+exemplars (metric→trace) + Loki derived-fields (log→trace regex) +
+Honeycomb single-wide-event; MTTR% THIN. W6 LAPTOP/OVERHEAD: Dapper
+measured — daemon 0.3% of one core, 0.01% network, 426 B/span avg,
+**9 ns un-sampled fast-path (thread-local lookup)** = what makes
+instrument-EVERYTHING-record-a-FRACTION affordable; Prometheus —
+single-node local storage is the DEFAULT (N=1 is NOT a special mode),
+1-2 B/sample, cost = retention×rate×bytes-per-sample (FORMULA FROM
+PHYSICAL ANCHORS — matches Hecate no-magic-numbers). W7 SYNTHESIS — 5
+axes, receipts both poles, NO pick: (1) unify-wide-event (Honeycomb;
+correlation free, one record type) vs separate-planes-bridged-by-ids
+(Prometheus+Tempo+Loki; each individually cheapest per signal); (2)
+storage tiering = hot-in-memory (Scuba) + cold-metadata-indexed
+(Loki/Tempo) + append-log spine (LogDevice) — extends Hecate's hot ring;
+(3) **sampling + bounded cardinality = THE cost control at BOTH scales**
+(instrument everything, record a fraction, aggregate at source, record
+the sample rate to correct aggregates — Hecate's existing agent
+discipline generalizes VERBATIM to all subsystems); (4) log-monitoring
+feeds same substrate (symptom-level golden-signal detectors) vs separate
+operational plane — OPEN; (5) correlation = one id + two link
+affordances. 1 lane still out: OTel depth (a68d41da).
