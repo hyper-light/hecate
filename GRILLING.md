@@ -4163,3 +4163,52 @@ avoids-Sylk-trap), + the honest line between non-agentically-measurable
 (→discriminator) vs judgment-requiring (→Scribe). This settles the
 discriminator's INPUTS. HANDOFF §1 (gathering) + §4 (discriminator)
 finalize on this landing; MONITORING.md + HANDOFF.md write after.
+
+**HANDOFF METRICS DOSSIER LANDED (2026-08-19, a9a3ea7b).** Backbone =
+MAST ("Why Do Multi-Agent LLM Systems Fail?", Cemri 2025, 150 traces,
+κ=0.88, 14 failure modes). THE PROOF the user was right (Sylk = metrics
+failure): MAST Appendix J shows the metric class Sylk chose (tool/
+verification WELL-FORMEDNESS) appears JUST AS OFTEN in SUCCESSFUL runs —
+verification failures FM-3.2/3.3 present in successes (3.3: 20-25% both
+success+fail) → CANNOT discriminate. Empirical proof "well-formed ≠
+competent" (corroborated: BFCL AST≠executable; τ-bench well-formed but
+pass^8<25%). Looping (FM-1.3) = #1 observable signal (15.7%) BUT
+near-ubiquitous (96-99% of traces) → measure EXCESS/RATE/STREAK not
+presence (= the Sylk 97%-constant pathology; CUSUM integrates the rate).
+No single mode >15.7%, categories near-orthogonal (corr 0.17-0.32) →
+multi-signal VECTOR CUSUM mandatory. THE METRIC SET (evidence-ranked,
+non-agentic, from Hecate observables): M1 state-action recurrence/looping
+(ledger; leading; FM-1.3 15.7%; excess/streak not binary); M2 outcome-
+failure accumulation = validation-fail-streak + rejected-increment
+(ledger verdicts; lagging/high-precision; MAST Appendix J "higher # of
+failures signal higher final-failure chance" = the canonical CUSUM
+input); M3 non-termination signature = turns w/o terminal ledger event
+(ledger+gateway; leading; FM-1.5 12.4% "almost exclusively in failed
+runs" = fatal+observable); M4 context-pressure/truncation (gateway
+tokens+stop-reasons; Chroma context-rot + Lost-in-Conversation 39%-drop-
+"do-not-recover"; a NORMALIZER/risk-multiplier); M5 malformed/denied-call
+rate = the NON-CONFLATING behavioral metric (warden verdicts, SEPARATE
+from competence; BFCL/τ-bench); M6 unforced-self-revert churn POLARITY-
+CONDITIONED (revert WITHOUT preceding failed verdict = bad, Huang self-
+correct-degrades; revert AFTER verdict = healthy red-green, Reflexion
+91v80 — condition on the external trigger to avoid penalizing TDD); M7
+refusal/error stop-reason (gateway; discrete ALARM not continuous
+channel); M8 task-difficulty BASELINE normalizer (input-size + historical
+pass-rate; MAST base-rates 41-87%, Anthropic "token usage explains 80%
+of variance") = the risk-adjustment. METRIC-DESIGN REQUIREMENTS (each
+tied to a Sylk failure + source): (a) observability = live producer per
+channel or fail boot; (b) variance = counts/streaks/excess NEVER a
+saturating ratio; (c) non-conflation = warden-well-formed axis SEPARATE
+from Inspector/Arbiter-competent axis; (d) risk-adjustment vs difficulty;
+(e) robustness = vector CUSUM not scalar. THE HONEST SPLIT: discriminator
+(non-agentic) measures the observable SHAPE of degradation (M1-M7 risk-adj
+M8); the SCRIBE (agentic) supplies MEANING — "unnecessary"? on-goal?
+PROGRESS-toward-goal = NO-PRECEDENT for non-agentic measurement = the
+Scribe's job (proxies only: looping M1 + context M3). FINALIZES HANDOFF
+§1 (gathering = M1-M8) + §4 (discriminator = vector risk-adjusted CUSUM
+over M1-M7 normalized by M8) + validates discriminator-informs-Scribe
+(shape vs meaning). THIN: BFCL/AgentBench no per-model %; MAST Table 7
+small-n magnitudes (direction robust); OpenHands 4/3/3/6 + LangGraph-25
+UNREACHABLE (repo moved) — load-bearing loop evidence CONFIRMED (MAST
+15.7% + pause_turn=10). MONITORING.md + HANDOFF.md write on the metric-set
+verdict.
