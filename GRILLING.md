@@ -7525,3 +7525,26 @@ subscriber-index; global rax pair tracking.c:44-45; one-shot invalidation
 :531-534, shard-ignores-patterns :548-551; keyspace events publish sharded=0
 to GLOBAL channels (notify.c:151,165). a05f2ed's 3 leftover children (evict/
 expire/threading) still running; acdae87f covers those sections regardless.**
+
+**QUEUE-REFS COMPLETE (2026-08-20, aa8050bf): Kafka + RabbitMQ SOURCE-VERIFIED;
+full dossier at tmp/queue_refs_lane/dossier.md** — comparison matrix + 5
+big-lesson deep-dives: (1) **Kafka KRaft** (consensus kept as a self-hosted
+Raft metadata log → our "consensus in ONE reusable place"); (2) **Kafka Tiered
+Storage** (KIP-405: hot local log + cold object store → our warm-WAL +
+cold-OBJECT_TIER split); (3) **RabbitMQ quorum queues** (Raft) + the
+mirrored→quorum MIGRATION LESSON → our 3-replica tier; (4) **RabbitMQ
+credit_flow** (the {400,200} credit default, grep-confirmed → our
+credit-governed backpressure); (5) SmoothMQ+SQLite gotcha. SmoothMQ cells are
+[SMQ-PENDING] in that file but ALREADY captured separately (a1f2c12e, hedged
+above) — patch at queue-spec finalization. TO USE: Read tmp/queue_refs_lane/
+dossier.md for the full Kafka/RabbitMQ detail.
+
+**FAN-OUT / SNS study dispatched (2026-08-20, a1e4bfd0, per user "SNS is push,
+SQS is pull"): RabbitMQ exchanges/bindings (fanout/direct/topic/headers = the
+PUSH router, our FANOUT precedent; routing on key/headers NOT body validates
+our attributes-only filter rule) + Kafka multi-consumer-group (PULL fan-out,
+cursor-per-group = the "many materializers cursor one durable log" pattern,
+ties to Delos/Lane-A). Synthesis target: does the literature back our
+PUSH-NOTIFY + PULL-RECOVER hybrid over pure-push (RabbitMQ) / pure-pull
+(Kafka)? Maps to per-subscription delegation ephemeral-pubsub=push /
+durable-queue=pull.**
