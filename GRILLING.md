@@ -5037,3 +5037,81 @@ REMAINING before write: the three arc lanes land → dossiers recorded →
 interior-coverage + conduct designs composed → incorporated sections
 presented → both files + amendments in one change → GAPS closes
 D-5/Branch 14.
+
+**SCOPE DIRECTIVE (2026-08-19, user): FULL CORPUS RECONCILIATION.**
+"you will need to update NUMEROUS other docs - our microvm docs, how we
+summon, etc. This means you'll need to examine each relevant doc after
+determining the relevant docs, modify the design to incorporate these
+changes, and re-present for acceptance after conflict and gap
+analysis." = the IAM-reconciler diligence pattern applied to this
+acceptance. Corpus enumerated from the tree: 26 specs (docs/specs/) + 5
+architecture docs (AGENTS, LEDGER, PLATFORM, SKILLS, SUMMONING) +
+CONTEXT.md + 5 ADRs + GAPS.md. Reconcilers dispatched over the whole
+corpus (5 lanes by affinity: pods/lifecycle, runtime/agents,
+protocol/security/health, planes/knowledge/ledger, root docs) against a
+written statement of the accepted design; each returns per-doc
+CONFLICT (verbatim+line+proposed amendment) / GAP / NO-CHANGE (explicit
+clean list) + pending-amendment interaction sites. Re-present after
+conflict+gap analysis; acceptance precedes any file write.
+
+**ARC LANE B LANDED (2026-08-19): VMM-SIDE VISIBILITY (host-observed
+truth).** KVM_GET_STATS_FD (api.rst 4.133) = a PRODUCTION telemetry
+surface by design (commit fdc09ddd: "lightweight… lock-free solution
+for user space telemetry applications… pulling frequency could be as
+high as a few times per second"; "reading workload can be handed over
+to other unprivileged process" — warden-side collector needs no
+privilege once it holds the fd). Stat inventory receipted:
+halt_exits/halt_wait_ns/blocking + exits/io_exits/mmio_exits/
+hypercalls/insn_emulation… (kvm_types.h + x86.c descriptor array).
+Idle-vs-spin inference grounded (halt-polling.rst: idle guests cede via
+HLT): claimed-idle + no halt exits + full vCPU thread runtime =
+SPINNING. Backend symmetry: WHP WHvGetVirtualProcessorCounters
+(HaltInstructions + TotalRuntime100ns + intercept/event/APIC counter
+structs verbatim) ≅ KVM; HVF has NO counters API (grep-receipted from
+shipped SDK header) BUT every exit is delivered synchronously in
+hv_vcpu_exit_t ⇒ the fork self-counts (Firecracker's own model). HOST
+TRUTH SURFACES: /proc/<pid>/schedstat (cpu-time/runqueue-wait/
+timeslices), VMM-cgroup cpu.stat usage_usec = unfakeable guest burn,
+smaps_rollup/RssAnon = true faulted footprint, steal-time MSR ("time in
+which this vCPU did not run… idle will not be reported as steal") =
+host-manufactured truth the guest reads — starvation claims verifiable
+from BOTH sides host-owned = the cleanest lie-detector row.
+FIRECRACKER = THE minimal-VMM metrics precedent: formal per-device
+metric families (vcpu/vsock/net/block/…); vsock metrics complete
+(rx/tx_bytes/packets, conns_added/killed, queue events); vsock.md
+verbatim: guest connect to a port with no host listener ⇒ VMM-authored
+RST — every attempt COUNTABLE per port; net tx_spoofed_mac_count = the
+existing precedent for "the VMM counts guest lies at the device
+boundary". CloudHypervisor /vm.counters; QEMU query-stats re-exports
+the KVM stats fd. virtio-fs: spec-verbatim the DEVICE (=VMM) "acts as
+the FUSE file system daemon" ⇒ the whole op stream is host-owned
+pre-effect by construction; but NO existing virtio-fs daemon exposes a
+formal op-metrics API (virtiofsd = log-only; NO-PRECEDENT — fork is
+first-party). **libkrun: ZERO stats/metrics/counter functions in the
+entire public API** (include/libkrun.h fully enumerated; runtime
+signals = shutdown eventfd + pause/resume only) — the gap receipted
+precisely; fork adds Firecracker-shaped device counters + stats-fd
+collector, DAX-style tracked fork work. RECONCILIATION PRECEDENT:
+virtio-balloon = guest stats OPTIONAL ("driver chooses which ones to
+supply") + QEMU host-stamped last-update ("a buggy guest can't
+influence its value") = THE micro-pattern: host-authoritative ENVELOPE
+(freshness/liveness) around guest-authoritative CONTENT — exactly the
+provenance discipline for sensor reports. Industry codifies the
+visibility split: AWS CPUUtilization = hypervisor-level (guest tools
+"can show a different percentage"), memory metrics REQUIRE the in-guest
+agent (GCP verbatim same). Cross-view validation = the NAMED principle
+(GhostBuster coined cross-view diff; Lycosid verbatim trusted-view/
+untrusted-view + statistical inference to trade time for accuracy;
+Antfarm: VMM infers guest process activity implicitly, 2.5% worst-case
+overhead; LibVMI production tooling) — THIN as a continuous
+telemetry-reconciliation standard (scattered practice, no named
+standard; composed for Hecate as design). LIE-DETECTOR TABLE delivered,
+7 rows [R]/[C]-tagged: idle/spin (host-authoritative), memory
+(split-authority: host owns footprint+freshness, guest owns semantics),
+hidden-process (cross-view, trusted-view-authoritative), stream
+liveness (device counters self-refute under-reporting), actor
+attribution (guest-authoritative-WITH-HOST-VETO via boundary signature
+— capability-set physics), starvation (host-manufactured, cleanest),
+boundary probing (host-authoritative: the guest cannot suppress the
+host's count of its own refused attempts). 2 arc lanes still out:
+interior observability (af03…), conduct math (a7a8…).
