@@ -4737,3 +4737,148 @@ secondary lane = outbound-only, justified exactly when outbound involves
 blocking libs or vsock backpressure. Registry tuples per channel type
 delivered (fd-pair/UDS-mount/shm+doorbell/veth/vsock). 2 lanes still
 out: mechanisms+numbers (a2ad7636), one-way stream design (a2c7ce1a).
+
+**CHANNEL LANE 2 LANDED (2026-08-19): ONE-WAY STREAM DESIGN.** Kernel
+precedent convergence — FOUR independent kernel observability channels
+(BPF ringbuf / perf / ftrace / relay) all obey one law: THE PRODUCER
+NEVER BLOCKS; consumer lag = counted/detectable loss, never stall. BPF
+ringbuf: "if there is no more space left in ring buffer, reservation
+fails, no blocking"; reserve/commit split w/ busy+discard header bits;
+epoll doorbell w/ SELF-PACING ("send a notification … only if consumer
+has already caught up"); double-mapped data area for contiguous
+wraparound; NO kernel drop counter (producer counts own failed reserves
+— convention). **kernel/bpf/ringbuf.c enforces OUR constraint in
+shipped code**: consumer may write ONLY its consumer_pos page (mmap
+handler: "allow writable mapping for the consumer_pos only", EPERM
+otherwise). perf: data_head/data_tail protocol; **overwrite-vs-consume
+selected by the CONSUMER'S MAPPING PROTECTION** (RO map = flight
+recorder; PROT_WRITE data_tail = kernel won't overwrite unread);
+PERF_RECORD_LOST = in-band counted loss record (loss discovered by
+READING the stream). ftrace: overwrite vs producer/consumer modes;
+"a writer can preempt a reader, but a reader cannot preempt a writer";
+reader-page SWAP = reader never contends on live pages. relay: "data
+will be lost in either case; the only difference is whether data is
+lost from the beginning or the end of a buffer" — THE both-ways-lossy
+law, verbatim. Userspace: LMAX Disruptor claim/commit/batch-catch-up
+sequencing (single-producer = zero contention) BUT its full-buffer
+policy = producer WAITS — replaced by the kernel-observability policy
+for our shape. Thompson single-writer principle: every cursor has
+exactly one writer, cross-visibility read-only. seqlock even/odd
+read-retry for aux stats blocks (no writer starvation). **memfd
+asymmetry VERIFIED verbatim**: F_SEAL_FUTURE_WRITE = "one process can
+create a memory buffer that it can continue to modify while sharing
+that buffer on a 'read-only' basis with other processes" (writer keeps
+prior RW maps; new writable maps + write(2) ⇒ EPERM); ALSO the fd-MODE
+route: O_RDONLY fd ⇒ EACCES on any PROT_WRITE MAP_SHARED (mmap(2)) —
+no ordering constraint AND survives writer respawn (FUTURE_WRITE would
+block a respawned writer's map ⇒ fd-mode chosen for Hecate);
+F_SEAL_SHRINK|GROW|SEAL kills the shrink-SIGBUS attack + locks
+geometry. Log precedents: LTTng = fullest userspace statement ("LTTng
+privileges performance over integrity"; instrumented app writes shm
+rings, colocated consumer daemon reads; discard mode saves lost-count
+INTO the trace; overwrite mode stamps PER-SUB-BUFFER seqnums since 2.8
+— the flight-recorder torn-read answer); journald: datagram-per-entry
++ SEALED-memfd large entries (the untrusted-peer rationale applied in
+production) + counted suppression ("Suppressed %i messages" +
+N_DROPPED= machine field; count carried on next permitted message);
+K8s/CRI: emission inside, collection authority outside; Vector names
+block vs drop_newest and reserves drop for telemetry-grade data.
+TAMPER LIMITS (Garfinkel&Rosenblum NDSS'03 VMI): isolated observer
+"continue[s] observing and reporting with integrity even if the host
+has been corrupted"; compromised in-domain reporter "may even start to
+report misleading data" ⇒ SILENCE/GAPS mechanically detectable (seqnum
+discontinuity + counter deltas + stream-instance id + host
+cross-check); LIES not detectable from inside ⇒ the intra-VM stream is
+ENRICHMENT class, authority reads host-side streams — our
+classification law, now source-grounded. Dossier delivered two
+candidates: A = memfd ring + eventfd doorbell (BPF-ringbuf shape, 0
+syscalls/copies hot path, overwrite variant per perf's rule); B =
+socketpair SEQPACKET MSG_DONTWAIT (journald shape, kernel-mediated
+total isolation, 1 syscall+copy/event, clean EOF; no overwrite mode).
+
+**CHANNEL LANE 1 LANDED (2026-08-19): TRANSPORT MECHANISMS + MEASURED
+COSTS.** Three measured tiers, same-box ping-pong (ipc-bench,
+i5-4590S): shm/mmap 4.7–5.3M msg/s (~0.2µs RTT) ≫ pipes 162k / UDS
+130k (~6.2–7.7µs) > TCP-lo 70k (~14.2µs) — **shm = 36–41× UDS message
+rate**, payload-size-independent (iceoryx "without a single copy";
+rigtorp SPSC 112M ops/s; LMAX mean 52ns). UDS-vs-TCP corroborated ×3:
+Redis "around 50% more throughput" (edge ERODES under pipelining),
+Percona 33–35% + p99 12× at saturation. Pipes: 64KiB default / 1MiB
+unprivileged cap (F_SETPIPE_SZ); vmsplice zero-copy is PRODUCER-side
+only ("in the opposite direction, it actually just copies");
+Cloudflare splice reality-check: CPU-bound below line rate, still 2
+syscalls/chunk. SOCK_SEQPACKET = boundaries+order+connection (unix(7)
+verbatim); STREAM amortizes (one recv drains many; io_uring multishot
+→ measured 2.00→1.01 syscalls/op at depth, SYSTOR'22) vs SEQPACKET
+hard 1 syscall/msg + MSG_TRUNC truncation risk. SO_SNDBUF default =
+A FORMULA IN KERNEL SOURCE (SK_WMEM_DEFAULT = 256 × SKB_TRUESIZE(256)
+≈ 212992) — constants-from-anchors precedent in the kernel itself;
+AF_UNIX dgram qlen default = 10 (shallow). Networking tier DOMINATED:
+veth+bridge = 18–30% bulk loss + ~10× MPI latency (INFOCOM'18: "Good
+performance can be attained by sharing the same network namespace
+while security is enforced by using isolated namespaces"); vsock
+CID_LOCAL = ZERO published loopback numbers (NO-PRECEDENT) + netns-
+blind pre-7.0 + weakest identity ⇒ stays guest↔host only (lane-3
+concurrence). **vhost-user = THE industrial precedent for our shape**:
+shm data plane + eventfd kick/call fds passed as ancillary data —
+every DPDK/virtio userspace backend runs on it; K8s pods bless
+cross-container shm. libkrunfw guest config VERIFIED both arches:
+UNIX/MEMFD/EVENTFD/FUTEX/SHMEM/VSOCK+LOOPBACK/VETH/IO_URING/EPOLL all
+=y — nothing excluded. SQPOLL pathology receipted (13 KIOPS / 8ms
+median when core-starved; "more cores than drives" demanded) ⇒ NOT for
+the Scribe; multishot + DEFER_TASKRUN is the shape. Syscall floor:
+mode switch ~50–100ns; blocked-consumer wakeup = context-switch-class
+1.1–4.5µs regardless of transport — why every blocking transport lands
+in the same RTT class and only shm+polling escapes it.
+
+**CHANNEL COMPOSED (2026-08-19) + BOTH SPECS RE-PRESENTED IN FULL.**
+The composition (three lanes converge): **supervisor-minted memfd
+flight-recorder ring + eventfd doorbell** — hecate-init mints ring
+memfd + cursor memfd + eventfd BEFORE spawning either container,
+passes fds at spawn (fd-provenance = possession-is-identity; no name,
+no connect race; registry endpoints fixed at VM build). SPLIT-CURSOR
+fd-MODE asymmetry (each memfd exactly one writer, kernel-refereed):
+ring = primary O_RDWR / Scribe O_RDONLY; cursor = Scribe O_RDWR /
+primary O_RDONLY; both sealed SHRINK|GROW|SEAL (geometry locked,
+shrink-SIGBUS dead); NO FUTURE_WRITE (blocks respawned writer;
+fd-mode already does the work). Primary PRE-FAULTS the ring ⇒ pages
+memcg-charged to the primary deterministically — THE OBSERVED PAYS FOR
+ITS OWN BLACK BOX. Protocol: LTTng-style SUB-BUFFERED OVERWRITE
+(flight recorder) — producer never blocks/never drops NEW; full ring
+reclaims OLDEST unconsumed sub-buffer + counts it; chosen FOR THE
+PURPOSE (handoff brief needs the NEWEST window; wedged-Scribe losses
+land on oldest unpersisted — relay both-ways-lossy law, we pick the
+end that serves handoff); per-sub-buffer seqnum/commit stamps give the
+torn-read answer (copy-out then re-validate stamp; changed ⇒ discard
++ count — seqlock discipline at sub-buffer granularity, LTTng-shipped
+15yr); record = 8B header (len+commit+discard bits) + monotone seqnum
+per stream-instance id (journald model: respawn = new id ≠ gap);
+carries STRUCTURED ACTIVITY EVENTS ONLY (bounded metadata records —
+turn boundaries, tool dispatch digests, claim posts, stop reasons,
+usage), never transcripts/raw tool output; doorbell self-paced (elide
+when consumer behind); doorbell misuse = self-DoS ≡ silence class.
+Sizing = formulas (sub-buffer ≥ max record × batch factor; ring =
+max event rate × worst-case drain interval incl. Scribe restart
+backoff ceiling). CHANNEL SURVIVES BOTH DEATHS (the decisive argument,
+not the 36–41× throughput — irrelevant at O(10²–10³)/s): supervisor
+holds fds; Scribe respawn re-maps + resumes from its OWN cursor
+byte-exact; primary death ⇒ Scribe drains tail to final producer_pos ⇒
+death report carries the final-actions window; teardown gated on flush
+(pipeline lifecycle law). Candidate B (socketpair) REJECTED for the
+stream: kernel queue dies with the socket on Scribe restart (channel
+state lost), UDS buffers memcg-UNcharged (accounting hole), no
+flight-recorder mode; B's shape retained nowhere intra-VM (no
+primary↔Scribe control channel exists at all — supervisor owns
+lifecycle). Thread model folded: ingestion = ONE thread
+(SINGLE_ISSUER kernel-asserted, multishot poll on eventfd,
+DEFER_TASKRUN; 2–4 orders headroom); secondary = outbound-only
+spawn_blocking capped to outbound-channel count. Design survives
+EITHER §2 ruling: under Design B (shared runtime) protocol identical,
+enforcement degenerates kernel-fd-modes → compile-time ownership.
+MONITORING re-presented w/ §4 REVISED (authority/enrichment split +
+context-economy law replace "no primary→Scribe channel of any kind" —
+the runtime-emitted one-way history ring is the sole primary-side
+channel, model-unreachable, enrichment-class) + NEW §5 (the channel) +
+renumber + MON14–20 + criteria; HANDOFF §3/§8 updated (window
+transit/persistence split; brief includes drained tail on death).
+AWAITING: §2 ruling (A vs B) + accept/amend on both full specs.
