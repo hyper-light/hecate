@@ -7735,3 +7735,33 @@ in the distributed SIM (capacity + admission + endurance under load) AND derives
 to zero on laptop (no flash region, no SSD writes); SIM sweeps BOTH ends. Rest
 of the reworked cache (coherence spine / general-KV core / ValKey improvements)
 STANDS as presented.**
+
+**★★ PRIMITIVE FAMILY SHIPPED (2026-08-20): CACHE + QUEUE + FANOUT WRITTEN +
+14-SPEC AMENDMENT SWEEP LANDED + GAPS UPDATED. ★★** Commits: 46950a1
+(docs/specs/CACHE.md + QUEUE.md + FANOUT.md), 5002c23 (§A corpus sweep across
+14 specs), 24ef806 (GAPS: Branch 40 SPEC-WRITTEN, Branch 39 UNBLOCKED). §A
+sweep: OBJECT_TIER §5a (two-layout cache engine + AC-1 scoped to origin/staging
++ queue class), WAL §1/§3/§6, PROTOCOL §3/§5 (ephemeral class 7 + archetype +
+fan-out-degree walk + ephemeral_dropped counter), CONSENSUS §6 (roster +
+merge-serializer→leader-fused BOTH sites), IAM §4 (queue/topic types +
+cache/channel atoms + GAP-3), FAULTS §5, LEDGER_CORE §3 (subscriber-index
+SEPARATE instances), architecture/LEDGER (delivery-class-defer/TCP→QUIC/
+no-outbox), SESSIONS §2, SERVING §4, VFS §4, WIRE_SECURITY §6, WIRE_FORMAT §6,
+REGISTRY §2b. METHOD: 6 parallel agents (mechanical additions) + direct edits
+(OBJECT_TIER option-a; 3 verify-pass fixes — PROTOCOL §5 ephemeral_dropped,
+SERVING MERGE §7→§0, LEDGER-arch §7-preamble TCP→QUIC); every diff reviewed
+pre-commit. FINAL DECISIONS baked in: general-mutable-KV-CORE (content-by-hash
+= opt-in specialization); OPT-IN principle (OSS-safe defaults, arch-native opts
+gated on a declared workload property); env-derived durability (QUEUE) +
+env-derived robust flash (CACHE option-a: BlockCache big + BigHash/Kangaroo
+small, AC-1 scoped to origin); coherence spine (CLIENT-TRACKING-generalized
+cross-node HRW-owner invalidation + TAO critical-read + IAM security-staleness);
+SNS body-filter opt-in at authorized delivery edge (IAM content-read gated);
+push-notify+pull-recover opt-in (End-to-End theorem-backed). **REMAINING
+FOLLOW-ONS (each its own exchange): (1) COLLECTOR re-statement — consumes all 3
+primitives (exporter-queue=QUEUE, hot-ring=CACHE, live-fanout=FANOUT); closes
+Branch 39. (2) LEDGER-LAYERING settle — ledger as SMR over the shared-log
+primitive; both research lanes (A ledger-on-log + B at-most-once-notify) IN,
+ready to settle. (3) MONITORING/HANDOFF fold-in — the warden/sensor/Scribe
+observability work + its corpus amendments, staged from earlier; the collector
+consumes it.**
