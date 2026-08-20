@@ -5737,3 +5737,77 @@ the content-addressed manifest-projection rootfs Hecate already runs.
 STATUS: tree item ADDED; design + research deferred to user direction;
 image-pre-loading pinned to it (unblocks the MONITORING/HANDOFF write
 via a pinned reference).
+
+**RIGOR CHECK ACCEPTED (2026-08-20):** the 8 lower-stakes OQ
+resolutions accepted after the maximally-correct/robust/performant/
+efficient pass; 4 TIGHTENED (recorded for the write): (a) fitted
+baselines = new CONTENT CLASS reusing the generation MACHINERY (not a
+new mechanism; small ⇒ replicated-everywhere cache-role like the
+routing artifact; atomic ref-flip gives the delete-artifact-changes-
+alerts law free); (b) detector checkpoints host-local/re-derivable BUT
+re-derivability REQUIRES detector INPUTS durably logged (logged
+authority stream — ledger deltas already WAL-durable; warden verdicts +
+gateway usage must be logged inputs) — the lossy telemetry hot ring is
+DASHBOARDS-ONLY, never a detection input (hard correctness constraint);
+(c) teardown gate = rung-2 sealed (fast/always); brief-critical window
+places to rung-3 ASYNC best-effort — the ring-tail brief is ENRICHMENT,
+the AUTHORITATIVE successor input is the claims graph, so simultaneous-
+node-death degrades gracefully (never force rung-3 into the gate);
+(f) scaling-class enum AgentRole-canonical + PODS-table-projection PLUS
+a BOOT GATE (every role declares a scaling class or startup fails — no
+default guess, chokepoint-coverage doctrine). HELD as-stated: (d) alert
+stream own class-3 never-shed + H5 collection-vs-derived-output reword;
+(e) envelope keeps src_pod/dst_pod, loop in the flow layer (per-workload
+key IS the non-forgeable loop id; no version bump); (g) one guest binary
+argv-dispatch (rustjail pattern; PID1 established by VMM, rt can't
+re-exec as init); (h) HEALTH re-source to gateway host-observed +
+provenance column + tool-signal split (detector tool signal =
+warden-observed dispatches; ring tool digests = narration only). Office
+= "companion narrator". NET: set stands; 2 refinements SHRANK the
+design (b input-durability replaces ring-as-source; c rung-2 not rung-3).
+**MONITORING/HANDOFF WRITE STAGED (resolutions accepted, ready) — NOT
+executed; user is continuing to expand the tree (below); write folds in
+the system-observability refinement first to avoid MONITORING §6 churn.**
+
+**BRANCH OPENED (2026-08-20): SYSTEM OBSERVABILITY — telemetry / OTel /
+logging across ALL systems.** Directive (user): "continue to refine
+observability - we need to define telemetry gathering, examine
+open-telemetry compatability and use, log monitoring and logging across
+all systems, etc." SCOPE DISTINCTION (load-bearing): the just-finished
+MONITORING/HANDOFF stack is AGENT observability (the Scribe's domain —
+degradation/conduct detection over authority signals). THIS branch is
+SYSTEM observability — metrics/traces/logs across EVERY Hecate subsystem
+(harness services: Guide/Guardian/Archivalist/Arbiter/Inspector; storage
+OBJECT_TIER/WAL; consensus; merge; VMM/pods; registry; IAM; OCI). It
+GENERALIZES + DEEPENS MONITORING §6 (which designed only the agent-
+envelope telemetry pipeline: per-node hot ring, Gorilla compression,
+aggregate-at-source, bounded cardinality) into a system-wide plane, and
+likely spawns a companion spec (TELEMETRY.md / LOGGING.md /
+OBSERVABILITY.md — TBD). CORPUS STATE: OTel appears NOWHERE in the
+written specs (the OTel-GenAI-convention metric-vocabulary refs live
+only in the un-written MONITORING/HANDOFF drafts) ⇒ this branch decides
+Hecate's OTel posture from scratch. THE LOAD-BEARING DECISION: **OTel
+adoption DEPTH** — (i) full OTel (SDK instrumentation + OTLP export +
+collector — max interop w/ users' Datadog/Grafana/Jaeger, big dep) /
+(ii) OTel-COMPATIBLE-native (Hecate-native efficient in-process
+collection per MONITORING §6 + OTLP export + semantic conventions —
+interop WITHOUT the SDK dep, preserves efficient native collection) /
+(iii) conventions-only (OTel vocabulary, native everything else —
+minimal, ~where MONITORING is today). My prior (untested, needs
+receipts): (ii) — Hecate's from-scratch/no-heavy-dep posture (own
+protocol, own chunk store, no SQL) + the "single laptop, don't eat
+resources" constraint argue AGAINST the OTel SDK's per-call overhead,
+but OTLP-export-for-interop is high-value at Meta scale (users have
+existing observability stacks). CHILD DECISIONS the branch spawns:
+telemetry gathering across all subsystems (metrics + traces + logs from
+each; extends §6 collection beyond agents); LOGGING architecture
+(structured-log standard, levels, per-node→federated pipeline,
+retention, correlation w/ traces/metrics via exemplars); LOG MONITORING
+(log-based signals — do they feed the detection substrate or stay a
+separate operational plane?); the RELATIONSHIP to HEALTH's "one signal
+stream" + the detection substrate (agent-detection vs system-operational
+— one plane or two?); the efficiency/overhead budget (sampling,
+cardinality, laptop degenerate). RESEARCH DISPATCHED (2 lanes): OTel
+data-model/OTLP/collector/adoption-tradeoffs; system-wide telemetry+
+tracing+logging at scale + log monitoring. Write of MONITORING/HANDOFF
+now WAITS on this branch settling (shared §6 telemetry surface).
