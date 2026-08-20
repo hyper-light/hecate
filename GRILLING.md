@@ -4322,3 +4322,44 @@ conformance suite over a hand-maintained choreography; buys ZERO new
 kernel primitives (isolation delta = sibling lane's verdict). Scratch
 source cache left for siblings. 3 container lanes + 2 SRE passes still
 in flight; containers-vs-accepted-design presents when the set lands.
+
+**CONTAINERS LANE 3 LANDED (2026-08-19): ISOLATION DELTA.** THE HONEST
+CORE: (1) container isolation = LITERALLY the same kernel primitives
+(namespaces/cgroups/seccomp; NIST 800-190 "multiple apps share the same
+OS kernel instance"; gVisor "container escape is possible with a single
+vulnerability") → strength delta vs hand-wired raw processes = ZERO;
+Bar-B unchanged (the microVM stays the real code-exec boundary). (2) THE
+REAL GAIN — vs the ACCEPTED shared-runtime model — comes from the
+PROCESS boundary: fault classes (b) abort / (c) stack-overflow / (d)
+OOM-within-budget / (f) FFI-crash convert from "process-fatal → BOTH
+loops die → pod reconstruct" (the accepted §3 gap) to "ONE container's
+process dies → peer keeps running → supervisor restarts it." Kernel-
+verbatim OOM boundary: "If the OOM killer is invoked in a cgroup, it's
+NOT going to kill any tasks outside of this cgroup" + memory.min floor +
+pids.max; fatal signals terminate THE PROCESS (signal(7)); separate
+address spaces (fork(2)). CAVEAT: guest-GLOBAL OOM uncontained if
+budgets oversubscribe guest RAM (sizing invariant derived from the pod
+budget); (a) panic already contained in-process; (e) hang needs liveness
+detection in ALL models. (3) What the container LAYER adds over raw
+processes achieving the same conversion: ONE frozen declarative
+config.json per peer (immutable after create — auditable, diffable
+symmetry; NIST "eliminates the need to manually create all the necessary
+configurations"), spec lifecycle grammar w/ cleanup guarantees
+(create/start/kill/delete; delete "MUST delete the resources that were
+created during the create step... resources not created by this
+container MUST NOT be deleted"), standardized state/stats/hooks/exit
+observation (runc events --stats; cgroup.events populated + memory.events
+oom_kill = kernel-PUSHED exit/OOM notification for the Scribe), sidecar
+precedent verbatim ("restarted without affecting the main application
+container"). (4) LIMITS: OCI surface is a SUBSET of the raw toolbox —
+NO Landlock, NO Yama ptrace_scope (zero spec hits; still hand-wired);
+NO container-native mechanism strengthens cannot-starve/blind/spoof
+(NO-PRECEDENT); restart POLICY + health checks = ENGINE-layer not OCI
+(in-guest supervisor still writes the loop; conmon = the exit-capture
+precedent). VERDICT SHAPE (for the re-presentation when all lanes land):
+containers-in-guest ≈ raw-processes + declarative-config + standard
+lifecycle/observability — the QUESTION becomes shared-runtime (accepted;
+§3 gap documented) vs process-per-loop (gap converted to per-loop
+containment; cost = lane-1's tens-of-ms + supervisor work; feasibility =
+lane-2 pending). 2 container lanes (Kata/libkrun feasibility, comms) +
+2 SRE passes still out.
