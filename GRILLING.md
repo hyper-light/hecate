@@ -5573,3 +5573,84 @@ VECTOR_INDEX = NO-CHANGE verified. 4 of 5 reconcilers in; LAST OUT =
 protocol/security/health (a4cda: PROTOCOL vsock-channel-model [critical
 for R1-OQ2], WIRE_SECURITY two-identity keys, FAULTS, IAM Scribe-
 principal/§7.12, HEALTH §3-triggers).
+
+**RECONCILER R3 LANDED (2026-08-19): PROTOCOL/SECURITY/HEALTH set
+(PROTOCOL, WIRE_FORMAT, WIRE_SECURITY, FAULTS, IAM, HEALTH). ALL 5
+RECONCILERS NOW IN.** WIRE_FORMAT = NO-CHANGE (identity-free codec;
+inline-vs-reference law fits content-free evidence bundles exactly).
+**THE CENTRAL CROSS-CUTTING FINDING — IDENTITY GRANULARITY: the wire/
+fault/authority corpus keys trust to the POD as the finest speaker, but
+the design puts 2 agent principals + init + sensor in one pod and
+observe-not-feed requires a compromised primary CANNOT forge as its
+Scribe at Bar A. Fix = per-WORKLOAD flow keys + per-container fd custody
+UNDER the one pod summon-mint root, and it MUST land together across 5
+sites (PROTOCOL §2, WIRE_SECURITY §2/§3/§6, FAULTS §1, IAM §1/§6) —
+fixing one alone recreates the two-drifting-impls failure.** PROTOCOL:
+CONFLICT §2 "compromised pod speaks only as itself" (pod-granular) →
+per-loop/init/sensor fd+key custody; GAPs: no class/archetype rows for
+Scribe streams (authority-in class-6, alerts class-3 never-shed,
+handoff-request/death-report class-3, Archivalist-flush bulk) / sensor
+channel / alert stream; single-path guest-egress parenthetical (staging
+ring is now PRIMARY-container-only; Scribe/sensor/init use own vsock
+flows); OQ: envelope src_pod/dst_pod is pod-granular ⇒ (a) keep + carry
+loop in flow-layer (32-bit channel-id in nonce + registry flow_identity
+gains loop dim) NO envelope change [cheaper] / (b) version-bump envelope
+to src_pod,src_loop,dst_pod,dst_loop [attribution survives flow-table
+loss]. WIRE_SECURITY: CONFLICT §3 "recv_root installed IN THE GUEST"
+(guest-global) → per-workload recv roots installed ONLY into each loop's
+container (primary can't derive Scribe's receive keys); GAPs: flow-key
+derivation + FlowKeyRequest/Grant need loop_id endpoint dimension;
+staging-ring ownership is primary-container-only (fencing "src must
+equal owning WORKLOAD = primary loop"); Scribe inbound vsock = a 2nd
+guest receive path (same purpose-built-parser law + own enforcement-
+point class); boot-classifier table += Scribe-flow + confirm sensor row;
+key_epoch rule should NAME handoff. **VERIFIED CONSISTENT: key_epoch
+semantics otherwise sound (predecessor frames die at both checks today;
+PROTOCOL:103 + IAM:255-257 agree).** FAULTS: CONFLICT §1 Byzantine
+out-of-scope "per-pod keys, lie only as itself" → per-workload flow keys
+(primary can't lie as its Scribe at Bar A; Bar B collapses interior but
+still speaks only as that pod, contained host-side); GAPs: the two-bar
+adversary model is UNRECORDED and FAULTS is the fault-model authority
+(add Bar A=degradation=HANDOFF's domain, Bar B=no Byzantine consensus
+traffic); nemesis vocabulary needs pod-interior classes (container-exit
+each ordering, ring-overrun, doorbell-stall); obligation-matrix rows for
+history channel / Scribe lifecycle / init spawner (ring loss = in-
+protocol typed gap records, NEVER a rebuild-from-quorum/authority
+disposition — it's a non-authority enrichment surface). IAM: CONFLICT §6
+"per-POD warden profiles (principal fixed)" → per-WORKLOAD residuals
+(one per loop principal; primary and Scribe hold different authority;
+IAM14 too); GAPs: **the Scribe MUST hold its OWN Principal** (first-class
+agent, "its primary only" scoping needs a distinct principal) and needs
+NO Mandate (runs under birth bindings); agent_pod→agent-LOOP (2
+agent_pod principals per microVM, distinct UIDs, shared attestation +
+init spawn-provenance); §7.4 summon pre-validates BOTH principals'
+bindings (scribe office pack binds observability.read_stream for its
+primary + claim subscribe + egress for reach-out + Archivalist
+contribute); §7.12 read-set enumerated; §8 the ring named as the
+non-IAM instance (fd-provenance, physics not policy). **VERIFIED (task-
+mandated): NO IAM text gives the ring an IAM entry; §7.3 compile-source
++ sensor-tighten-only match the statement exactly; §7.12 "Scribe: its
+primary only" matches verbatim.** HEALTH: 2 CONFLICT — §1 Token-progress
+/turn-quality/context-fit sourced from "agent runtime" (guest) but §4b
+says detection reads ONLY host-side ⇒ RE-SOURCE to gateway (host-
+observed, provider-authoritative); those turn/stop/usage events are
+exactly what rides the ring (enrichment, never a detector input) → add
+a PROVENANCE column (host-observed|guest-reported), detection restricted
+to host-observed, divergence-itself-a-signal (cross-view); §3 evidence
+bundle "plus its narrative of intent drift" CONTRADICTS content-free H8
++ HEALTH's own "narrative belongs to Scribes" → reference (UID/hash) to
+a narration artifact, never inline; GAPs: detection substrate + alert
+stream absent from §2 consumer list; single-evidence-request = the
+fresh-context probe (H3); per-container liveness; score-service inputs
+refined; STALE-REFs: §1 "Branch 14 owns context-fit" (landed — point at
+handoff spec, and it did NOT "slot in without changing shape") + header
+"RANK score consumption" (architecture now supplied); OQ: does the
+enriched-alert stream ride the health plane (a: signal class, reserved
+never-shed group, AbsenceIs::Unknown) or its OWN class-3 directed stream
+(b: detection→Scribe, reword H5 to permit it as the plane's one derived
+output) — (b) matches delivery-class semantics better. RECONCILIATION
+COMPLETE: 5 lanes, ~34 conflicts / ~65 gaps / ~20 pending-sites across
+the corpus; 4 NO-CHANGE docs (TRANSFER, WIRE_FORMAT, WAL, SIBYL,
+VECTOR_INDEX + MERGE-substantive). NEXT: consolidate + resolve OQs w/
+recommendations + present for acceptance, then write MONITORING.md +
+HANDOFF.md + ADR-0006 + all corpus amendments + GAPS in ONE change.
