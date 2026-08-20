@@ -7,7 +7,10 @@ append order, prefix-truncation API), FAULTS §2 disposition conformance
 (rebuild-from-quorum when replicated; refusal is the N=1 disposition),
 checkpoint ownership (WAL owns the floor API only), hecate-wire payload law +
 CRC-is-not-identity clause, cluster-SIM extension + Branch 25
-encryption-at-rest interlock flag). Ratified direction: per-group
+encryption-at-rest interlock flag). **Amended 2026-08-20 (CACHE/QUEUE/FANOUT
+acceptance)**: inline-body budget exception (§1), queue-partition + fan-out
+durable-subscriber logical-log clients with floor = contiguous-acked prefix (§6),
+queue/topic record kinds (§3). Ratified direction: per-group
 **logical logs** (one sequencer each — replay, watermark, and monotone-cut invariants
 untouched) multiplexed over **ω physical WAL streams** (durability only, never an
 ordering authority), CRDB/TiKV-lineage; **one durability policy: always-full**,
@@ -28,7 +31,13 @@ Pebble/etcd WAL discipline, TigerBeetle batching, fsync research on file
   logical logs interleave, each tagged `(log_id, log_seq)`. A stream has exactly one
   writer task (single-owner, per §Runtime); "multi-writer" is the MPSC front-end.
 - Artifact **content never enters the WAL** — content-addressed blob store; the log
-  carries references. Log records stay small; flush batches stay dense.
+  carries references. The law binds **bulk** content only: a logical-log client MAY
+  inline a payload body up to the derived `WIRE_FORMAT.md` §3c inline budget
+  (`frame_cap − AAD − record_header`); above that budget the record carries a
+  `ContentRef` and the body lives in the content store. A below-budget inline body is
+  governed exactly as index and consumer-state records already are — small by
+  derivation; log records stay small, flush batches stay dense. `QUEUE.md` §2 relies
+  on this budget for small message bodies.
 - **The consensus-substrate clause** (`CONSENSUS.md` §§2/5 consumer contract):
   record kinds include the raft set — `entry`, `hard_state`, vote records.
   **Entries-then-HardState holds by append order**: single-writer append-only
@@ -74,6 +83,11 @@ never split across streams within an epoch (recovery locality; migration §6).
   then payload, zero-padded to alignment. `crc` is CRC32C **chained** — computed over
   (prev record's crc ‖ header-sans-crc ‖ payload) — so a valid-looking stale record
   in a recycled segment can never be accepted (ghost-record defense).
+- **Record kinds** (`kind: u8`): the kind byte-space is **append-only — existing
+  kinds are never renumbered** (the §1 raft set — `entry`, `hard_state`, vote —
+  included). Queue/topic clients add `queue_item` (an enqueued message body),
+  `consumer_state` (the consumer-state delta: an ack/floor advance), and `topic`
+  (the fan-out topic record).
 - **Recovery** per stream: sequential scan, verify chain, with etcd's
   torn-vs-corrupt discrimination and **dispositions conforming to
   `FAULTS.md` §2** (amended 2026-08-17 — the universal-refusal path is
@@ -124,7 +138,12 @@ shortcut exists.
   core per `LEDGER_CORE.md`'s replay discipline; consensus groups per
   `CONSENSUS.md` §5's checkpoint-retention invariant (applied-state
   checkpoints and log prefixes retire together; no prefix drops while any
-  recovery path needs it).
+  recovery path needs it); **queue partitions** (`QUEUE.md` §2) and **fan-out
+  durable-subscriber logs** (`FANOUT.md` §7 — durable subscriptions *are* queue
+  partitions), each owning its floor as the **contiguous-acked prefix**: an ack
+  advances the floor, while leased-but-unacked records are retained for
+  at-least-once re-lease. These ride the watermark-reclaim model above —
+  segments free only when all resident records fall below their logs' floors.
 - Session migration (colocation-unit move): snapshot at a sequence + tail export of
   `(log_id ≥ floor)` records; the receiving node opens the logical log at the same
   `log_seq` — physical stream identity is never exposed above the WAL API.

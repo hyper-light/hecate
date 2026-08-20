@@ -3,7 +3,10 @@
 Status: ACCEPTED 2026-08-16 (with sub-decisions (a) apply-on-ack, (b) no outbox,
 (c) event-carried score snapshots; amended under maximal audit — four corners
 closed: effective-state affordance checks, paced retirement, normalized replay
-comparison, bounded monitor closures). The implementation companion to
+comparison, bounded monitor closures). Amended 2026-08-20: §3's per-node subscriber
+index is a canonical design reused as SEPARATE instances — the ledger's
+claim-satisfaction-monitor and the CACHE's cache-holder (`CACHE.md` §4.1) — never a
+shared instance; the no-outbox law is preserved. The implementation companion to
 `docs/architecture/LEDGER.md` (the law). Runs on hecate-rt under the memory
 doctrine: single-owner tasks, arenas + generational handles, zero refcounting,
 deterministic maps, apply-on-input purity.
@@ -75,7 +78,17 @@ apply to arenas, assign sequence → build deltas (deterministic order) → emit
   incremental SCC: each parked turn's monitor holds its transitive blocking
   closure, SCC-condensed at construction, satisfied interiors collapsed to
   released tokens. A per-node subscriber index (`node → monitors`) makes delta
-  dispatch O(affected monitors), never O(all). (Global incremental SCC rejected
+  dispatch O(affected monitors), never O(all). **This subscriber index is a
+  canonical, reusable design, instantiated SEPARATELY per owner — never combined
+  into one structure serving both.** The ledger core holds the
+  *claim-satisfaction-monitor* instance (sharded by claim ownership); the CACHE
+  holds a **separate** *cache-holder* instance (serving plane, co-sharded with the
+  HRW owner — `CACHE.md` §4.1). Same design, **separate structures, no shared
+  instance** — so the correctness-critical claims path is never coupled to
+  cache-invalidation churn (non-interference preserved). These are separate
+  instances of one design, **not** one combined per-node index serving both, and
+  the two subscriber sets are never merged. This reuse keeps the no-outbox law (§5)
+  literally true: no new delivery structure is introduced. (Global incremental SCC rejected
   deliberately: its incrementality bugs are exactly the stranded-turn class L4
   exists to catch — per-scope + oracle fuzz is the more *verifiable* design.)
 - **Closure memory is bounded (amendment)**: overlapping closures duplicate

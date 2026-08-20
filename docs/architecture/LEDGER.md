@@ -1,5 +1,10 @@
 # The Ledger
 
+*Amended 2026-08-20: §5 defers the delivery-class list to `PROTOCOL.md` §3
+(authoritative, not re-enumerated); §7.1's reliable plane corrected to the
+`hecate-quic` session plane (no TCP, per §7.3); §8's outbox replaced by delta-stream
+cursor consumers (`LEDGER_CORE.md` §5 + AC-3).*
+
 The ledger is **the durable proof of work**: proof of work required (claims), work
 claimed (receipt), and work completed or failed (testaments — judged by validations,
 evidenced by artifacts). It owns those four object families **and nothing else**. Configuration belongs in config; operational events belong in logs.
@@ -180,8 +185,9 @@ resumes; typed errors are the single path (no untyped fallback).
 and self-sufficient, never a hint. Receivers act on the delta directly and consult the
 ledger only to traverse deeper. The envelope carries schema version, action (a closed
 enum that *is* the lifecycle vocabulary), sequence, actor, delivery, and ordered refs.
-Delivery classes: observation (sheddable) → phase → directed (never shed) →
-consult-request → consult-resolved (never shed). Dedup rides `(delta_key, sequence)`
+Delivery classes are enumerated authoritatively in `PROTOCOL.md` §3 (referenced here,
+never re-listed — a local re-enumeration omits classes as they are added and drifts
+stale). Dedup rides `(delta_key, sequence)`
 plus content identity. Intake is event-driven expectation matching — no polling, no
 consumer loops; each dispatch delivers exactly one causally coherent concern.
 
@@ -226,7 +232,8 @@ Mechanics:
 ## 7. The protocol
 
 The claims plane — ledger operations, delta streams, summon control, health — speaks a
-ground-up **dual-stack UDP/TCP protocol** (ADR-0002), modeled on hyperscale's
+ground-up **dual-stack protocol** (ADR-0002 — corrected to QUIC; **no TCP
+anywhere in the mesh**, per §7.1 and `PROTOCOL.md` §1.2), modeled on hyperscale's
 mercury-sync lineage: its transport core where it earned it, its author's AD-52
 redesign where the code itself walked away, and its documented failure modes as the
 design checklist. MCP is the tool plane and never carries claims traffic.
@@ -243,11 +250,12 @@ declared, no runtime fallback, no size-based switching (hyperscale's honest less
   under one datagram budget — computed at the *datagram* layer, envelope and AEAD
   overhead included (hyperscale budgeted the payload layer and could silently exceed
   MTU).
-- **TCP plane** — ledger operations, **delta streams**, summon control, transfers.
-  Framed, ordered, resumable. Delta subscription is a sequence-numbered stream with
-  watermark resume: a consumer reconnects with its cursor and replays forward;
-  behind-retention triggers deterministic full re-derivation, never best-effort
-  repair.
+- **Session plane (`hecate-quic`)** — ledger operations, **delta streams**, summon
+  control, transfers. Framed, ordered, resumable **over QUIC, not TCP** (matching
+  §7.3 and `PROTOCOL.md` §1.2 — there is no TCP anywhere in the mesh). Delta
+  subscription is a sequence-numbered stream with watermark resume: a consumer
+  reconnects with its cursor and replays forward; behind-retention triggers
+  deterministic full re-derivation, never best-effort repair.
 
 ### 7.2 Envelope and wire format
 
@@ -330,10 +338,13 @@ hyperscale's sharpest idea, kept and extended:
   re-executes no validators, no handlers, no tool loops — and the replayed delta
   stream is byte-identical to the live one. There is no constructor without
   durability; Sylk's inert-WAL wiring class is unrepresentable (fault ledger #1).
-- **Outbox for projections.** Derived consumers (UI projections, knowledge mirrors,
-  narration intake) drain from a durable outbox with per-projector retry and
-  terminal-failure surfacing — at-least-once delivery of derivations, cleanly separate
-  from the WAL's truth.
+- **No outbox; projections are cursor consumers.** Derived consumers (UI projections,
+  knowledge mirrors, narration intake) are ordinary cursor consumers of the delta
+  stream — durable watermarks, resumable, typed RESYNC below retention — never
+  drainers of a durable outbox table (there is no outbox structure: `LEDGER_CORE.md`
+  §5 and its AC-3; the log *is* the outbox). At-least-once projection is cursor +
+  replay; per-projector terminal-failure surfacing is a stuck-cursor alarm in the
+  health plane, cleanly separate from the WAL's truth.
 - **Watermarks everywhere.** Every consumer — projection, inbox, monitor, terminal
   client — tracks a durable cursor; recovery replays from it; behind-retention means
   deterministic re-derivation. Live deltas are authoritative for delivery; the WAL is

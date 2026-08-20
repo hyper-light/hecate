@@ -2,7 +2,10 @@
 
 Status: ACCEPTED 2026-08-17 ("accepted for the sake of output" — user; presented
 in-message through the full revision arc: base draft → media amendments → bounds
-correction → transfer-research revision → position-bound-CV addendum). Satisfies
+correction → transfer-research revision → position-bound-CV addendum). Amended
+2026-08-20: §6 adds the QUEUE/FANOUT queue/topic/subscription + ephemeral-notify
+record vectors as new append-only `#[derive(Wire)]` types (trybuild-gated; queue
+bodies map to `ContentClass::Opaque`). Satisfies
 PROTOCOL.md §6's process rule: this document merges before any codec
 implementation lands. Ratified inputs: PROTOCOL.md §6 (borsh canonicalization ×
 postcard varint density, one derive macro, canonical-or-reject); REGISTRY.md §2b
@@ -168,7 +171,12 @@ depth-bomb negative, ancestor-decode pairs, trailing-byte negatives,
 `ContentLen` extremes, `ContentRef` roundtrips, `ContentClass` ancestor-decode,
 inline-cap boundary (`CAP` positive, `CAP+1` negative), transfer-record vectors
 (`TRANSFER.md` shapes: missing-set negotiation, span-record chunks,
-manifest-last close, resume-after-kill, gap/overlap negatives). **Rules: every
+manifest-last close, resume-after-kill, gap/overlap negatives), queue/topic/
+subscription record vectors (`QUEUE.md`/`FANOUT.md` shapes — enqueue body, lease/ack,
+and topic/subscription/filter descriptors — as new append-only `#[derive(Wire)]`
+types under §5's trybuild gate, with queue bodies mapping to `ContentClass::Opaque`;
+the ephemeral-class notify codec is likewise a new append-only type; positive +
+negative vectors per rule). **Rules: every
 rejection clause has at least one negative vector; vectors never change within a
 major version; adding a rule adds its vectors in the same change.**
 

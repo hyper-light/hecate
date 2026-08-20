@@ -1,6 +1,6 @@
 # SPEC: IAM — the authority plane
 
-Status: ACCEPTED (grilling Branch 44, 2026-08-18). The single control plane for
+Status: ACCEPTED (grilling Branch 44, 2026-08-18). Amended 2026-08-20 (CACHE/QUEUE/FANOUT acceptance): new resource types queue + topic with their actions; cache/channel capability atoms (cache_read/cache_write/channel_publish/channel_subscribe); GAP-3 subscribe_deltas-vs-topic.subscribe clarified; each new action compiles to PEP, scope-fenced to the session/dedup line. The single control plane for
 roles, policies, and permissions across every Hecate system. Companion amendments
 land in the same change (§16). Sources (verbatim receipts in GRILLING.md research
 index): Zanzibar ATC'19; SpiceDB/OpenFGA source; AWS IAM/STS/Organizations; Cedar
@@ -176,11 +176,27 @@ access to every object must be checked for authority").
 | `egress` | `connect(destination_class)`, `resolve(name_class)` | provider gateway + Guardian hard-block |
 | `observability` | `read_stream(class)`, `read_health`, `trace(target)` | health-plane serving edge |
 | `knowledge` | `query(forest)`, `contribute(class)`, `read_index`, `import_corpus` | field/index serving edge — `contribute` targets only knowledge-graph/documents organs, NEVER the Forest field (no emission path exists) |
+| `queue` | `create`, `enqueue`, `lease`, `ack`, `nack`, `purge`, `dead_letter_read`, `snapshot_read` | queue service serving edge (partition sequencer) — scope-fenced to the session/dedup line |
+| `topic` | `publish`, `create_subscription`, `subscribe`, `set_filter_policy`, `delete_subscription`, `redrive` | topic router serving edge — scope-fenced to the session/dedup line |
 | `iam` | `create_role`, `put_policy`, `bind`, `unbind`, `assume(role)`, `revoke_mandate`, `mint_grant`, `revoke_grant`, `audit_read(scope)`, `put_schema` | the management surface (§13) — `principal_kinds: [user, system_service]` only |
 | `node_plane` | `enroll`, `claim_support`, `reconfigure(group)`, `place(unit)` | meta-tree admission — system principals only |
 
 No stringly actions; adding an action is a schema-version publish that re-runs boot
 classification.
+
+The cache/pub-sub **channel capability atoms** `cache_read`, `cache_write`,
+`channel_publish`, `channel_subscribe` (CACHE §10) are **warden capability atoms** —
+node-local pod-boundary capabilities the warden already gates (the
+`skill_tool.invoke(capability_bits)` class), **not resource types**. Each compiles to
+PEP via `compile_to_warden` (the existence-law generalization above) and, like
+`queue.*`/`topic.*`, is scope-fenced to the session/dedup budget line (CACHE §2 pool =
+session/dedup isolation domain; VFS §4).
+
+**GAP-3** (delta subscription ≠ general pub-sub): ledger deltas KEEP
+`claim_plane.subscribe_deltas` (ledger serving edge); general pub-sub subscription
+uses the new `topic.subscribe` (topic router serving edge). The two are **distinct
+actions with distinct PEPs** — `subscribe_deltas` supplies the **precedent shape
+only**, never the same action (no double-mapping).
 
 ## §5 The decision procedure — the decision tree
 

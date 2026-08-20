@@ -6,7 +6,10 @@ CitC/Piper, virtio-fs/DAX/virtiofsd/libkrun, sharded CAS + placement functions.
 Companion to `VFS.md` (chunk store, manifests, volume roles) — this spec is the
 machine that serves those volumes into pods and witnesses what comes back.
 Amended 2026-08-18: §0 (the single-surface law) added; green-chain extension
-gains the placed-before-referenced requirement (MERGE §5).
+gains the placed-before-referenced requirement (MERGE §5). Amended
+2026-08-20 (CACHE/QUEUE/FANOUT acceptance): §4 names the FANOUT router as
+the green version-advance push transport (re-bind stays pod-initiated; not a
+new authority).
 
 ## 0. The single-surface law
 
@@ -88,7 +91,12 @@ Any state that is neither is a spec violation (architecture test, AC-1).
 - Green is all-DAX read-only: every pod in the session maps the same host
   page-cache pages for shared chunks. Pods pin `green@version` (the lease
   basis); re-bind happens pod-initiated at increment boundaries — manifest diff
-  → targeted invalidations for changed paths only.
+  → targeted invalidations for changed paths only. The version-advance
+  notification (MERGE §0 step 8's "green is now vN") is pushed to the
+  session's pods over the **FANOUT router** (`FANOUT.md`) — the
+  version-advance push transport; re-bind stays pod-initiated, and the
+  fanout carries only the delta notification, never a new write authority
+  (green's sole writer remains the merge gate).
 
 ## 5. The metadata model
 

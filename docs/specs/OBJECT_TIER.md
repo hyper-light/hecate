@@ -1,7 +1,12 @@
 # SPEC: the object tier — two planes over one substrate
 
 Status: presented for acceptance (grilling Branch 24; two-planes verdict
-ratified in-session 2026-08-17). Research on file (GRILLING.md): Tectonic
+ratified in-session 2026-08-17). Amended 2026-08-20 (CACHE/QUEUE/FANOUT
+acceptance): the `queue` storage class registered (§1/OT11); §5a — the cache
+role is a two-layout Navy-style engine (BlockCache + BigHash/Kangaroo), the
+one-pack-volume-engine substrate law (AC-1) scoped to the durable
+origin/staging plane, "zero invalidation" scoped to the content-by-hash face.
+Research on file (GRILLING.md): Tectonic
 FAST'21 read in full (LEAD REFERENCE, user direction 2026-08-17) + Haystack
 OSDI'10 + f4 OSDI'14 lineage; ShardStore SOSP'21; BlueStore SOSP'19; CacheLib
 OSDI'20; Tectonic-Shift ATC'23; EdenFS tier mechanics (repo docs, read
@@ -43,7 +48,10 @@ each plane uses its own literature's proven construction.
 in the manifest/descriptor at write time (the registry storage-class hook),
 boot-validated per the chokepoint law — never a runtime heuristic, never a
 second authority. Class transitions ride existing lifecycle boundaries only
-(§6).
+(§6). Registered classes include the durable content classes and **`queue`**
+(`QUEUE.md` — queue-payload bodies above the inline budget, placed in the
+origin role per the queue's durability tier); an undeclared class fails boot
+(OT11).
 
 ## 2. The substrate: pack volumes (one on-node engine, three roles)
 
@@ -185,13 +193,16 @@ Mutable side (journals, ledger WAL): node-local per WAL.md — not in this
 hierarchy; content enters the tier only at seal.
 ```
 
-- **The arena and the pack store are the RAM and NVMe tiers of one store**:
-  movement between them is explicit lifecycle (flush-at-seal,
-  fill-on-demand), never spill; exhaustion stays a typed error at each
-  tier (`VFS.md` §1 reconciliation). Exactly **one on-disk store format
-  exists** — EdenFS's own admission (two overlapping disk caches, "local
-  store eviction is an unsolved problem", one being retired) is the
-  binding counter-receipt.
+- **The arena and the pack store are the RAM and NVMe tiers of one store.**
+  In the **origin/store and staging roles**, movement between them is
+  explicit lifecycle (flush-at-seal, fill-on-demand), never spill;
+  exhaustion stays a typed error at each tier (`VFS.md` §1 reconciliation);
+  and there **exactly one on-disk store format exists** — EdenFS's own
+  admission (two overlapping disk caches, "local store eviction is an
+  unsolved problem", one being retired) is the binding counter-receipt.
+  The **cache role** is the one sanctioned eviction-driven cross-tier flow
+  (§5a): a DRAM eviction feeds the flash **admission gate**, most items
+  rejected — governed flow, not spill.
 - **Cache-role governance** (CacheLib import): eviction is whole-volume
   FIFO (region-granularity; sequential writes cut device write
   amplification 1.5× → 1.05×), never per-chunk free-space tracking.
@@ -200,10 +211,20 @@ hierarchy; content enters the tier only at seal.
   to it (44%-fewer-flash-bytes-at-equal-hit-ratio receipt); reject-first
   for scan traffic. **Declared-future admission**: summon claims and
   template eager-sets are the declared working set — consumed the way
-  Tectonic-Shift consumes training-job dataset specs. Sealed immutability
-  means the cache carries zero invalidation logic (Shift's premise).
-- Small chunks need no set-associative tier: CDC's minimum chunk size
-  floors the object size; packs index any size uniformly.
+  Tectonic-Shift consumes training-job dataset specs.
+- **§5a — the cache role is a two-layout Navy-style engine** (`CACHE.md`
+  §8; environment-derived — robustly provisioned at scale, DRAM-only on the
+  laptop degenerate). It hosts a **log-structured region cache** (BlockCache:
+  large objects and the content-by-hash face) **and** a **set-associative
+  small-object store** (BigHash/Kangaroo: sub-KB general-KV, where a
+  per-object RAM index would exceed the object). **The content-by-hash face
+  is sealed-immutable and carries zero invalidation logic** (Shift's
+  premise) — CDC's minimum chunk size floors its object size, so it needs no
+  set-associative tier. **The general-KV face is mutable**: the store itself
+  stays immutable (a value change is evict + reinsert), and coherence /
+  invalidation lives at the cache layer (`CACHE.md` §4), never in the store.
+  This second on-disk layout is admitted **only in the cache role**, which is
+  a rebuildable copy and never a source of truth (AC-1 scoping).
 
 ## 6. Lifecycle boundaries (the seam)
 
@@ -352,9 +373,14 @@ classes. Same formulas, no modes.
 ## 12. Acceptance criteria
 
 1. **The substrate law** (architecture test): one content identity, one
-   CDC, one manifest encoding, one pack-volume engine, one wire verb set —
-   a second of any is unrepresentable; the two planes share the substrate
-   and never share a placement authority.
+   CDC, one manifest encoding, one wire verb set — a second of any is
+   unrepresentable; the two planes share the substrate and never share a
+   placement authority. The **one-pack-volume-engine** clause binds the
+   **durable (origin/staging) plane**: the source-of-truth store has exactly
+   one on-disk format. The **cache role** — a rebuildable copy, never a
+   source of truth — is permitted the two-layout Navy-style engine of §5a
+   (BlockCache + BigHash/Kangaroo); if its layouts ever tangle, the cache is
+   rebuilt from the durable store and nothing is lost.
 2. **No fsck exists** anywhere in the tier; recovery is scan/replay only.
 3. **Placed-before-referenced** is invariant (OT14 permanent CI).
 4. Every constant (extent sizes, index mode threshold, scatter width,

@@ -4,7 +4,11 @@ Status: ACCEPTED 2026-08-17 (decision 5 + amendment 5a of the ratified
 Branch-20 direction; accepted with the split-brain and cross-region delta
 sets). Governs: the consensus core, WAL, both storage planes, the protocol
 layer — every subsystem names its obligations against this one fault
-taxonomy. Companion: `CONSENSUS.md`.
+taxonomy. Companion: `CONSENSUS.md`. Amended 2026-08-20 (CACHE/QUEUE/FANOUT
+acceptance): §5 adds the three shared-substrate primitive rows (queue
+dup-is-expected + N=1-loss-priced + rebuild-from-quorum; cache/pub-sub loss
+Masked-or-Degraded, never work-loss; fan-out ephemeral-loss Degraded,
+confined to the ephemeral class).
 
 ## 1. The fault scope (what we defend, stated closed)
 
@@ -161,6 +165,29 @@ dispositions by artifact class; the cells:
 The T4 apply-time-signature exception (§1) adds one row: an
 **inject-authority attempt** (forged/foreign-signed record at any replica)
 ⇒ **Refused** and alarmed — never applied (F8).
+
+**Primitive-subsystem rows (amendment 2026-08-20, `CACHE.md`/`QUEUE.md`/
+`FANOUT.md` acceptance).** The three shared-substrate primitives (CACHE §0)
+take these cells:
+
+- **Queue** — `dup/reorder` (crash re-leases leased-but-unacked records) ⇒
+  **not a fault**: at-least-once redelivery is EXPECTED, absorbed by the
+  consumer's dedup window (`QUEUE.md` §13), never counted as loss; a
+  power-cut acked write is never lost (WAL fsync). `region-loss`/node-death
+  at the opt-in lossy fast tier ⇒ **Degraded**, priced, never silent.
+  `corrupt(partition log)` ⇒ **Degraded** via rebuild-from-quorum where
+  replicated, **Refused** at N=1 (the §2 consensus-log disposition).
+- **Cache / pub-sub** — cache `region-loss`/node-loss/eviction ⇒ **Masked**
+  (re-fill from the authority — the cache is never a source of truth) or
+  **Degraded** (cold, slower), **never work-loss** (`CACHE.md` §13);
+  pub-sub delivery loss ⇒ a **counted at-most-once drop**, never silent.
+- **Fan-out** — `partition`-induced ephemeral-subscription loss ⇒
+  **Degraded**, confined to the ephemeral class, never work-loss
+  (`FANOUT.md` §11); durable subscriptions inherit the Queue cells above
+  (they *are* queue partitions — not double-classified).
+
+Every drop is counted; an unknown drop is a bug (the §2 no-silent-signal
+law applied to the primitives).
 
 ## 6. Test matrix
 

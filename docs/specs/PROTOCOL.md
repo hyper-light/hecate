@@ -2,7 +2,11 @@
 
 Status: ACCEPTED 2026-08-18 (whole-spec verdict "accepted." — Branch 3;
 amended under the maximal audit A1–A6 + the D-10 a–e settlements + the
-§1.1 header-encryption revision folded in-exchange). Companions:
+§1.1 header-encryption revision folded in-exchange). Amended 2026-08-20
+(CACHE/QUEUE/FANOUT acceptance): delivery class 7 EphemeralAtMostOnce
+(append, no renumber), the ephemeral-at-most-once archetype + queue/topic
+archetype declarations, and the fan-out-degree axis on the
+non-interference scale-walk. Companions:
 `WIRE_FORMAT.md` (payload codec, normative), `WIRE_SECURITY.md` (seal-once
 pipeline, flow keys, boot classifier), `TRANSFER.md` (content plane),
 `CONSENSUS.md` (fencing authorities, epoch scoping). Scope note: hecate-wire
@@ -112,12 +116,26 @@ pod crypto.
 
 Delivery classes: `0 Control`, `1 Observation` (sheddable), `2 Phase`,
 `3 Directed` (never shed), `4 ConsultRequest`, `5 ConsultResolved` (never
-shed — issuer is parked on it), `6 StreamData` (credit-governed, §4).
+shed — issuer is parked on it), `6 StreamData` (credit-governed, §4),
+`7 EphemeralAtMostOnce` (sheddable / unordered / counted-drop; mClock
+reservation derived at this site = target ephemeral delivery rate × p99
+datagram bytes — a guaranteed **minimum** share so this sheddable class
+can never be starved, its idle-borrow never priority over control).
 
 **Every message kind declares exactly one traffic archetype**
 (supersession / idempotent-fenced-control / ordered-log /
-directed-request-response / **quorum-critical transfer** / bulk); the
-archetype — never the subsystem — determines carriage and lane.
+directed-request-response / **quorum-critical transfer** / bulk /
+**ephemeral-at-most-once**); the archetype — never the subsystem —
+determines carriage and lane. **Ephemeral-at-most-once** (CACHE's
+at-most-once pub-sub, FANOUT's ephemeral topic delivery — delivery
+class 7) REUSES supersession's no-retransmit datagram for carriage, but
+its drops are counted as their own category: a counted ephemeral drop is
+NOT supersession's anti-information drop (a superseded non-delivery is
+uncounted by design), so the drop taxonomy stays exhaustive. New-kind
+archetype declarations (QUEUE/FANOUT): queue records → ordered-log;
+queue/topic control commands (enqueue / lease / ack / publish / subscribe)
+→ directed-request-response; durable topic-subscription delivery →
+ordered-log (it rides a QUEUE).
 
 **The traffic non-interference law** (elevated to system law 2026-08-18,
 user directive: "different types of traffic for different work should NOT
@@ -168,6 +186,15 @@ PB-class in the deterministic cluster-SIM**, where simulated bytes are
 free and a petabyte walk costs seeds, not days (the SIM's reason to
 exist). Any size term appearing in any other class's latency or memory
 curve is a structural failure, not degradation.
+
+**A second, orthogonal axis walks the same invariant — fan-out degree**
+(the CACHE/QUEUE/FANOUT amendment): 1 → millions of subscriptions on a
+single topic, PB-class in the deterministic cluster-SIM. The control,
+quorum-critical, and claims classes must hold **flat p99 latency AND flat
+memory footprint** across the degree sweep exactly as across the size
+sweep — a fan-out-degree term appearing in any other class's latency or
+memory curve is a structural failure, not degradation (fan-out cost stays
+confined to the ephemeral-at-most-once class that owns it).
 
 Three failure modes that exist only at the top of the range, named so the
 walk exercises them rather than discovering them:
@@ -246,7 +273,8 @@ logic runs (the ingress-tamper settlement).
   task-lifecycle law) — a restart never inherits a dead process's
   connection set.
 - Categorized drop counters (rate_limited / too_large / decrypt_failed /
-  malformed / replayed / shed / non_canonical / unknown_sender),
+  malformed / replayed / shed / ephemeral_dropped / non_canonical /
+  unknown_sender),
   aggregated as periodic structured records. A drop with no signal is a
   bug.
 - Dead peers are discovered by the owning plane: the node-liveness fabric

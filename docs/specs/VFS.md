@@ -3,7 +3,9 @@
 Status: presented for acceptance (grilling Branch 5; directions ratified: 5a
 chunk-native unified store, 5b tool plane over it with the third store deleted).
 References: Sylk VFS/OT survey and Tool VFS survey on file (GRILLING.md); Nix/Bazel/
-OCI content-addressed distribution pattern.
+OCI content-addressed distribution pattern. Amended 2026-08-20
+(CACHE/QUEUE/FANOUT acceptance): §4 names the CACHE.md cache pools as
+budget-charged isolation domains on the arena-exhaustion telemetry path.
 
 ## 1. The store
 
@@ -111,7 +113,11 @@ All derived at boot from physical anchors (system memory, summon allocations):
 per-volume budgets from the summon; store arena budget from node memory; charge on
 acquire, release on drop, reconciled transactionally with writes (a failed charge
 rolls the write back with a typed error). Pressure telemetry streams to the Guardian
-— the primary consumer — and to Scribes via the health plane.
+— the primary consumer — and to Scribes via the health plane. The **cache pools**
+(`CACHE.md` §2) are budget-charged isolation domains of this doctrine — each
+bound to its session/dedup line, charging on admit and releasing on
+eviction/drop, with typed exhaustion (never a reactive OOM shrink) — so the
+arena-exhaustion telemetry path above covers them.
 
 ## 5. Serving: the guest mount
 

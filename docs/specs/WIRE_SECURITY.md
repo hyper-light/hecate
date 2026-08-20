@@ -2,7 +2,10 @@
 
 Status: ACCEPTED 2026-08-18 (D-10(a) settled through the six-round grilling
 arc; mechanics verified against primary sources — dossier in GRILLING.md;
-spec presented in-message and accepted). Companions: PROTOCOL.md (envelope,
+spec presented in-message and accepted). Amended 2026-08-20: §6 registers the
+QUEUE/FANOUT queue + topic stream classes and the CACHE / pub-sub ephemeral notify
+flow — the latter on the existing `DATAGRAM_SUPERSEDE` frame class (new flow
+identities only, no new frame class). Companions: PROTOCOL.md (envelope,
 classes, §1.3 order), PODS.md (devices, warden), CONSENSUS.md §7
 (externalization fencing). Owns: the egress staging device, the warden seal
 pipeline, flow keys, the sealed-payload hop classes, the guest receive path,
@@ -151,6 +154,23 @@ tuple `(hop_kind, lane, enforcement_point, flow_identity)`; direct socket
 construction is lint-banned (the same wall as `Arc`). Boot walks the
 registry against the declared table; an unclassified path fails startup.
 This is the chokepoint-coverage law applied to transport, as settled.
+
+**Sibling-primitive registrations (QUEUE, FANOUT, CACHE pub-sub — 2026-08-20; no new
+frame class):**
+
+- **Queue delivery** — `(SEALED_FRAME/claims, claims, host-parser + terminal-client,
+  flow=queue.deliver)`: at-least-once durable delivery to the non-recoverable
+  hand-off boundary (`QUEUE.md`) rides the retransmit-preserved claims lane; a large
+  body rides the §4 bulk lane by `ContentRef`, unchanged — not a new class.
+- **Topic delivery** — `(SEALED_FRAME/claims, claims, host-parser,
+  flow=topic.deliver)`: a durable subscription *is* a queue partition (`FANOUT.md`
+  §7), inheriting the queue delivery classification above — registered once, never
+  double-classified.
+- **Pub-sub ephemeral notify** — `(DATAGRAM_SUPERSEDE, supersede, host-parser +
+  guest-unseal, flow=pubsub.notify)`: ephemeral at-most-once fire-and-forget (CACHE
+  pub-sub §7; FANOUT ephemeral subscriptions; cross-node cache invalidation §4.1)
+  rides the **existing** `DATAGRAM_SUPERSEDE` frame class — **no new frame class**,
+  only new flow identities (`pubsub.notify`, `cache.invalidate`).
 
 ## 7. Implementation plan (crates, phases, gates)
 

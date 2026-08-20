@@ -7,7 +7,10 @@ CitC/EdenFS/Scalar, namespace/HNC/Capsule/vCluster, prebuild pools,
 jj/Pijul/eg-walker/mergiraf divergence corpus, 267K-merge overlap study,
 agentic-PR conflict rates, selection-gap funnel corpus (§7 numbers landed).
 Vocabulary: **"workspace" is retired**; the concepts are **lineage**,
-**session**, and the pod's **work volume**.
+**session**, and the pod's **work volume**. Amended 2026-08-20
+(CACHE/QUEUE/FANOUT acceptance): §2 opens the colocation-unit membership to
+any session-scoped durable-writer primitive (the queue core + the topic
+FIFO-sequencer, per CONSENSUS §6).
 
 ## 1. The lineage (first-class)
 
@@ -30,8 +33,10 @@ Vocabulary: **"workspace" is retired**; the concepts are **lineage**,
   arrive atomically with creation.
 - **A session spans nodes** (clarified 2026-08-18): pods place on any machines
   the scheduler chooses; the colocation unit is the session's HOME SERVICES
-  only (ledger core, merge proposer, frontier, field service — one node,
-  logs replicated across the session group); volumes attach from any node
+  only (ledger core, merge proposer, frontier, field service, and any
+  session-scoped durable-writer primitive (the queue core and the topic
+  FIFO-sequencer, per `CONSENSUS.md` §6) — one node, logs replicated across
+  the session group); volumes attach from any node
   (SERVING §0's single-surface law). Nothing in this spec's isolation story
   depends on physical adjacency — isolation is keys + fencing + brokered
   grants, never machine boundaries.

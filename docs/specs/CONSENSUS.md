@@ -11,7 +11,11 @@ commit path at every replica count), SERVING §6 inventory map, OBJECT_TIER §4
 placement map, SCHEDULER §1 meta group, REGISTRY §5 replicated revision,
 LEDGER_CORE §2 append API. Resolves most of Branch 27 by construction (§6).
 Companion: `FAULTS.md` (fault scope, dispositions, nemesis matrix, the
-simulation gate).
+simulation gate). Amended 2026-08-20 (CACHE/QUEUE/FANOUT acceptance): §6
+roster gains queue-partition + topic-sequencer (lease+fence),
+topic-registry (CAS-first), cache/pub-sub (writer-less registration);
+corrected the stale merge-serializer entry to leader-fused (term-only
+fence) per MERGE §2.
 
 ## 1. Topology: the meta tree + N per-session groups
 
@@ -204,28 +208,37 @@ is needed.
 
 - **CAS-first**: where the commit is one ref swap and writers are
   intermittent — registry refs, generation pointers, landing heads,
-  placement-map versions — there is **no election and no lease**:
+  placement-map versions, the topic registry — there is **no election and
+  no lease**:
   election-free CAS on the consensus-backed ref (`set_ref_if`), with the
   Lance-style outcome classification (rebasable / retryable / conflict) as
   the typed result.
-- **Standing writers** — merge serializer, ledger sequencer, and any future
+- **Standing writers** — the ledger sequencer, queue-partition sequencers,
+  and the topic-router per-group FIFO sequencer (epoch scope = the smallest
+  failure domain containing every legal writer), plus any future
   open-write-stream holder — hold a **meta-tree lease in Chubby's
   coarse-grained shape** (keepalives, grace period) **plus an epoch fencing
   token enforced at the resource** — non-negotiable, because a
   paused-and-resumed writer defeats any lease alone (§3b layer 3). Every
   write the resource accepts checks the token; a stale token is a typed
-  refusal.
+  refusal. **The merge proposer is the exception: it is leader-fused** — a
+  role of its session group's Raft leader, with the term as its only fence
+  (MERGE §2, M13d), so it holds no separate lease or epoch token.
 - **The epoch-scoping law**: an epoch/fencing authority lives in the
   **smallest failure domain that contains every legal holder of the fenced
-  resource**. A merge serializer's holders all live in the session's region
+  resource**. A ledger sequencer's holders all live in the session's region
   ⇒ region-group epoch — if the region dies, resource and authority die
   together, so no resurrection is possible. Lineage heads and registry
   publications have holders anywhere ⇒ root-group epochs, WAN-committed —
   acceptable because those are human-cadence CAS operations.
 - Boot validates the roster: every subsystem is classified CAS-first or
-  lease+fence with its epoch scope; an unclassified writer fails startup
-  (chokepoint law). Branch 27's remaining scope = auditing this roster
-  against the actual subsystem list at build time.
+  lease+fence with its epoch scope — or, where it introduces no durable
+  writer at all (the cache / pub-sub plane), registers positively as **"no
+  durable writer"** (chokepoint-covered-by-absence): a boot-recognized cell,
+  not a new classification and not the "unclassified" state that fails
+  startup. An unclassified writer still fails startup (chokepoint law); boot
+  recognizes the writer-less registration. Branch 27's remaining scope =
+  auditing this roster against the actual subsystem list at build time.
 
 ## 7. Cross-region
 

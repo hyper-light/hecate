@@ -4,7 +4,10 @@ Status: ACCEPTED 2026-08-16 (v2 — rewritten after the syllium agentregistry
 implementation examination, findings on file in GRILLING.md; amended under
 maximal audit with exact implementations — three corners closed: universal
 canonical encoding via the `Document` type, tenancy as scope-in-key with typed
-handles, revision-floor reads). Ratified context: open roster with offices;
+handles, revision-floor reads). Amended 2026-08-20: §2b records the QUEUE/FANOUT
+topic/queue/subscription/filter descriptors as config-registered kinds (written via
+the §5 `set_ref_if` CAS-first primitive), like every other config descriptor.
+Ratified context: open roster with offices;
 custom agents/skills/tools/MCP servers/packages as first-class staged entries;
 defaults as catalog entries; no Postgres/Redis dependency; laptop-through-Meta
 on one storage contract.
@@ -100,6 +103,14 @@ enum DocValue {
   content-addressed)`; entries record the `schema_version` they validated
   under; changing a schema is publishing the next version, never mutating —
   the hecate-wire evolution discipline applied to config kinds.
+
+**Sibling-primitive descriptors are config-registered kinds (amendment 2026-08-20).**
+The QUEUE / FANOUT **topic**, **queue**, **subscription**, and **filter** descriptors
+register through exactly this §2b mechanism — schema documents, no recompile — and are
+written via the §5 `set_ref_if` CAS-first primitive (the CAS-first classification),
+identical to how every other config descriptor is registered. They carry no runtime
+authority (§8): the registry stores and serves them; the primitives' own single-owner
+tasks run the routing and delivery.
 
 Syllium's `Deployment`/`Runtime` half — controllers that create workloads,
 finalizers, soft-delete GC, discovery reconcilers — is **deliberately dropped**: it
