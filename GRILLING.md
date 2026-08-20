@@ -4519,3 +4519,74 @@ pasta/tun). hecate-init build sketch: contract +her spawn-container verb;
 embedded rustjail-pattern spawner; W3 prep delta; W4 rootfs recipe.
 CONSOLIDATED CONTAINERS-VS-ACCEPTED RE-PRESENTATION assembled in-thread
 (four lanes complete). Remaining agent: SRE pass B only.
+
+**SRE PASS B LANDED (2026-08-19): PERFORMANCE CURVES + DETECTOR SUITE +
+ALERT DISCIPLINE — all research complete.** CURVES (W1): context-length =
+monotone-in-trend NON-UNIFORM decline, slope conditioned on
+needle-similarity + distractors (Chroma 18-model; NoLiMa "11 of 13 below
+50% of baseline at 32K"; GPT-4o 99.3→69.7) — NO universal closed form ⇒
+a LEARNED per-(agent,task-class) reference curve; position = U-SHAPE
+(Liu: 75.8/53.8/63.2, middle can undercut closed-book 56.1) ⇒ a
+COVARIATE for risk adjustment, not an alarm; intent-shift/multi-turn =
+CHANGEPOINT not ramp (−39% step; aptitude −16% vs unreliability +112% —
+the dominant signal is VARIANCE EXPLOSION) + ABSORBING ("get lost and do
+not recover"); long-horizon = METR LOGISTIC-in-log-task-duration (50%
+time horizon; ~100% <4min vs <10% >4hr; doubling ~7mo) + τ-bench pass^k
+combinatorial decay + Vending-Bench MELTDOWN regimes "rarely recover",
+UNCORRELATED with context fill (⇒ detect regime onset, not smooth
+decay); Viering-Loog caution: "no universal model" ⇒ fit a small
+candidate family per phenomenon, select by held-out fit. DETECTOR SUITE
+(W2, 10 detectors, all online + deterministic-given-frozen-params, each
+w/ formula + false-alarm characterization): CUSUM (S=max(0,S+x−μ−k),
+k=δσ/2, h≈4-5σ or b=|log α|, Lorden/Moustakides minimax-optimal,
+ARL0=1/FAR); RA-CUSUM (STEINER FORMULA VERBATIM: exp(R_t)=exp(YΔ)·
+(1+e^{Xβ})/(1+e^{Δ+Xβ}) — per-agent charts, ARL0=10000 precedent);
+Page-Hinkley (mean drift); EWMA (λ 0.2-0.3, gradual drift); BOCPD
+(run-length posterior = ONSET-TIME evidence; NO frequentist FA guarantee
+— never the sole alarm authority; at defaults doesn't beat baselines);
+GLR-CUSUM (unknown shift size — the intent-shift fit); ADWIN
+(variance-aware ε_cut, FP≤δ/step + FN bounds THEOREMS, window cut ⇒
+DURATION estimate, O(log W)); DDM/EDDM (built for "learner's error rate
+rose": p+s vs p_min+2s/3s = 95%/99%); SPRT (A=(1−β)/α, B=β/(1−α), true
+errors α′≤α/(1−β), ~50% fewer obs — the ADJUDICATION step);
+learned-curve+residual-band (regression-adjusted charts = standard SPC;
+Gandy-Kvaløy residual CUSUM/EWMA verbatim). PHENOMENON→DETECTOR MAP:
+context-rot → fitted-curve residual EWMA/CUSUM; position/difficulty →
+risk-adjustment covariates; intent-shift → GLR-CUSUM + DISPERSION-CUSUM
+(variance!) + BOCPD onset; derailment/loops → Page-Hinkley/ADWIN;
+reliability decay → DDM/EDDM + RA-CUSUM w/ difficulty model; confirmation
+→ SPRT. LEARNED+DETERMINISTIC RECIPE (W3): fit→FREEZE as versioned
+logged artifact→detector READS it (pure function of metrics-log +
+artifact-version = replayable bit-for-bit)→thresholds DERIVED from
+false-alarm budget (b=|log α|; ARL0=T/δ; SPRT A/B; ADWIN/DDM δ) +
+BOOTSTRAP-CALIBRATED for estimation error (Gandy-Kvaløy: "guarantee with
+high probability that the in-control ARL is not below a specified
+value"; naive 4.1→adjusted 5.5 example); GP posterior mean/var =
+closed-form deterministic predictor; conformal bands when
+model-skeptical; refit out-of-band bumping artifact version. THE SYLK
+LAW: "if deleting the fitted artifact would not change any alert, the
+design is wrong." SRE ALERTING (W4): every page actionable; alert
+fatigue discipline; BURN-RATE math (burn = how fast budget consumed;
+14.4×/1h page, 6×/6h page, 1×/3d ticket; 1000× ⇒ 43min exhaustion;
+short-window 1/12 reset refinement; precision/recall/detection-time/
+reset-time = the 4 axes); for/keep_firing_for anti-flap; Datadog anomaly
+bands (rolling-quantile/SARIMA/decomposition); Alertmanager structured
+fields (Status/StartsAt/EndsAt/Fingerprint/Labels/Annotations/
+GeneratorURL) + grouping/dedup/INHIBITION ⇒ 1:1 alert/incident;
+runbooks ("playbooks... explain the severity and impact... include
+debugging suggestions and possible actions"; folkloric 3×-MTTR figure
+NOT FOUND — do not cite). ALERT SCHEMA delivered: {phenomenon,
+fingerprint, status, severity(burn-rate-graded), frequency(error-ratio/
+burn/budget-consumed), onset(StartsAt + changepoint-estimate from
+BOCPD-MAP/ADWIN-cut/CUSUM-last-zero), duration(pending/firing/ends),
+trajectory(statistic/threshold/time-to-exhaustion), evidence(residuals/
+curve-ref/params/FA-budget), runbook_ref} — ALL deterministic; the
+Scribe receives enriched incidents and NEVER computes these; its
+intelligence = WHICH runbook action. NO-PRECEDENT flagged honestly:
+universal context-length law; per-(agent,task-class) curve-fitting +
+residual charts FOR LLM AGENTS; agent-loop probability curve;
+burn-rate severity on QUALITY budgets — all novel compositions of
+CONFIRMED parts. FINALIZES HANDOFF §4 (detector suite replaces the
+single CUSUM) + §5 (alert schema + Scribe-as-SRE) — both presentations
+(containers + SRE detection) now assembled in-thread; ALL agents
+complete; awaiting user verdicts.
