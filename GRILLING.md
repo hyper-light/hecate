@@ -7548,3 +7548,43 @@ ties to Delos/Lane-A). Synthesis target: does the literature back our
 PUSH-NOTIFY + PULL-RECOVER hybrid over pure-push (RabbitMQ) / pure-pull
 (Kafka)? Maps to per-subscription delegation ephemeral-pubsub=push /
 durable-queue=pull.**
+
+**VALKEY STUDY COMPLETE (2026-08-20, acdae87f): 465-line SOURCE-VERIFIED
+dossier at tmp/valkey_code_lane/dossier.md (all 8 subsystems, git 8.0.8-238,
+Mechanic/ADAPT/IMPROVE/GOTCHA each, all 4 corrections folded).** CRUX for
+CACHE: **#5 CLIENT TRACKING = the direct precedent for our mutable-pointer
+subscriber-index (fork-2)** — a key→interested-holders inverted index (nested
+rax, tracking.c:44-45), populated on READ, ONE-SHOT consumed+cleared on WRITE
+(:419-423), bounded by a 1M-key escalating random-walk eviction (:510-547;
+config.c:3566). WE IMPROVE: co-shard it (kill the global TrackingTable →
+per-shard lock-free), DERIVE the bound from arena bytes (not magic 1M), evict
+COLDEST-by-frequency not random, generational holder handles (no global
+lookupClientByID, no stale-id accrual), invalidation CARRIES THE GENERATION so
+a holder already past it ignores it. **#3 sharded pub/sub = channel hashed by
+the SAME keyHashSlot as keys (pubsub.c:531-533, server.c:3058) = the exact
+'channels co-shard with keys' template**; ephemeral auto-GC-at-zero-subs
+(:356-361); at-most-once fire-and-forget → WE IMPROVE: lag = explicit
+counted-drop (not silent output-buffer-kill disconnect), deterministic fan-out
+order, generational sub handles. **#4 = 'mutation IS a pub/sub event'**
+(del/expire/evict/new all publish via notifyKeyspaceEvent, notify.c:105-168) →
+confirms our invalidation=pubsub unification; WE IMPROVE: STRUCTURAL chokepoint
+emission (vs ValKey's 117 hand-placed sites) + typed enum events. **#6 =
+hashtable.c two-table INCREMENTAL REHASH + amortized-per-op-step + time-boxed
+cron = THE 'no-background-thread amortized maintenance' template** shared by #1
+eviction + #2 expiry (one doctrine, three subsystems). CROSS-CUTTING (the
+design thesis, all validated against source): (a) ONE amortized-sync-
+maintenance doctrine (rehash/evict/expiry/tracking-bound are the SAME shape);
+(b) CO-SHARDING converts every ValKey single-thread global chokepoint →
+shard-local = the throughput unlock; (c) per-shard cycles buy us EXACT
+(W-TinyLFU freq, ordered TTL heap) where ValKey is FORCED to APPROXIMATE
+(5-sample LRU/LFU, 10%-acceptable-stale expiry, random-walk tracking evict);
+(d) generational handles + arena release-counts replace ALL Arc/Rc + per-object
+metadata (#7 robj refcount:29 IS exactly the banned pattern; embed = computed
+≤128B/2-cache-line rule, no EMBSTR_SIZE_LIMIT=44); (e) seeded Driver kills
+ValKey's rand()/wall-clock/static-cursor non-determinism; (f) DROP the
+fork-COW-resize / replica-DEL-expiry / AOF-eviction-feedback / cluster-bus-
+pubsub baggage (we have no persistence/replication). #8: ValKey = single-
+mutator + IO-offload; WE shard the DATA (parallel command exec) — take its
+bounded-queue handoff discipline, invert its ownership. Per-subsystem detail
+in the dossier. a05f2ed's 3 leftover children (evict/expire/threading) now
+SUPERSEDED — the dossier already covers #1/#2/#8.**
