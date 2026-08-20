@@ -6608,3 +6608,54 @@ global federation on root/region Raft groups, no-synchronous-WAN-on-hot-
 path; (6) per-session REFUTED → shared + serving-edge isolation. 2 lanes
 still out: queue (a3715779), cache+pubsub (a6a3fa67); + laptop addendum
 from a381c17c pending.
+
+**SCALE LANE LAPTOP ADDENDUM LANDED (2026-08-20, a381c17c resumed):
+"run on anyone's laptop" is RECEIPTED as the same-binary-config-derived
+degenerate, NOT a stripped embedded build.** Prometheus = single-node
+standalone IS the DEFAULT ("single server nodes are autonomous… no
+reliance on distributed storage… rely on it when other parts of your
+infra are broken"). **Mimir `-target=all` = THE no-mode single-binary
+story: identical binary runs the whole write+read+store pipeline in one
+process on a laptop AND fans out to a microservices fleet — only the
+`-target` config differs** ("N=1 is a zone of one running the identical
+binary" made literal). Prometheus Agent mode = SAME CODE forward-only,
+"upward" (remote-write) is an INTERFACE engaged only when a target
+exists ("same scraping APIs, same semantics, same configuration");
+storage-integration is "a set of interfaces" not a rewrite. VictoriaMetrics
+= "single small executable without external dependencies", single
+`-storageDataPath` dir, memory-bound (7× less RAM). Scuba = memory-bound
+derived eviction. NO-PRECEDENT for per-session/per-tenant PROCESSES on a
+laptop — universally ONE in-process pipeline holding everything, memory-
+bound, with upward/replication/object-store edges ABSENT when targets
+absent. HECATE LAPTOP DESIGN (W6.7): the degenerate = IDENTICAL fleet
+binary, config-derived wiring, distributed edges absent-because-targets-
+absent — the HRW ring has ONE member (self) so routing is identity + no
+separate collector process; upward set empty → standalone; OBJECT_TIER
+cold blocks → local pack volume / single dir (copyset/EC → 1 local copy
+by derived RF=1); **RF, region-count, fanout all DERIVE to 1 FROM RING
+CARDINALITY — a derived parameter NOT a mode flag** (the Hecate-specific
+framing, ingredients receipted); memory-bound derived eviction; same
+query tree (root=region=node=self, pushdown/FHI no-ops but code path
+IDENTICAL). THESIS (for the spec): "planet-scale telemetry is NOT a
+distributed ledger — it is autonomous regional in-memory collection
+(lossy hot tier, unreplicated) + best-effort node-local WAL + durable
+cold EC blocks, region-local-first scatter-gather w/ Bloom fanout
+pruning, sharded by target-key/trace-ID, tenant-isolated by label+quota
+NOT dedicated pipelines, collapsing to one memory-bound in-process
+binary on a laptop by driving RF/region/fanout→1 from ring cardinality.
+Reuse OBJECT_TIER cold / SERVING-HRW rings / CONSENSUS region-local
+ReadIndex — but DO NOT put the ledger's Raft-synchronous WAL on the
+telemetry HOT path (the single most important reconciliation)." SCALE
+LANE NOW COMPLETE (both extremes). STANDING REQUIREMENT (user,
+2026-08-20): "enforce MAXIMAL COMPLIANCE with + IDENTIFY CONFLICTS with
+existing specs; maximally correct/robust/performant/efficient; no fear
+of complexity, NO shortcuts" — pushed into the 3 running primitive lanes
+(queue/cache+pubsub/fanout) as a required "corpus compliance + conflicts"
+section; the THOROUGH per-primitive corpus-reconciliation (Lane-D-style,
+reconciler agents reading the actual specs) is the diligence pass owed
+before each primitive spec is finalized. 4th PRIMITIVE ADDED: FAN-OUT
+(SNS-equivalent, a9bd127b dispatched) — durable topic fan-out to many,
+filtering, the SNS→SQS pattern; factoring question = own-primitive vs
+router+queue+pubsub composition. PRIMITIVE FAMILY NOW: CACHE+PUBSUB
+(ValKey), QUEUE (SQS at-least-once), FAN-OUT (SNS), all Meta-scale +
+laptop. 3 lanes out: queue, cache+pubsub, fanout.
