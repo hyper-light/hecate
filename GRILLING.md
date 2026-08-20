@@ -4248,3 +4248,34 @@ enrichment freq/timing/duration/severity fields, runbook model). Present
 when both land; then finalize HANDOFF (metric suite + detector suite +
 alert schema + Scribe-as-SRE-runbooks) + MONITORING.md. Design NOT
 written until the SRE-grade detection is grounded.
+
+**CONTAINERS-IN-MICROVM RESEARCH DISPATCHED, FANNED OUT (user,
+2026-08-19).** User: the earlier Scribe-isolation research was
+INCOMPLETE — the missing angle is running *containers* within one
+microVM (isolation of primary+Scribe, startup/runtime cost,
+communication avenues); and (mid-flight correction) the pass warranted
+MULTIPLE agents per cited aspect, not one. The accepted shared-runtime-
+subtree design STANDS but gets RE-PRESENTED against the container
+option when the lanes land. FOUR LANES in flight: (1) OCI runtime-spec
+mechanics + runtime layer (crun/youki/runc; libcrun + youki-libcontainer
+as EMBEDDABLE Rust crates; startup/memory/process-model COST numbers) —
+narrowed from the original single agent; (2) Kata in-guest mechanics
+DEEP (kata-agent CreateContainer flow, rustjail structure = the exact
+shape hecate-init would take) + guest prep (cgroup2/dev) + container
+rootfs on a RO virtio-fs projection (overlayfs/bind-manifest-subtree) +
+LIBKRUN FEASIBILITY (containers-inside-a-krun-guest: works-today vs
+fork work); (3) ISOLATION DELTA — honest: containers = the SAME kernel
+primitives (strength delta vs raw processes = zero; Bar-B unchanged),
+but two containers = two OS PROCESSES so the process-fatal fault classes
+(abort/SIGSEGV/OOM/FFI) become PER-LOOP contained instead of killing
+both — i.e. potentially converts the accepted §3 documented-gap into
+per-loop containment; plus declarative-config/tooling/lifecycle deltas;
+(4) COMMUNICATION avenues — pod sharing model, unix-socket-via-shared-
+mount, shared-IPC, fd-passing, and the DECISIVE one: container→HOST
+vsock (is AF_VSOCK namespaced? per-PORT separation so the Scribe
+container gets its host stream the primary can't touch —
+device-cgroup/seccomp + host-side warden enforcement), host-mediated-
+only pattern as the observe-not-feed fit. ALSO: the two SRE detection
+passes (metric catalog; perf-curves+detector-math+SRE-alerting) were
+killed and RE-DISPATCHED fresh. Six agents in flight total. On landing:
+present containers-vs-accepted-design + the SRE detection design.
