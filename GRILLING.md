@@ -6180,3 +6180,52 @@ separate-plane-but-instrument-the-monitoring-plane placement. On ALL
 FOUR landing: synthesize the hyper-detailed Hecate Collector spec
 (architect's job), present reconciled-against-corpus for acceptance,
 THEN it joins the staged MONITORING/HANDOFF write.
+
+**COLLECTOR LANE B LANDED (2026-08-20): RELIABILITY + MAXIMAL-COLLECTION
++ N=1.** W1 EXPORTERHELPER (the reliability core to port): sender chain
+outer→inner = Queue→ObsReport→Retry→Timeout→pusher — **the queue is the
+durability boundary; retry/timeout run CONSUMER-side, so a crash
+mid-retry loses nothing the persistent queue holds.** Sending queue:
+num_consumers 10, queue_size 1000, block_on_overflow false(drop)/
+true(block); batching ABSORBED into the queue (min_size 8192,
+flush_timeout 200ms); retry 5s→30s cap, max_elapsed 300s, ×1.5, per-try
+timeout 5s. **PERSISTENT QUEUE = WAL-LIKE**: monotonic read/write index
++ separate DISPATCHED-ITEMS set; crash recovery re-enqueues dispatched-
+but-unacked (`retrieveAndEnqueueNotDispatchedReqs`, "picked up again
+after restart") ⇒ the in-flight set turns AT-MOST-ONCE into
+AT-LEAST-ONCE across restart; bbolt-backed (filestorage) → maps onto
+Hecate's WAL/OBJECT_TIER for the durable queue. W2 batch: size(8192)+
+timeout(200ms) dual trigger, after memory_limiter. W3 MEMORY_LIMITER
+(the no-unbounded-growth primitive): soft = limit−spike; refuse-at-soft
++ force-GC-above-hard; upstream backpressure; FIRST in pipeline; "data
+PERMANENTLY LOST if the preceding component doesn't retry" ⇒ MUST pair
+w/ persistent queue. W4 TAIL_SAMPLING: complete-trace buffering, "all
+spans MUST be received by the SAME collector instance" = the hard
+FAN-IN constraint (needs trace-aware load-balancing in front — can't
+trivially sub-shard); policies latency/status/probabilistic/
+rate_limiting/composite/ottl/…; decision_wait 30s, num_traces 50k
+in-mem, decision_cache LRU for released-trace verdicts (straggler-span
+trick); filter/transform/attributes = **the content-free model**
+(attributes:hash SHA1, transform:replace_pattern redaction, filter:drop)
+→ Hecate's provenance-class + content-free processors. **W5 MAXIMAL
+COLLECTION (grounded): maximal ≠ keep-everything-raw-forever; maximal =
+(total instrumentation @emission, 9ns un-sampled fast path — Dapper)
++ (LOSSY-BUT-BOUNDED-ERROR aggregates over 100% — exp-histogram "high
+dynamic range, small relative error"; Prometheus native-histogram ~8×;
+spanmetrics R.E.D over ALL spans; O(buckets) mem over O(events))
++ (TIERED retention — Scuba memory-bound/expire-at-ingest-rate/
+subsample-the-aging-tail/cold-object-store; Tempo object-store RF1)
++ (tail-sample which RAW traces survive as EXEMPLARS addressable from
+metrics via trace_id).** THE COMPOSITION (flagged composed, primitives
+confirmed): metric-deriving connector AHEAD of the sampler ⇒ metrics
+computed over 100%, sampler picks retained raw exemplars; "never
+conflate OBSERVED with RETAINED-RAW" (Scuba's raw-count + adjusted-count
+is the same trick). **W6 N=1: same formulas, cluster terms = 1, NO lite
+mode.** Prometheus disk = retention × ingest_rate × bytes_per_sample
+(1-2 B/sample), single-node-by-DEFAULT, WAL crash-safe; Scuba
+memory-bound + expire-at-ingest = the laptop bound; Dapper daemon <0.3%
+core + lowest-sched-priority + 426 B/span, cost tracks RETAINED not
+OBSERVED ⇒ 9ns fast path keeps instrument-everything true at N=1;
+N=1-is-degenerate = COMPOSED (the 3 formulas are node-count-free). 3
+lanes still out: A (core+port), C (instrumentation surface), D (corpus
+integration).
