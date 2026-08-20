@@ -5811,3 +5811,15 @@ cardinality, laptop degenerate). RESEARCH DISPATCHED (2 lanes): OTel
 data-model/OTLP/collector/adoption-tradeoffs; system-wide telemetry+
 tracing+logging at scale + log monitoring. Write of MONITORING/HANDOFF
 now WAITS on this branch settling (shared §6 telemetry surface).
+
+**SYSTEM-OBSERVABILITY RESEARCH — interrupted then resumed (2026-08-20).**
+First dispatch (a3e9bf5a OTel; aa9e08f75a syslog — the latter self-fanned
+into W2/W3/W4/W5 sub-agents) ALL FAILED on a session usage limit (reset
+12:20am America/Chicago) before composing dossiers — but left strong
+receipts in scratch: otel_lane/ = proto_README.md + otlp_spec.md +
+docs_listing.json; syslog_lane/ = FULL Dapper paper (dapper.txt 83KB),
+FULL Scuba VLDB paper (scuba.txt 70KB), crown_jewels.md (confirmed
+quotes: tracing/slog/RFC5424/SRE-workbook/Scuba). RESUMED post-reset
+with 2 lanes (a68d41da OTel; a973c132 syslog), each told to build on the
+retained downloads + fetch only gaps + NOT fan out (avoid multiplying
+session budget). Awaiting.
