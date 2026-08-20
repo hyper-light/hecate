@@ -7633,3 +7633,42 @@ enriched primitive specs (+ COLLECTOR) → re-present for acceptance → on acce
 write QUEUE/CACHE/FANOUT/COLLECTOR.md + §A corpus amendments + close Branch 39
 + MONITORING/HANDOFF fold-in. Ledger-layering settle also ready (both lanes
 in). Awaiting user steer on order.**
+
+**DESIGN REFRAME (2026-08-20, two user corrections during finalization —
+CONFIRMING, not yet ratified):**
+**(1) CACHE = GENERAL mutable KV is the REQUIRED CORE, not deferred.** My
+re-presentation wrongly CENTERED content-addressed immutability (emergent
+distributed cache / "content needs no invalidation" / "avoid memcache-TAO")
+and filed general-KV-mutable as "v1 avoids" — BACKWARDS. IAM (permission/
+decision caches + token/session caches — mutable, TTL, SECURITY-critical
+staleness bound) + observability (aggregates/dedup/query/hot-ring) + general
+infra ALL need general mutable KV in front of an authoritative source. So:
+general mutable KV + full COHERENCE (the ValKey CLIENT TRACKING invalidation
+index GENERALIZED from "pointers" to ALL mutable keys + cross-node invalidation
+via fanout) = the SPINE; content-by-hash = a SPECIALIZATION where immutability
+makes the coherence machinery a no-op. FORCES (now immediate): mutable-KV flash
+(set-assoc BigHash/Kangaroo, key-addressed) collides w/ OBJECT_TIER immutable-
+pack + AC-1 (was C4-forward, now IMMEDIATE) — options: DRAM-only+recompute /
+distinct-mutable-flash-engine / one-Navy-hosts-both; cross-node mutable
+coherence = real memcache/TAO (versioned-invalidate + region-local-reads +
+critical-read-escape); IAM staleness = a SECURITY param (critical-read bypass).
+**(2) OPT-IN PRINCIPLE (applies to ALL 3 primitives): DEFAULT = general-purpose
+OSS-compatible SAFE semantics; the architecture-native OPTIMIZATIONS are OPT-IN,
+each GATED ON A DECLARED WORKLOAD PROPERTY that makes it safe (never a bare
+fast-mode) — declare content-addressed→immutability-free-coherence; declare
+I-cursor-the-log→push-notify+pull-recover; declare reconstructible→lossy-fast-
+tier. No declaration → safe general behavior. Consistent w/ "derive from data,
+not modes."** SQS corrections: DEFAULT = at-least-once / 3-replica / zero-loss +
+standard-UNORDERED (= SQS standard queue); OPT-IN = N=1-lossy-tier, strict-FIFO
+(MessageGroupId), content-identity-dedup, log-backed-cursor-consumer. STAYS-
+DEFAULT (strictly better, no tradeoff — NOT "capabilities"): lease-epoch,
+enqueue-notify-wake, inline-vs-ContentRef. SNS corrections: I WRONGLY made
+push-notify+pull-recover the DEFAULT/center → DEFAULT = standard reliable
+durable PUSH (retries+DLQ, SNS-compat, any subscriber incl EXTERNAL); OPT-IN =
+push-notify+pull-recover (declare log-cursor), ephemeral-at-most-once. STAYS-
+DEFAULT: per-subscription credit isolation (publisher-never-blocks — strictly
+better than RabbitMQ's publisher-blocking). OPEN QUESTION: SNS body-filtering —
+OFFER as opt-in for SNS-compat, vs the content-free law (no system component
+reads payload plaintext for a routing verdict) as a hard floor even opt-in
+(principle-vs-accepted-law collision — user's call). Confirming the reframe
+before reworking the specs.**
