@@ -7712,3 +7712,26 @@ MessageGroupId OPT-IN / dedup + log-backed-cursor OPT-IN / lease-epoch +
 notify-wake STAY-DEFAULT (strictly better). GENERAL PRINCIPLE EXTENDED: even
 the "safe default" is ENVIRONMENT-DERIVED, not a fixed setting — the opt-in
 relaxes below it; nothing is a hardcoded number.**
+
+**FLASH FRAMING CORRECTED (2026-08-20, user: "flipping to the other extreme;
+adopt the robust option for distributed use; environment driven"): my
+"demand-derived / reactive-spillover" framing was the WRONG EMPHASIS — it
+UNDER-provisions distributed. FIX = environment-driven with a ROBUST distributed
+END (exactly parallel to the durability replica-count derivation): laptop ⇒
+DRAM-only (~zero flash, no SSD burn); distributed/scale ⇒ the DEFAULT is the
+FULL ROBUST hybrid — a deliberately PROVISIONED, first-class DRAM+flash capacity
+tier (the complete Navy-style engine: log-structured BlockCache for large +
+set-assoc BigHash/Kangaroo for small mutable KV + admission gate + endurance
+servo), sized from available-flash × working-set. The TIER is provisioned/robust
+at scale (NOT a shy fallback — items still flow via the admission gate on
+eviction, but the tier is first-class + sized to the deployment); DERIVES to
+~zero locally. ONE env-driven parameter (flash provisioning), no mode flag; the
+two ends are DRAM-only ↔ FULL-ROBUST-HYBRID (never DRAM-only ↔ reluctant-
+spillover). AC-1 resolution UNCHANGED and this is exactly why it matters: at
+scale that one Navy-style CACHE engine really does host BOTH on-disk structures,
+"one immutable-pack engine" rule scoped to the ORIGIN store so the robust cache
+tier is representable. AC: flash is a robustly PROVISIONED tier fully exercised
+in the distributed SIM (capacity + admission + endurance under load) AND derives
+to zero on laptop (no flash region, no SSD writes); SIM sweeps BOTH ends. Rest
+of the reworked cache (coherence spine / general-KV core / ValKey improvements)
+STANDS as presented.**
