@@ -6383,3 +6383,60 @@ the audit-sink two-stream shape; HEALTH re-source amendment; content-free
 processor exact rules; serving-edge session isolation; REGISTRY Collector
 kinds + DocValue config; AUTOSCALING gateway scaling class; N=1 CI gate.
 1 lane still out: A (OTel core + port work).
+
+**COLLECTOR LANE A LANDED (2026-08-20): OTel CORE + PORT WORK — ALL 4
+LANES NOW IN.** DECISIVE FINDING: **there is an OFFICIAL Rust OTel
+pipeline engine — `otel-arrow` OTAP Dataflow Engine ("our new Rust
+OpenTelemetry code base, a pipeline engine" w/ built-in OTAP+OTLP
+receivers/exporters + batching/fanout/failover/retry/routing; crate
+layout MIRRORS the collector: engine/core-nodes/contrib-nodes/pdata/
+config/controller/channel) — the REFERENCE DESIGN + possible dependency**;
++ `rotel` (independent Rust collector, tokio, OTLP in/out) proves
+viability; opentelemetry-rust = client instrumentation NOT a collector
+(source of Rust OTLP proto types only). CORE DISTRO = **~12 REAL
+components** (2 recv otlp/nop, 3 proc batch/memlimit/queuebatch, 4 exp
+otlp/otlphttp/debug/nop, 1 conn forward, 2 ext memlimit/zpages) + the
+framework; contrib ~240 = NOT the port target. W1 pdata = the in-mem
+model every component operates on, a WRAPPER over OTLP proto structs
+(keeps `orig` ptr); 3 ownership rules (no cross-instance aliasing;
+explicit MoveTo/CopyTo; consume-then-forget = "after return, undefined
+behavior to access"); MutatesData capability flag (default read-only) —
+**Rust makes these COMPILER-ENFORCED (move=MoveTo, &mut/&=MutatesData)**;
+OTAP chose a DUAL rep (OTLP bytes OR Arrow RecordBatch) for columnar
+throughput. W2 graph = real DAG (gonum+topo-sort): recv→capabilitiesNode
+→procs→fanOutNode→exps; shared recv/exp = ONE instance + fan-out;
+**SYNC-COUPLED-FAN-OUT HAZARD VERIFIED IN CODE** (fanout = synchronous
+sequential in-caller `for tc: ConsumeTraces` loop ⇒ a slow downstream
+BLOCKS the receiver + backpressures every sharing pipeline); build =
+topo then reverse (downstream-first); Start = reverse-topo (receivers
+LAST), Shutdown = forward-topo (drain upstream first); Service IS the
+component.Host. W3 component = {Start,Shutdown} + 5 kinds + StabilityLevel
+ladder; ID=type+name; sealed Factory (functional opts WithTraces/Metrics/
+Logs); `otelcol.Factories` flat registry (errors on dup); NO reflection
+— explicit registration. W4 config = 5 component-maps + service block;
+Config=any; confmap Provider/Converter/Resolver (env/file/http/https/
+yaml). W5 connectors = pipeline-to-pipeline bridges (both exp+recv; the
+ONLY cycle source → explicit cycle detection); extensions = lifecycle-
+outside-pipelines (ordered start/reverse shutdown); STORAGE EXTENSION =
+keyed byte-store backing the persistent queue (GetClient→Get/Set/Delete/
+Batch, survives restart). **W6 THE PORT (grounded in OTAP): PORT the
+valuable/correct pieces ~as-is — pdata (prost-proto-wrapper, discipline
+compiler-enforced), graph builder (petgraph, keep capabilities/fanout
+virtual nodes + connector dual-role + cycle detection), lifecycle
+ordering (VERBATIM), factory/registry shape (traits + explicit
+registration), confmap Provider/Converter/Resolver (over serde);
+REPLACE the ONE weakness — the synchronous blocking fanout call-chain —
+with OTAP-style BOUNDED ASYNC CHANNELS + explicit backpressure +
+Ack/Nack/Config/TimerTick/Shutdown control messages. THE CRUCIAL
+NON-OBVIOUS Go→Rust LESSON (OTAP-grounded): Go goroutines are ALWAYS
+Send (work-stealing); naive port forces Send+Sync+'static on EVERYTHING
+incl. pdata (painful/slow) ⇒ OTAP's model = THREAD-PER-CORE + !Send
+LOCAL tasks + spawn_local (preferred), escalating to Send "shared
+adapters" ONLY at true integration boundaries (e.g. Tonic receivers) —
+"one single-threaded async runtime per assigned core, no work-stealing
+in the hot data path, bounded channels not unbounded buffering." This
+maps PERFECTLY onto hecate-rt (single-owner sharded tasks, bounded
+channels, no cross-shard sharing).** STRONGLY consider otel-arrow/
+otap-dataflow as prior-art-or-dependency vs re-deriving the async engine.
+ALL 4 LANES IN ⇒ NOW SYNTHESIZE THE FULL SPEC-GRADE HECATE COLLECTOR
+DESIGN (IAM/PODS granularity) + present in-message before write.
