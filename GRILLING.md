@@ -4406,3 +4406,64 @@ everything-through-agent precedents). Tool-children: socketpair-fd or
 scoped UDS mount (Scribe outside the share). 1 container lane
 (Kata/libkrun feasibility) + 2 SRE passes still out; containers
 re-presentation on set completion.
+
+**SRE PASS A LANDED (2026-08-19): THE COMPREHENSIVE METRIC CATALOG.**
+43 metrics, ~90% CONFIRMED, two classes exactly per the user's frame.
+CANONICAL VOCABULARY = OTel GenAI semconv (12 standard metrics w/
+advised buckets: token.usage, operation.duration, TTFT, time-per-output-
+chunk/token, invoke_agent.duration, invoke_agent.inference_calls +
+.tool_calls histograms [1,2,4..128], execute_tool.duration, workflow
+duration; error.type conditionally-required on failure; finish_reasons;
+span vocab incl. `plan`; cache_read/creation token split) — the
+deterministic substrate Hecate instruments natively. CLASS A —
+DETERMINISTIC (27 metrics, 100% of traffic, FREE/CHEAP): A1 errors/tool
+health (tool error rate per-tool, consecutive-same-tool-failure
+run-length, schema-violation count [OpenAI ModelBehaviorError
+precedent], API error rate by type, retry rate, validation.failure_count
+— Hecate claim-validations slot natively); A2 loop/repetition (seq-rep-n
+[Welleck], distinct-1/2 [Li], action.recurrence_rate (exact
+tool+args repeats), turns-vs-budget [LangGraph recursion_limit=1000 /
+MaxTurnsExceeded precedents], calls-per-invocation histograms,
+embedding self-similarity + refusal-template similarity [LangKit,
+CHEAP]); A3 latency histograms; A4 tokens/context/cost
+(context.fill_ratio = leading exhaustion gauge ["token usage explains
+80% of variance"], cache split, COST-PER-SUCCESSFUL-TASK not per-call
+[Arize: "a cheap run that fails and gets retried is the expensive
+one"]); A5 stop-reason distribution (end_turn/max_tokens/pause_turn/
+refusal/context-exceeded mix-shift = countable degradation surface) +
+refusal/empty rate; A6 reliability probes (pass^k = E[(c choose k)/(n
+choose k)] [τ-bench; pass^8<25% vs pass^1 61%], pass@k ceiling,
+UNRELIABILITY U₁₀⁹⁰ = p90−p10 + aptitude A⁹⁰ [Lost-in-Conversation:
+aptitude −16% but unreliability +112%], self-consistency agreement,
+trajectory match strict/unordered/subset/superset [agentevals],
+tool-correctness ratio, path convergence = optimal/average length,
+end-state reward r_action×r_output [τ-bench; = Hecate claim terminal
+states]). CLASS B — LLM-EVAL JUDGE (16, sampled, 0-1 + reasoning,
+threshold-gated): intent/instruction adherence (Prompt Alignment =
+followed/total), goal completeness (resolved/identified intentions;
+Datadog >50%-unresolved⇒incomplete precedent), ACTION ADVANCEMENT
+per-turn progress (the stall detector: advancement→0 while turns climb
+[Galileo]), task completion (trace AlignmentScore), step efficiency,
+tool selection/argument/response-handling judges, faithfulness =
+supported/total claims + hallucination = contradicted/total contexts,
+topic adherence P/R/F1, role adherence, KNOWLEDGE RETENTION =
+turns-without-attrition/total (THE repeat-asks metric [DeepEval]), user
+friction ("corrections, retries, frustration in follow-ups" [Phoenix]),
+safety set, G-Eval custom rubrics (auto-steps, token-prob-weighted
+score; Spearman 0.514), judge-of-judge calibration. JUDGE CAVEATS
+(primary numbers): position bias swap-consistency GPT-4 65%/GPT-3.5
+46%/Claude-v1 24%; verbosity attack 8.7% vs 91.3%; self-preference
+correlates w/ self-recognition → RULES: single-call 0-1 rubric
+(Anthropic prod: "single LLM call... 0.0-1.0... most consistent"),
+never fixed-order pairwise, length-normalize, judge ≠ judged family;
+agreement ceiling ≈ human-human 81-85%. FIVE-FACTOR MAPPING delivered
+(intent/error-exhaustion/failed-validations/repetitiveness/misalignment
+× deterministic-vs-judge). TIERS: T1 = tool-errors+retries, validation
+failures, tokens/context, stop-reasons, turns/calls, latency, pass^k +
+U₁₀⁹⁰ canaries (the two with published degradation numbers); T2 =
+goal/intent judges, tool judges, repetition stats, step efficiency,
+knowledge retention, friction; T3 = faithfulness, topic/role, safety,
+convergence, plan, calibration. "Exhaustion" as a named metric =
+NO-PRECEDENT (Hecate names a composite the industry measures piecewise).
+FINALIZES HANDOFF §1 (gathering = this catalog, tiered). Remaining: SRE
+pass B (curves+detector-math+alerting) + container lane 2 (feasibility).
