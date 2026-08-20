@@ -7003,3 +7003,62 @@ single-node (ab7cf1d8), distributed-hybrid (a4933b19). On both landing:
 revise the CACHE spec (single-node hybrid engine + memory/slab + the
 DISTRIBUTED tiered+invalidation+cross-region story), restate COLLECTOR
 fully, thorough corpus reconciliation, re-present.
+
+**CACHELIB LANE LANDED (2026-08-20): decisive — validates+corrects the
+cache design; OBJECT_TIER §5 = Navy NEAR-VERBATIM.** CacheLib (OSDI'20,
+70+ Meta services, 1M req/s/node, 60-90% hit; consolidation thesis =
+Hecate's) = ONE hybrid DRAM+flash engine, NOT two static faces:
+`allocate`→DRAM (evict if needed) → evicted item → **flash ADMISSION
+GATE → admit|discard**; `find` walks DRAM→LOC→SOC transparently; L1-
+DRAM-only/L2-DRAM+flash 2-layer distributed (L2 = 20× capacity, 60%
+hit, 25% cheaper; L1+L2 95-99%). **MEMORY MGMT (the gap I cut): SLAB
+allocator — 4MB slabs, per-size-class, one-size-per-slab ⇒ COMPRESSED
+POINTER (slab,offset) = THE Hecate generational handle; slabs avoid
+fragmentation + enable rebalancing; manual slab-class tuning DOUBLES
+fragmentation (open problem: "no automated slab-class-boundary tuning" —
+Hecate EXCEEDS by deriving boundaries from the live object-size
+histogram); pools (per-pool eviction + isolation); 31B/item metadata;
+dynamic-size to dodge OOM-killer.** NAVY ↔ OBJECT_TIER §5 = near-
+verbatim: BlockCache/LOC (large) = region-FIFO 16MB, seq-write 1.5×→
+1.05× device-write-amp, TBW÷lifetime servo (DynamicRandomAP), reject-
+first, 44%-fewer-bytes-at-equal-hit, 8B-hash-index/full-key-on-media/
+validate-after-read — **§5's literal source is the LOC**. ENRICHMENTS
+NOT in §5: (1) WRITE BUFFERS (buffer region before flush, align ≥512B →
+CDN frag 7%→2%); (2) LOC READMISSION (readmit hot FIFO-victims).
+CORRECTION: BigHash/SOC set-associative (small &lt;2KB objects) + Kangaroo
+(KLog+KSet tiny-object write-amp) ⇒ **§5's "no set-associative tier" is
+CORRECT for the content-by-hash face (CDC floors object size) but WRONG
+for the general KV face (sub-KB keys/values need SOC/BigHash/Kangaroo)**
+— the 2 faces GENUINELY diverge here. EVICTION: CacheLib ships LRU/
+LRU-multi/**2Q**/TinyLFU PLUGGABLE per-pool, NO single winner; **biggest
+DRAM win was 2Q (+5-9 pts), NOT TinyLFU**; admission (flash endurance) =
+a SEPARATE axis from eviction (hit-ratio); CacheLib "TinyLFU"=eviction
+label vs Hecate/Caffeine W-TinyLFU=admission-gate (same sketch, diff
+pipeline placement) ⇒ keep W-TinyLFU RAM-default but ELEVATE pluggable-
+per-pool to first-class + ADD LRU-2Q (CacheLib's strongest lever).
+CONCURRENCY: CacheLib fights hit-path lock contention (fine-grained
+locks/flat-combining/T-sec-MRU-reset-suppression) that DOESN'T EXIST in
+Hecate's single-owner-shard model (key→1 shard→serialized by
+construction; "linearizability if same key" is FREE) ⇒ CacheLib =
+SHAPE RECEIPT, Hecate model structurally STRONGER; the "no-work-on-hit"
+insight already captured. DRAM↔flash async-fill consistency THIN in
+source ⇒ Hecate specifies via completion-shaped Driver + single-flight.
+**CACHE SPEC REVISIONS (W6, to apply): (a) ONE ENGINE + eviction→
+admission cross-tier flow replaces 2-static-faces — reconciled w/
+OBJECT_TIER §5 "never spill" (the admission GATE is the safety: most
+items REJECTED, endurance-governed, not uncontrolled spill); 2 faces
+survive as size/mutability-differentiated POLICY under one engine.
+(b) NEW slab-classed-arena memory-mgmt section: 4MB slabs, size-classes,
+(slab,offset)=generational-handle, histogram-derived boundaries,
+rebalancer-ON-SHARD-EXECUTOR (not bg thread), pools-as-isolation bound
+to session/dedup line, frag+metadata counted in arena budget, budget-
+charged-arena-typed-exhaustion STRONGER than CacheLib reactive OOM-
+shrink. (c) OBJECT_TIER §5 doc-sync: + write-buffers + LOC-readmission +
+admission-policy menu (RejectRandomAP/DynamicRandomAP/reject-first/
+Flashield) + scope the no-set-assoc claim to content-by-hash face.
+(d) item-lifecycle mapping table: ItemHandle-refcount → generational-
+handle + arena release-count (NO Arc/Rc — banned); markNvmUnclean →
+dirty-tracking on KV face ONLY. (e) eviction pluggable-per-pool +
+LRU-2Q first-class; concurrency UNCHANGED (single-owner-shard subsumes
+CacheLib's lock machinery).** 1 cache-enrichment lane still out:
+distributed-hybrid (a4933b19).
