@@ -7853,3 +7853,38 @@ violates; deterministic apply required. Dossier: tmp/materializer_log_lane/
 dossier.md. **BOTH LANES IN ⇒ full materializer design ready (coarse
 session-sharding = already the ledger structure, validated + linear;
 within-shard DAG-parallel for a hot session).**
+
+**LEDGER-LAYERING RECONCILED + LEDGER_SUBSTRATE WRITTEN (2026-08-20): CONFLICT
+SURFACED + FIXED.** Going to write the ledger-layering detail, hit a CONFLICT
+with accepted LEDGER_CORE §1: it stated "one ledger core per session — a
+SINGLE-OWNER task... all mutation through its mailbox", "session demand
+hundreds/sec << millions/sec ceiling", "SHARDING THE CORE WOULD DESTROY THE
+TOTAL ORDER" — all in tension with MATERIALIZER + the user's "a session can be
+at ANY scale." RECONCILED (user confirmed the split + "go ahead"): SEPARATE the
+sequencer from the apply — (a) the ledger core is the **SEQUENCER**:
+single-owner, runs affordance-check-over-effective-state(applied⊕pending) →
+append → durable-ack, PRODUCES the total order; appending is cheap (millions/s,
+NOT the bottleneck); stays single-owner. (b) **APPLY** (materialize acked log →
+claims-graph) = the scale-free order-preserving MATERIALIZER; the former single-
+serial-apply is the N=1 degenerate; DAG-parallel PRESERVES the order (sequencer
+owns it, materializer preserves it) ⇒ "sharding destroys the order" is FALSE
+for apply. (c) CORRECTED: no assumed session scale; the real per-entry apply
+(parse+DAG-walk+graph-update+reconcile) is the ~10^4/s SERIAL ceiling (§1's
+"millions/s" priced only arena-write+delta-emit, under-counting apply);
+applied-arenas = the materializer's committed prefix, pending = above the
+watermark. LANDED: LEDGER_CORE §1 "Ceiling priced" para REPLACED with the
+sequencer/apply split + Status note; **LEDGER_SUBSTRATE.md WRITTEN (presented
+for acceptance)** — the detailed substrate/interaction spec at MATERIALIZER
+rigor: sibling-instances (shared-log primitive written once / per-instance
+semantics — Delos/Tango), the sequencer write-path, the materializer apply-path,
+reads=CACHE, distribute=FANOUT-first+only-cursor-no-outbox, wake=in-core-
+deterministic + cross-node-at-most-once+cursor-backstop (fork-2 separate
+instance), recovery=prefix-recoverable-replay, an ASCII interaction map, 6
+invariants, LS1-LS8 acceptance, refs; law-doc §8 amended with the substrate
+bullet. **NEW TREE ITEM (user-added): SUMMONING logic + mechanics — examine +
+better define AFTER the ledger-layering branch closes** (scale-free-session /
+multi-node-whale / sequencer-apply split has implications for how pods/agents
+are summoned + scaled). TREE STATE: ledger-layering branch CLOSING (pending
+LEDGER_SUBSTRATE acceptance). REMAINING BRANCHES: (1) MONITORING/HANDOFF write;
+(2) COLLECTOR re-statement (closes Branch 39); (3) RESPONSE-AUTHORITY (parked,
+undesigned); (4) NEW: SUMMONING mechanics.**

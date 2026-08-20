@@ -6,7 +6,12 @@ closed: effective-state affordance checks, paced retirement, normalized replay
 comparison, bounded monitor closures). Amended 2026-08-20: §3's per-node subscriber
 index is a canonical design reused as SEPARATE instances — the ledger's
 claim-satisfaction-monitor and the CACHE's cache-holder (`CACHE.md` §4.1) — never a
-shared instance; the no-outbox law is preserved. The implementation companion to
+shared instance; the no-outbox law is preserved. Amended 2026-08-20: §1 reconciled with
+`MATERIALIZER.md` — the ledger core is the **sequencer** (single-owner, owns the
+total order); **apply** is the scale-free order-preserving MATERIALIZER, not the
+single serial task; the former "hundreds/sec demand" and "sharding destroys the
+order" claims corrected. Substrate + interaction mechanics: `LEDGER_SUBSTRATE.md`.
+The implementation companion to
 `docs/architecture/LEDGER.md` (the law). Runs on hecate-rt under the memory
 doctrine: single-owner tasks, arenas + generational handles, zero refcounting,
 deterministic maps, apply-on-input purity.
@@ -16,12 +21,31 @@ deterministic maps, apply-on-input purity.
 One **ledger core** per session — a single-owner task in the session colocation
 unit. All mutation flows through its mailbox; all hot state lives in its arenas.
 
-**Ceiling, priced**: one session's mutations serialize through one task — the
-ceiling (arena writes + delta emission, millions of ops/sec class) sits orders
-of magnitude above session demand (agents generate hundreds/sec). Sharding the
-core would destroy the total order that replay, monitors, and effective-state
-checks stand on. The ceiling is measured in CI with its derivation at the
-definition site; sustained read load rides projections (§5), never the mailbox.
+**The sequencer and the apply path are separate — one owns the order, the
+other scales** (reconciled 2026-08-20 with `MATERIALIZER.md`, superseding the
+former "one task does everything, sharding destroys the order" clause). The
+ledger core is the session's **sequencer**: a single-owner task that runs the
+affordance check over effective state (§2), appends the mutation to the session
+log, and *produces* the **total order** that replay, monitors, and
+effective-state checks stand on. Appending is cheap (arena write +
+consensus-batched, millions/sec class) and is **not** the bottleneck — so the
+sequencer stays single-owner and its order is never sharded. **Applying the
+acked log into the claims-graph is a separate, scale-free path — the
+MATERIALIZER** (`MATERIALIZER.md`): a session has **no assumed scale** (an
+agent fleet's claim rate is not bounded a-priori), and the real per-entry apply
+— parse the claim, walk its causal DAG, update the graph, reconcile testaments
+— is the tens-of-thousands/sec *serial* ceiling the materializer beats with
+deterministic, **order-preserving** parallel apply (DAG edges run in
+log-index order, independent claims commute, the parallel result is
+bit-identical to serial). Sharding the *apply* therefore does **not** destroy
+the order — the sequencer owns the order, the materializer preserves it. The
+former single-owner serial apply is the materializer's `N=1` degenerate (a
+small session, all state in one task's arenas); a hot session engages the
+within-node lever, a whale the multi-node lever, on one code path. The former
+"millions/sec ceiling" priced only arena-writes + delta-emit — it under-counted
+apply, which is why the materializer exists. Read load rides projections (§5) /
+the CACHE, never the mailbox. **The full substrate relationship and interaction
+mechanics are `LEDGER_SUBSTRATE.md`.**
 
 **Slot layout enforces writer disjointness structurally:**
 
