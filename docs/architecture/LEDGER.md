@@ -343,10 +343,12 @@ hyperscale's sharpest idea, kept and extended:
   produces the total order. The `commit → delta construction` half is the
   scale-free, order-preserving **apply** (`MATERIALIZER.md`), not a single serial
   task: a session has no assumed scale, so apply parallelizes (within-node, then
-  multi-node) while the sequencer's order is preserved exactly. The ledger,
-  queue, topics, and cache are **sibling instances** of the one shared-log
-  primitive (`WAL.md` + `CONSENSUS.md`), not layers stacked on each other — the
-  full substrate relationship and interaction mechanics are `LEDGER_SUBSTRATE.md`.
+  multi-node) while the sequencer's order is preserved exactly. The ledger, the
+  queue, and the topic sequencer are **ordered-log instances on the shared
+  substrate** (`WAL.md` + `CONSENSUS.md`); the **cache** is a writer-less read
+  projection (not a log) and the **fanout** a composed router — not layers stacked
+  on each other. The full substrate relationship and interaction mechanics are
+  `LEDGER_SUBSTRATE.md`.
 - **No outbox; projections are cursor consumers.** Derived consumers (UI projections,
   knowledge mirrors, narration intake) are ordinary cursor consumers of the delta
   stream — durable watermarks, resumable, typed RESYNC below retention — never

@@ -187,8 +187,11 @@ Safety; Flink "consistent prefix").
 - **WAL** — the session's logical-log is the ordered sequence; the materializer
   is a cursor-consumer of it (never a second copy).
 - **CONSENSUS** — provides the order (the sequencer); the per-log floor + seal.
-- **SESSIONS §2** — the session is the shard; the materialized state may span
-  the session's colocation nodes (§5) while the log/writer stays one place.
+- **SESSIONS §2** — the session is the shard; the log / writer / sequencer stays
+  the one colocation node, while the materialized state may partition across the
+  session's other nodes (§5; SESSIONS §2 — a reconstructible projection, not the
+  colocation unit's durable truth). The sequencer keeps the small lifecycle /
+  affordance projection local (`LEDGER_SUBSTRATE.md` §2).
 - **CACHE** — reads and monitors read the materialized snapshot, off the apply
   path; a hot claim-state key is cached with cache-layer invalidation.
 - **FANOUT** — committed deltas are emitted in index order as the first

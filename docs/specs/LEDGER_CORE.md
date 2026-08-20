@@ -18,8 +18,13 @@ deterministic maps, apply-on-input purity.
 
 ## 1. The core task
 
-One **ledger core** per session — a single-owner task in the session colocation
-unit. All mutation flows through its mailbox; all hot state lives in its arenas.
+One **ledger core** per session. Its **sequencer** — a single-owner task in the
+session colocation unit — takes all mutation through its mailbox and produces the
+total order; the **apply** is the separate `MATERIALIZER.md` (the split below). At
+`N=1` the sequencer also holds all hot state in its arenas; for a hot/whale
+session the materializer's worker pool applies in parallel and the heavy
+claims-graph partitions across the session's nodes, while the sequencer keeps only
+the small lifecycle/affordance projection local (`LEDGER_SUBSTRATE.md` §2).
 
 **The sequencer and the apply path are separate — one owns the order, the
 other scales** (reconciled 2026-08-20 with `MATERIALIZER.md`, superseding the
@@ -218,10 +223,16 @@ watermark return archival continuations.
 
 1. L3 (replay), L4 (oracle-verified satisfaction), and L13 (effective-state
    checks) are permanent CI gates.
-1b. The core's throughput ceiling is measured in CI against the derived session
-   demand model; the margin is reported, never assumed.
-2. The core is a single-owner task; no lock, no shared state, no synchronous
-   out-call exists in it (architecture test).
+1b. The **materializer apply** throughput is measured in CI against the derived
+   session demand model (`MATERIALIZER.md` M5 within-node, M6 multi-node) — apply
+   is the binding ceiling, not the sequencer's append; the margin is reported,
+   never assumed.
+2a. The **sequencer** is a single-owner task; no lock, no shared state, no
+   synchronous out-call exists in it (architecture test).
+2b. The **materializer** holds no lock on state (footprint disjointness is the
+   mutual exclusion, `MATERIALIZER.md` §4.3); its only shared structure is the
+   per-epoch overlay resolved by atomic-max; its workers and partition-nodes are
+   bounded and tracked; at `N=1` it collapses into the sequencer's node/arenas.
 3. No outbox structure exists; projectors are cursor consumers only (L9).
 4. Hot memory bounded by live work (L8), archive complete by content identity.
 5. Memory doctrine holds: arenas + generational handles, zero Arc/Rc, deterministic

@@ -36,7 +36,11 @@ FIFO-sequencer, per CONSENSUS §6).
   only (ledger core, merge proposer, frontier, field service, and any
   session-scoped durable-writer primitive (the queue core and the topic
   FIFO-sequencer, per `CONSENSUS.md` §6) — one node, logs replicated across
-  the session group); volumes attach from any node
+  the session group); the sequencer/log/writer stays this one colocation node,
+  but the **materialized ledger graph** — a reconstructible read projection, not
+  identity- or work-bearing durable truth — may partition across the session's
+  other nodes for a whale session (`MATERIALIZER.md` §5, `LEDGER_SUBSTRATE.md`
+  §3); volumes attach from any node
   (SERVING §0's single-surface law). Nothing in this spec's isolation story
   depends on physical adjacency — isolation is keys + fencing + brokered
   grants, never machine boundaries.

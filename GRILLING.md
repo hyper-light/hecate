@@ -7975,3 +7975,39 @@ LEDGER_SUBSTRATE (§1 rescope+two-lists, §2 cost+G1, §4 split, §5 external/wo
 LEDGER_CORE §1-scope + AC-2-split + §2-§4/§8 core-sweep + AC-1b-retarget +
 §5-clause; SESSIONS §2 amendment; law-doc §8 fix; MATERIALIZER §5/§9 G1-note ⇒
 FLIP LEDGER_SUBSTRATE→ACCEPTED. G2→summoning branch; G3→follow-on.**
+
+**SUBSTRATE FIX PASS LANDED (2026-08-20): all recon findings folded;
+LEDGER_SUBSTRATE→ACCEPTED.** LEDGER_SUBSTRATE reworked (C1: §1 "shared SUBSTRATE"
+not "shared-log primitive" — ledger/queue/topic-sequencer = ordered-log
+instances, CACHE = writer-less read projection, FANOUT = composed router,
+two-independent-lists not a paired table; CO5 §2 sequencer cost + G1 local-
+lifecycle-projection; CO-§4 within/cross-node invalidation split; CO §5
+region-local + cursor-recoverable-projections vs external-non-recoverable; CO2/4
+§6 subscriber-index-dispatch-not-cursor + cross-node-cursor-backstop-NO-POLLING +
+agent-inbox-actor; CO3 §8 diagram; §9 external-delivery-cursor + lease+fence; LS1
+→CONSENSUS-§6-roster, LS5→FANOUT-§6). LEDGER_CORE: §1 single-owner→SEQUENCER +
+N=1-degenerate; AC-1b→materializer-apply-M5/M6; AC-2→2a(sequencer)+2b(materializer
+lock-free-disjointness/atomic-max-overlay/bounded-workers). SESSIONS §2:
+materialized-graph MAY partition across the session's OTHER nodes (reconstructible
+projection); sequencer/log = the colocation node. law-doc §8: cache-not-a-log fix.
+MATERIALIZER §9: colocation-nodes→partition-across-other-nodes + G1 cross-ref.
+G3(cross-partition monitor closures / multi-node delta merge) = follow-on note.
+
+**NEW BRANCH (user-raised 2026-08-20): CROSS-REGION / SIBYL FEDERATION.** The
+cross-region delta line was asserted offhand; user pulled it up as a DESIGN
+DECISION — (Q1) could a single session's work be GLOBAL? (Q2) if yes, modify
+EVERY primitive (VFS/cache/SQS/pubsub/SNS/routing/networking)? (Q3) if no,
+gateway constructs for explicit cross-region ingress/egress + coordination via
+the SIBYL (the cross-session agent = the home for cross-region/distributed infra
++ mechanics). MY LEAN (region-local sessions, per CONSENSUS §7 + Monarch/Delos
+regional-autonomy): a session HOT PATH must be region-local (WAN destroys the
+tight claim-coordination loop; the sequencer is one region); global-session =
+WRONG (forces WAN hot paths across every primitive — no planet-scale system does
+this). ⇒ region-local sessions + EXPLICIT cross-region GATEWAYS + the SIBYL as
+the cross-region/cross-session FEDERATION broker (Monarch global-federation
+shape; behind-sibyl = the distributed infra). TO BE DESIGNED (research +
+grilling) as its own branch. LEDGER_SUBSTRATE §5 made region-local pending this;
+holds regardless of the outcome. **TREE: (1) MONITORING/HANDOFF write; (2)
+COLLECTOR (closes Branch 39); (3) RESPONSE-AUTHORITY (parked); (4) SUMMONING
+mechanics (incl. G2 whale-provisioning); (5) NEW: CROSS-REGION / SIBYL
+federation.**
