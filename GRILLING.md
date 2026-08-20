@@ -6049,3 +6049,134 @@ consume). STILL OWED: the two-planes ruling (system log/telemetry-
 monitoring feeds the detection substrate vs a separate operational
 plane — my rec: two planes, one shared collector pipeline + correlation
 spine).
+
+**PROCESS CORRECTION (user, 2026-08-20): "Rather than just saying crisp
+and settled, you should do actual research and design the solution with
+respect to ALL of our existing specs and architecture."** I over-
+declared "settled" on a DIRECTION without the diligence the discipline
+requires (the IAM "zero actual research / no analysis of existing
+designs for conflicts" lesson, repeated). The port-to-Rust direction is
+chosen; the DESIGN is owed = (a) research WHAT the OTel Collector
+actually is internally (the parts that must be ported), (b) DESIGN the
+Hecate Collector reconciled against EVERY existing spec (integration
+points + conflicts + gaps, IAM-reconciler pattern), backed by receipts.
+3 LANES DISPATCHED: L1 OTel Collector CORE architecture (pdata data
+model ptrace/pmetric/plog + mutability/copy; Service/pipeline graph +
+connectors + shared-receiver fan-out semantics; Component/Factory/
+registry model + extensions; confmap/config resolution); L2 OTel
+Collector LOAD-BEARING subsystems (exporterhelper queued-retry +
+sending-queue memory-vs-PERSISTENT + storage-extension backing = the
+reliability/durability core; batch; memory_limiter backpressure;
+tail_sampling buffer+policies+decision-cache+memory-cost; filter/
+transform/attributes enrich-redact family; self-telemetry); L3 CORPUS
+INTEGRATION MAP (read ALL relevant specs, produce per-spec integration/
+conflict/gap for a native Hecate Collector — OBJECT_TIER cold-telemetry
+class + persistent-queue backing on Tectonic FS; WAL durable spine +
+is-the-collector-a-logical-log-client; PROTOCOL/WIRE_FORMAT/WIRE_SECURITY
+internal transport + OTLP-in flow class/keys/provenance; PODS host-side
+agent tier + OTLP-in vsock + gateway hosting; SCHEDULER gateway
+placement + colo-unit membership; CONSENSUS single-writer classification
+of the gateway aggregator; IAM telemetry authz + provenance-class
+governance + §7.12; HEALTH one-signal-stream relationship + two-planes +
+content-free law; MONITORING/HANDOFF agent-detection consumer + §6
+refactor + detector-input-durability; REGISTRY component/factory
+registration + config-as-registry-content; SESSIONS per-session vs
+system-wide; OCI dogfooding; RUNTIME/AGENTS_RUNTIME tracing-instrument
+the runtime). On landing: SYNTHESIZE the designed Hecate Collector spec
+(architect's job) + present reconciled-against-corpus for acceptance.
+MONITORING/HANDOFF write still staged behind this.
+
+**TWO DIRECTIVES (user, 2026-08-20) — shape the design:** (1)
+**TWO-PLANES RULING SETTLED (separate, with one crossing):** "The otel/
+telemetry pipeline is to be separate of the monitoring and health plane
+by and large excepting that all health and monitoring events, processes,
+and services (i.e. the warden, the sensor, all of it) needs to be
+instrumented." ⇒ the Collector (telemetry) is SEPARATE from the
+monitoring/health plane (detection reads its OWN authority signals, NOT
+telemetry); the ONE crossing = the monitoring/health machinery is itself
+a SUBJECT OF INSTRUMENTATION (warden, sensor, detection substrate, health
+service, score service, Scribe — ALL emit telemetry into the Collector).
+KEY MODEL: a component emits into BOTH planes with different outputs —
+warden VERDICT (deny/allow) = monitoring-plane authority signal; warden
+PERFORMANCE (decision latency/throughput/CPU) = telemetry into the
+Collector. Same component, two planes, no blur. (Supersedes my "two
+planes over ONE shared pipeline" rec — they're SEPARATE pipelines; the
+link is instrument-the-monitoring-plane, not share-the-collection.) (2)
+**MAXIMAL COLLECTION: "We collect absolutely as much of everything.
+Period."** ⇒ TOTAL instrumentation, nothing un-instrumented. RIGOR
+(reconcile w/ "sampling is the cost control" — different STAGES, not a
+contradiction): collect-everything at EMISSION (9ns un-sampled fast path
+⇒ affordable at source) + aggregate LOSSLESSLY over the FULL stream
+(counts/histograms preserve the whole signal as raw events age out) +
+cost discipline moves to RETENTION TIERING + raw-event TAIL-SAMPLING
+(keep aggregates over 100%, tail-sample which raw traces survive as
+exemplars — Scuba ingests millions/sec bounded by memory + expire-at-
+ingest-rate). The durability core (exporterhelper PERSISTENT QUEUE) must
+hold under that volume. RESEARCH LANES ADJUSTED for both: L2 adds the
+maximal-collection-vs-affordability reconciliation (aggregate-over-all
+lossless + tier/tail-sample the raw; persistent-queue durability under
+high volume); L3 adds the two-planes-separate constraint (map how
+warden/sensor/detection/health/score emit BOTH authority-to-monitoring
+AND telemetry-to-Collector; the Collector instruments the monitoring
+plane but stays separate).
+
+**+2 MORE DIRECTIVES (user, 2026-08-20):** (3) "And you need to research
+and design that" — the MAXIMAL-COLLECTION model is RESEARCH+DESIGN, not
+a gloss (the collect-everything + lossless-aggregate-over-all + tier/
+tail-sample-raw + persistent-queue-durability model must be grounded in
+receipts AND fully designed). (4) "You also need to design the 'single
+laptop' case. And research that as well." — the N=1 DEGENERATE of the
+WHOLE telemetry/Collector system is first-class RESEARCH+DESIGN: the
+two-tier collector (per-node agent + cross-node gateway) → ONE
+in-process pipeline at N=1 by DERIVED PARAMETERS not modes (PODS
+scale-doctrine); local storage on the object-tier/WAL laptop-degenerate;
+the same collect-everything model bounded by LAPTOP memory (Scuba
+memory-bound + expire-at-ingest-rate; Prometheus single-node-is-the-
+default; the un-sampled-fast-path keeps instrument-everything cheap even
+at N=1); zero modes. LANES SCOPED to cover all four: L1 += the OTel
+single-binary/embedded/in-process/agent-only shape (the N=1 runtime
+form); L2 += maximal-collection reconciliation (research+design) + N=1
+storage/retention/memory-bound; L3 += N=1 no-modes corpus consistency
+(how PODS/OBJECT_TIER/WAL/HEALTH handle laptop-degenerate — the
+Collector must follow the same derived-parameter-not-mode discipline).
+
+**+2 MORE DIRECTIVES + EXPANDED TO 4 LANES (user, 2026-08-20).**
+(5) "You need to research the WORK REQUIRED to adapt the otel collector,
+you need to research via OUR SPECS and other decisions what is required
+to INSTRUMENT, you need to actually research all of this." (6) "distill
+it into a coherent, actionable, explicit, HYPER-DETAILED actionable plan
+at the granularity and detail we have clearly come to expect given our
+other specs" + "Your research and design must produce the maximally
+correct, robust, performant, efficient, COMPATIBLE, COMPREHENSIVE (both
+system coverage/breadth AND detail) design." ⇒ DELIVERABLE BAR = a
+spec-grade Hecate Collector design at IAM.md/PODS.md granularity
+(sections + mechanics + worked examples + test matrix + acceptance
+criteria + corpus amendments), maximally correct/robust/performant/
+efficient/compatible/comprehensive. 4 LANES DISPATCHED (all no-fan-out):
+**A (af9bc69)** OTel Collector CORE + PORT WORK — pdata data model
+(the crux to port), Service/pipeline graph + sync-coupled-fan-out
+hazard, Component/Factory/registry, confmap config, connectors/
+extensions, embedded/single-binary/in-process (N=1 runtime shape), +
+THE PORT EFFORT (core-vs-contrib inventory, Rust-collector prior art,
+Go→Rust translation: goroutines→tokio / interfaces→traits / reflection-
+factory→explicit-registration). **B (ab36703)** RELIABILITY subsystems
++ MAXIMAL-COLLECTION + N=1 — exporterhelper queued-retry + sending-queue
+memory-vs-PERSISTENT (the durability core), batch, memory_limiter
+backpressure, tail_sampling (buffer/policies/decision-cache/mem-bound),
+filter/transform/attributes; the collect-everything-affordably model
+(lossless-aggregate-over-all + tier + tail-sample-raw; Scuba/Prometheus/
+exp-histogram receipts); N=1 resource story (memory-bound + formula-
+from-anchors + 9ns-fast-path). **C (a10a751)** INSTRUMENTATION SURFACE
+from OUR SPECS — read ALL 26 specs + 5 arch docs, enumerate per-
+subsystem spans/metrics/logs + the two-planes split (monitoring-
+authority-signal vs telemetry) for warden/sensor/pods/runtime/scheduler/
+consensus/object-tier/wal/merge/ledger/iam/registry/serving/vfs/forest/
+rank/health/sessions/vector/agents/gateway/oci/collector-self/detection.
+**D (a8552f0)** CORPUS INTEGRATION MAP + N=1 no-modes + two-planes-
+separate — per-spec integration/conflict/gap on OBJECT_TIER/WAL/PROTOCOL
+/WIRE/PODS/SCHEDULER/CONSENSUS/IAM/HEALTH/MONITORING/REGISTRY/SESSIONS/
+AUTOSCALING; the N=1 derived-parameter-not-mode consistency; the
+separate-plane-but-instrument-the-monitoring-plane placement. On ALL
+FOUR landing: synthesize the hyper-detailed Hecate Collector spec
+(architect's job), present reconciled-against-corpus for acceptance,
+THEN it joins the staged MONITORING/HANDOFF write.
