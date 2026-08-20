@@ -7365,3 +7365,59 @@ local compiled artifact rooted in the signed release (no RTT, no running
 IAM server), audit = async-after-decision; the "bootstrap cycle" was a
 conflation of decision-enforcement (needs nothing) with audit-shipping
 (rides collector, best-effort). Confirmed by both reconcilers.
+
+**FULL-DESIGN RE-PRESENTATION (2026-08-20): after a summary-level pass the
+user pushed "what is the full DESIGN of each — mechanics, replication, boot,
+durability, work-with-our-system, laptop case." Delivered spec-granular
+designs for CACHE+PUB-SUB / QUEUE / FANOUT (types + hot-path pseudocode +
+the 5 named dimensions each) in-message; awaiting review. The DELIVERY SPLIT
+is now the organizing rule (user-driven correction): pub-sub (at-most-once)
+= DEFAULT internal notification over the durable log; queue (at-least-once)
+= the NON-RECOVERABLE hand-off boundary; fanout defaults subs to ephemeral.**
+
+**RESEARCH LANE B LANDED (2026-08-20, a75d59): at-most-once-notify-over-
+durable-log vs at-least-once. VERDICT = VALIDATED w/ 3 HARD PRECONDITIONS
+(consumer tracks a durable cursor into an authoritative log; actions
+idempotent/re-derivable; a LIVENESS BACKSTOP exists).** THEOREM = the
+End-to-End Argument (Saltzer/Reed/Clark, ACM TOCS 1984): correctness lives
+at the endpoints; a reliable delivery primitive is REDUNDANT to correctness
+("must still be implemented no matter how reliable the communication system
+becomes") ⇒ resting correctness on log+cursor REMOVES delivery from the
+correctness-critical set (the robustness argument, proven not asserted).
+CHEAPER (receipts): Aurora "the log is the database" = 7.7× fewer IOs/txn,
+35× txns, 46× fewer I/Os (SIGMOD'17); memcache 18× deletes/packet + leases
+17K→1.3K/s (NSDI'13); SWALLOW halves messages. SOURCE-OF-TRUTH anchoring:
+Kafka (offset), Aurora (pages=cache of log), TAO ("MySQL a consistent source
+of truth", lag <1s, ATC'13), memcache ("not the authoritative source"),
+Monarch ("leaves are the source of truth"; best-effort recovery-log, no
+ack-wait; drops delayed writes → partial data, VLDB'20).
+**MANDATORY REFINEMENT (single biggest risk, folds into the CACHE pub-sub
+spec): the parked-agent SATISFACTION MONITOR is the HIGHEST-RISK consumer —
+a wake-up is a CONTROL SIGNAL, not re-readable state — so notification-ONLY
+(no poll/timeout) hangs the agent on the FIRST drop. The monitor MUST pair
+the best-effort notice with an independent liveness floor: re-derive
+satisfaction by POLLING THE CLAIM STATE (which IS in the log) / arm a
+liveness timeout.** This ELEVATES my earlier acceptance criterion ("converges
+within reconcile bound") from nice-to-have to a NAMED MANDATORY mechanism.
+STALENESS BOUND = min(next-notice, reconcile-poll, TTL); when all notices
+may drop only poll/TTL is guaranteed ⇒ DERIVE the reconcile interval = max
+tolerable staleness PER CONSUMER (the constant's anchor). AT-LEAST-ONCE
+genuinely required ONLY at the non-recoverable external hand-off (can't
+re-read our log / external side-effect / cross-host 2PC) — there + an
+IDEMPOTENCY KEY (dups must be deduped anyway). Discriminator: "can the
+consumer re-derive the fact by reading our log?"
+HONEST CORRECTIONS from the lane (fold in, don't overclaim): (i) Databus is
+at-LEAST-once — mis-citable as at-most-once; only its cursor+bootstrap
+ARCHITECTURE transfers, not its semantics. (ii) memcache invalidation is NOT
+pure at-most-once — deletes ride TCP + are derived from the reliable commit
+log (replayable); the backstop is log-replay+TTL, not the single delete's
+delivery. (iii) Monarch shows best-effort's COST too (non-monitoring apps
+get reduced consistency). NET: the delivery split as presented STANDS;
+one CACHE acceptance criterion sharpens; queue/fanout mechanics unchanged.
+Dossier: tmp/notify_semantics_lane/dossier.md.
+
+**LANE A (ledger-on-shared-log: Delos/Tango/CORFU/Aurora/Kafka, adaa99)
+STILL OUT — the ledger-layering settle integrates BOTH lanes.** Also
+2026-08-20: user directed referencing the actual VALKEY SOURCE (../valkey,
+present as a full C checkout) for the cache — ADAPT/EXTEND/IMPROVE, not copy;
+dispatched a code-study lane (eviction/expire/pubsub/notify/TRACKING/dict).
