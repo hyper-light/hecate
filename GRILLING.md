@@ -4882,3 +4882,73 @@ channel, model-unreachable, enrichment-class) + NEW §5 (the channel) +
 renumber + MON14–20 + criteria; HANDOFF §3/§8 updated (window
 transit/persistence split; brief includes drained tail on death).
 AWAITING: §2 ruling (A vs B) + accept/amend on both full specs.
+
+**BRANCH OPENED (2026-08-19): WARDEN/SENSOR INTERIOR COVERAGE + THE
+CONDUCT SIGNAL PATH** (user directive, two demands, children of §2/§5):
+(1) warden/sensor must be designed to handle INTERNAL microVM traffic
+(the two-container interior); (2) the Scribe must work with BOTH warden
+AND sensor — metrics from both feed detection; a malicious/misaligned
+agent trips both regularly ⇒ handoff path. CORPUS GROUND TRUTH read:
+PODS §6 (warden = host-side pre-effect on the device surface; "in-guest
+actions are ungated as calls" — sound for ONE workload, predates the
+two-container interior; sensor = guest-kernel eBPF, fixed image-hashed
+programs, tighten-only, silence-is-a-signal, streams to the warden over
+its own vsock channel; T13–T17); HEALTH (pod-pressure signal already
+sources warden+sensor; content-free H8; AbsenceIs::Degraded for sensor;
+no-authority H4); IAM §7.3 (warden compile-source ratified; sensor = a
+DENY layer above the evaluator, never a decide() step); IAM §6
+(compile-and-distribute per-PEP residuals). FOUR TENSIONS/GAPS NAMED:
+(T1) PODS §1 "one microVM running one agent" — predates primary+Scribe;
+definitional amendment owed. (T2) PODS §3 init contract is EXHAUSTIVE
+(five duties; "an init that can do more fails review") vs the
+two-container extension (spawner + channel minting) AND the
+newly-found hole: the sensor's kernel programs cannot speak vsock —
+SOMETHING userspace must drain BPF rings into the sensor channel, and
+no component owns that duty (init? a dedicated supervisor-plane
+exporter?). (T3) kernel-config conflict: PODS §6 requires eBPF/LSM
+"compiled into our kernel image" vs containers-dossier receipt (stock
+libkrunfw: CONFIG_SECURITY unset, no LSM) — AND self-flag: MONITORING
+§5.8's BPF_CGROUP_UNIX_* tripwires assumed CONFIG_CGROUP_BPF, never
+verified in stock config; the fork-flip list must be enumerated
+DAX-style ("fork work, tracked — not waived"). (T4) detection stack has
+NO conduct phenomenon: HANDOFF §1 consumes warden verdicts as
+work-quality only; warden security verdicts (deny/hold/escalate rates,
+class mix) + sensor telemetry (syscall-class aggregates, tripwire
+firings, interior denials) absent as detector inputs; no §4 row for
+repeated-enforcement-tripping; interior denials (seccomp
+RET_ERRNO = silent!) currently surface NOWHERE. WORKING HYPOTHESIS
+(pending receipts): NO second warden — warden stays the single
+authority; IAM §6 compile-and-distribute extends ONE MORE HOP into the
+guest (interior enforcement = warden-compiled kernel residuals —
+seccomp/BPF/cgroup profiles — installed by hecate-init BEFORE either
+workload runs; install-then-exec ordering = Bar-A trustworthy); interior
+observation = the sensor extended with per-container attribution
+(cgroup-id-keyed) + denial-event classes, drained by a supervisor-plane
+exporter; conduct phenomenon enters HANDOFF §1/§4 with rare-event
+detectors (Poisson/Bernoulli/TBE CUSUM) under the same δ budget;
+line drawn: pattern ⇒ Scribe-runbook ⇒ handoff; confirmed hostility ⇒
+Guardian hard-block (never mere handoff); every tripped op was ALREADY
+denied pre-effect — detection adds the ACTOR response, enforcement owns
+the ACT. THREE LANES DISPATCHED: (a) interior enforcement observability
+(seccomp denial observation routes RET_LOG/USER_NOTIF + TOCTOU caveat,
+BPF LSM, cgroup-BPF attach mechanics + landing versions, cgroup v2
+event surfaces memory.events/pids.events/cpu.stat/PSI + poll semantics,
+libkrunfw stock-config verification of the full BPF/tracing/audit/PSI
+flag set both arches ⇒ fork-flip list, Falco/Tetragon/Kata-agent-policy
+/gVisor exporter-placement precedents, interior tripwire event-class
+enumeration); (b) VMM-side visibility (KVM binary stats fd + exit-mix
+inference, host-observed truth via VMM-process cgroup/schedstat/RSS,
+Firecracker per-device metrics taxonomy, libkrun.h API scan for any
+stats surface — expected NONE ⇒ fork-roadmap receipt, virtio-balloon
+guest-stats trust wording, CloudWatch hypervisor-vs-guest-agent split,
+lie-detector table guest-claim ↔ host-proxy); (c) conduct detection
+math (Axelsson base-rate fallacy, Lucas Poisson CUSUM, Gan/Vardeman-Ray
+TBE/exponential CUSUM, Bernoulli CUSUM, g-charts, integer-ARL
+discreteness caveats, Forrest sense-of-self + Wagner-Soto mimicry
+caveat, Ye EWMA-on-audit, Falco/GuardDuty/EDR pattern⇒quarantine
+response precedent, Anthropic agentic-misalignment + Apollo scheming
+measured rates as base-rate priors, benign-trip rates). On landing:
+design the interior coverage + conduct path, fold into MONITORING
+(§3/§5/§6 + new §) + HANDOFF (§1 metric family + §4 phenomenon row +
+§6 runbook line + §7 Guardian line) + PODS §1/§3/§6 amendments +
+re-present. All three §2-ruling-agnostic.
