@@ -5013,3 +5013,27 @@ OPEN: the §2 ruling (Design A containers-per-loop [recommended] vs
 Design B shared-runtime) — the accepted document cannot carry "THE
 OPEN RULING" to disk; needs the user's explicit call at incorporation.
 Parked separately: response-authority branch + its lane D (adbe…).
+
+**§2 RULED + BOTH SPECS ACCEPTED (2026-08-19).** User, three points
+verbatim-close: (1) "Containers-per-loop -> I assume this means the
+containers in microvm" — CONFIRMED, meaning fixed: one libkrun microVM
+per primary agent; inside it one OCI container PER AGENT LOOP (primary
+loop + Scribe loop = two containers per pod), spawned/supervised by
+hecate-init as PID 1; "loop" = agent loop, never per-turn. (2)
+"accepted" = the §2 ruling: **DESIGN A — CONTAINERS-PER-LOOP —
+ACCEPTED**, superseding the previously-accepted shared-runtime model
+(Design B kept in the spec as the documented alternative + §5.9
+degeneration note); the NO-PRECEDENT assembly (hecate-init container
+spawner on the libkrunfw-lineage kernel) is now in-scope build work,
+carried as spec text with its caveats (no-LSM baseline, OOM sizing
+invariant, upper-never-on-virtiofs). (3) "accepted" = MONITORING +
+HANDOFF acceptance re-affirmed; the incorporation condition stands
+(three warden/sensor lanes fold in before files are written; MONITORING
+crit-14 / HANDOFF crit-13). At write time the §2 section converts from
+"OPEN RULING" to "RULED: Design A (2026-08-19)" with B as the recorded
+alternative; corpus amendments include the previously-documented
+shared-runtime tradeoff revision (the crit-15 "if Design A" item).
+REMAINING before write: the three arc lanes land → dossiers recorded →
+interior-coverage + conduct designs composed → incorporated sections
+presented → both files + amendments in one change → GAPS closes
+D-5/Branch 14.
