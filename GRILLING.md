@@ -4363,3 +4363,46 @@ lifecycle/observability — the QUESTION becomes shared-runtime (accepted;
 containment; cost = lane-1's tens-of-ms + supervisor work; feasibility =
 lane-2 pending). 2 container lanes (Kata/libkrun feasibility, comms) +
 2 SRE passes still out.
+
+**CONTAINERS LANE 4 LANDED (2026-08-19): COMMUNICATION AVENUES.** THE
+DECISIVE FINDING (how the Scribe's host stream stays untouchable): (1)
+device cgroups CANNOT keep the primary off vsock — socket(AF_VSOCK) is a
+plain socket(2) call needing NO device node (/dev/vsock exists only for
+the CID ioctl, vsock(7)); OCI device lists gate device NODES only. (2)
+NAMESPACES cannot either — AF_VSOCK is GLOBAL per-kernel ≤6.19 (no
+netns.vsock at v6.18/v6.19 tags); Linux 7.0 adds netns modes BUT
+verbatim "Any vsocks within the same network namespace are always
+reachable, regardless of the mode" + g2h_fallback=1 default (per-netns
+0644 sysctl — writable back by netns-root unless /proc/sys RO). (3) The
+enforcement IS SECCOMP on socket(2) domain — OCI arg-filtering
+(index/value/op) + SHIPPED PRECEDENT: containerd's DEFAULT profile
+"Allow socket(2) for all address families except AF_VSOCK and AF_ALG"
+(three range rules → fall through to ActErrno); 32-bit socketcall caveat
+noted (moot for x86_64/aarch64). THE THREE-LAYER ANSWER (each receipted,
+no single point of failure): [host wiring] warden owns port↔UDS mappings
+fixed at VM build (krun_add_vsock_port/2 verbatim; Firecracker: unwired
+port ⇒ VIRTIO_VSOCK_OP_RST; guest cannot create/re-target mappings) +
+[who may dial] seccomp AF_VSOCK denial on the primary (inherited by its
+tool-children wholesale) + [how the Scribe holds it] init-connects-then-
+passes via SCM_RIGHTS socketpair (runc console-socket precedent: "the
+only process with a copy... is whoever read the fd" — NO guest-visible
+name to squat) or CAP_NET_BIND_SERVICE privileged port <1024. KATA
+PRECEDENT: agent owns vsock (fixed ports 1024 ctl/1025 logs/1026
+debug = per-stream port separation); workload-direct-vsock =
+NO-PRECEDENT; Kata ships disable_guest_seccomp=TRUE by default (their
+threat model = whole-guest-one-unit; Hecate's intra-guest adversary
+means Hecate must apply what Kata skips). AVENUE TABLE: localhost/
+shared-netns = WEAK (port squat, unauthenticated 127.0.0.1, shared
+/proc/net + firewall, CAP_NET_ADMIN rewrite); UDS-in-shared-mount =
+strongest general-purpose (fs perms + SO_PEERCRED auth; dir-write peer
+can squat path); shm = memory-speed/WORST integrity (disqualifying for
+observer); FIFO = dominated (64KiB backpressure starvation); SOCKETPAIR-
+FD-PASSING = strongest capability-shaped (unnamed, unsquattable,
+possession=capability); vsock CID-1 loopback = a SIDE DOOR the same
+seccomp denial closes. HOST-MEDIATED-ONLY = ideal for observe-not-feed
+(no shared channel exists to tamper/starve; the broker round-trip lands
+only on flows the law already forbids; K8s stdio-redirect + Kata
+everything-through-agent precedents). Tool-children: socketpair-fd or
+scoped UDS mount (Scribe outside the share). 1 container lane
+(Kata/libkrun feasibility) + 2 SRE passes still out; containers
+re-presentation on set completion.
