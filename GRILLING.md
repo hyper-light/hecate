@@ -7126,3 +7126,29 @@ dirty-tracking on KV face ONLY. (e) eviction pluggable-per-pool +
 LRU-2Q first-class; concurrency UNCHANGED (single-owner-shard subsumes
 CacheLib's lock machinery).** 1 cache-enrichment lane still out:
 distributed-hybrid (a4933b19).
+
+**FINALIZATION PHASE BEGUN (2026-08-20): ALL 6 research lanes complete
+(queue/cache+pubsub/fanout/collector-scale/cachelib/distributed-hybrid).
+Wrote the consolidated design statement (scratch: primitives_design_
+statement.md — §S shared substrate + §A consolidated amendments + SPEC
+1-4 + 10 open reconciliation questions). Dispatched 2 THOROUGH corpus-
+reconciliation lanes (the Lane-D-depth pass the compliance sections only
+first-passed): a8540133 = storage/protocol set (WAL/OBJECT_TIER/CONSENSUS
+/PROTOCOL/WIRE_FORMAT/WIRE_SECURITY/SERVING/TRANSFER/VFS/MERGE/LEDGER_
+CORE/LEDGER) resolving Q3(duplication-vs-exactly-once)/Q4(ephemeral-
+class-fits-closed-enum + non-interference)/Q5(queue-class + §5-cache-
+role-doc-sync + one-engine-vs-never-spill)/Q6(WAL logical-log-clients)/
+Q8(CIRCULAR-DEPENDENCY/boot-order: collector-uses-queue, queue-needs-
+IAM+CONSENSUS+WAL, IAM-audit-rides-collector)/Q10(SERVING/MERGE/LEDGER_
+CORE/TRANSFER interactions); a193a5ee = authority/runtime set (IAM/HEALTH
+/FAULTS/RUNTIME/AGENTS_RUNTIME/SCHEDULER/AUTOSCALING/REGISTRY/SESSIONS/
+SIBYL/VECTOR_INDEX/FOREST/RANK/PODS) resolving Q1(IAM resource-type/
+action collisions + PEP homes)/Q2(CONSENSUS roster completeness)/Q9
+(placement+scaling)/RUNTIME-bans-honored/HEALTH-content-free-signal-vs-
+data/FOREST-§96-duel-vocab. Each = per-spec CONFLICT/GAP/AMENDMENT-
+COLLISION/NO-CHANGE + resolved-open-questions. ON LANDING: integrate,
+resolve conflicts, finalize the 4 specs (CACHE folds CacheLib one-engine
++slab-arena + distributed-emergent; COLLECTOR full restatement), then
+re-present the maximally-complete family for acceptance → on accept
+write QUEUE.md + CACHE.md + FANOUT.md + COLLECTOR.md + the §A corpus
+amendments in ONE change + close Branch 39 in GAPS.
