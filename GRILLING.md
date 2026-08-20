@@ -4661,3 +4661,32 @@ handoff the Scribe assembles a rich brief from the intact window
 turns-to-reconstruct; cadence from window size × loss tolerance).
 Folds into MONITORING §4/§7 + HANDOFF §8 on re-present when the three
 channel lanes land.
+
+**CONTEXT-ECONOMY RATIONALE CONFIRMED (user, 2026-08-19): the Scribe's
+history-keeping "effectively ensures the primary agent doesn't waste
+context annotating and keeping track of its own history on top of doing
+work."** Elevated to a design LAW with two consequences: (1) THE
+DIVISION-OF-LABOR LAW — the primary spends context on WORK ONLY; it
+carries ZERO history-keeping duties: no self-annotation instructions in
+its prompts, no history-summarization turns, no narration obligations.
+The Scribe spends ITS context on history/narration. Grounded in the
+curves already on file: context-rot degrades performance with length;
+"token usage by itself explains 80% of the variance"; context exhaustion
+= the dominant handoff cause — so every self-annotation token costs
+3× (tokens + accelerated rot + earlier context handoff); offloading =
+a performance intervention, not a convenience. (2) THE MECHANICAL
+REALIZATION — for the offload to cost the primary ~ZERO tokens, the
+history stream is emitted BY THE PRIMARY'S RUNTIME (hecate-rt
+instrumentation at turn boundaries/tool dispatch/claim posts —
+structured activity events as a SIDE EFFECT of doing work, below the
+model), NEVER by the model writing annotations. The channel's emitter is
+runtime code, not model output — which also strengthens the
+tamper-bounding (runtime-emitted events are code-shaped, not
+prompt-injectable prose; the model can't be socially-engineered into
+corrupting a stream it doesn't write). TESTABLE: the primary's prompt
+assembly contains zero history-keeping instructions (grep-proof); the
+primary's token spend carries zero narration overhead (measured);
+history capture continues when the model is mid-inference (it's
+runtime-level). Folds into MONITORING §4 (emitter = runtime
+instrumentation) + §7 (division of labor) + the CONTEXT.md Scribe
+definition annotation on re-present.
