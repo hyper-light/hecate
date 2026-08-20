@@ -7928,3 +7928,50 @@ update LEDGER_CORE §5 same-change. VERIFIED CLEAN: §1 cells 1-2, §4 read-path
 "first-and-only cursor" (no conflict w/ fan-out-to-many), consensus-in-one-place.
 LEDGER/SESSIONS/SCALING lane (a2d86c88) STILL OUT — integrate BOTH before fixing
 + flipping LEDGER_SUBSTRATE to ACCEPTED.**
+
+**SUBSTRATE RECON — LEDGER/SESSIONS/SCALING LANE LANDED (2026-08-20, a2d86c88):
+BOTH LANES IN.** C1 (crux, BOTH lanes agree) = cache-not-a-log conflict (fix:
+log/ordered instances = ledger + queue + topic-FIFO-sequencer; CACHE = writer-
+less substrate-sibling read projection; FANOUT = composed router). **CO1 (NEW,
+BLOCKS): the §1 amendment left a RESIDUAL — LEDGER_CORE §1:21-22 "single-owner
+task... all hot state in its arenas" + §8 AC-2 "single-owner; no lock, no shared
+state" STILL encode the old unified model, FALSE under MATERIALIZER (multi-worker
+WorkerPool + shared overlay-by-atomic-max + multi-node state-partition). FIX:
+scope single-owner to the SEQUENCER; split AC-2 → 2a sequencer(single-owner/
+no-lock/no-sync-outcall) + 2b materializer(lock-free-via-disjointness, shared
+overlay=atomic-max, bounded/tracked workers).** CO7 (sweep): "the core"/"in-core"
+ambiguous in LEDGER_CORE §2-§4/§8 — retarget AC-1b ceiling → MATERIALIZER apply
+M5/M6; label :94-95=sequencer, :154 in-core-validation=materializer. **CO8
+(SESSIONS amendment — the whale-vs-colocation A): SESSIONS §2 colocation unit =
+ONE node; MATERIALIZER §9 "colocation nodes" undefined ⇒ AMEND SESSIONS §2: the
+sequencer/log/writer stays one node (the colocation unit); the materialized GRAPH
+is a reconstructible projection that MAY partition across the session's OTHER
+nodes (not identity/work-bearing durable truth).** COHERENCE: CO2 (in-core
+monitor = subscriber-index dispatch, NOT "cursor-driven" — else a 2nd cursor),
+CO3 (§8 diagram: projections + cache-inval belong UNDER FANOUT), **CO4 (§6
+"POLLING" violates the corpus NO-POLLING law [AGENTS_RUNTIME:14, LEDGER:191,
+QUEUE §13] + mis-attributes the backstop — it's the PARKED AGENT'S INBOX CURSOR,
+not "the monitor"; fix: "the cross-node consumer re-derives from its durable
+cursor over the claim state", DROP "polling")**, CO5 (§2 sequencer cost =
+affordance-check over a footprint-indexed speculative overlay O(footprint), NOT
+"just an append"), CO6 (§1 table = two INDEPENDENT lists not paired rows), CO9
+(seal→cite lease+fence; watermark back-ref §3→MATERIALIZER §2/§4.6). **G1 (DEEP,
+adopt): the single-owner sequencer's affordance check needs LOCAL state, but a
+whale's committed state PARTITIONS across nodes ⇒ RESOLUTION: the SEQUENCER keeps
+a full LIFECYCLE/AFFORDANCE projection LOCALLY (the small ClaimSlot.lifecycle
+cells + relations — cheap; LEDGER_CORE:52-57 already splits immutable-content
+from small-mutable-lifecycle) while the MATERIALIZER partitions the heavy
+content/graph, + an apply→sequencer feedback path.** **G2 = THE SUMMONING TREE
+ITEM: no provisioning path for a session to acquire cores→nodes for its
+materializer (SCHEDULER = single-node session gang; AUTOSCALING "cannot summon
+workers") ⇒ the whale lever is UN-ACTUATED ⇒ folds into the summoning-mechanics
+branch (session-scaling summon keyed on apply-lag).** G3: cross-partition monitor
+closures / delta merge under multi-node apply under-specified (follow-on).
+VERIFIED CLEAN (both): recovery vs FAULTS+§2, total-order/monotone-cut survive
+the split, read-path §4 vs CACHE, distribute §5-delivery vs FANOUT, wake-in-core
+vs §3/§4/AGENTS_RUNTIME, consensus-in-one-place. **FIX PASS (one change): rework
+LEDGER_SUBSTRATE (§1 rescope+two-lists, §2 cost+G1, §4 split, §5 external/wording,
+§6 dispatch/polling/actor, §8 diagram, §9 invariants, LS1/LS5, terms);
+LEDGER_CORE §1-scope + AC-2-split + §2-§4/§8 core-sweep + AC-1b-retarget +
+§5-clause; SESSIONS §2 amendment; law-doc §8 fix; MATERIALIZER §5/§9 G1-note ⇒
+FLIP LEDGER_SUBSTRATE→ACCEPTED. G2→summoning branch; G3→follow-on.**
