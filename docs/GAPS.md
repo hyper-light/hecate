@@ -334,7 +334,7 @@ no spec anywhere) · 18 continuity/conversation · 23 document DB ·
 35 git-compatible code hosting · 36 attachment lifecycle mechanics ·
 37 volume provisioning (both planes) ·
 39 observability plane + mesh/pod telemetry integration ·
-40 universal caching · 41 vault rotation-under-replication · 42 vault
+41 vault rotation-under-replication · 42 vault
 credential types (AWS-SM parity) · 43 vault cert issuance (ACM analogue) ·
 32-WIDENED node provisioning + abstraction expansion · 38 the laptop
 collapse (whole-system scale-down map + no-modes validation + degenerate
@@ -365,6 +365,39 @@ non-blocking); (ii) SECRETS §4/§7 grant-authority rewrite (lands when
 SECRETS.md is written — Branch 28). IAM now UNBLOCKS the vault stack
 (28/41/42/43) and repo governance (35), which reference its grant/scope/
 policy model.
+
+**Branch 40 universal caching + the messaging/data primitive family
+(CACHE + QUEUE + FANOUT) — SPEC-WRITTEN 2026-08-20** (moved out of
+undesigned). `CACHE.md`, `QUEUE.md`, `FANOUT.md` ACCEPTED and written after a
+full reference study (ValKey source `8.0.8-238` read in full; Kafka/RabbitMQ/
+SmoothMQ for the queue; RabbitMQ/Kafka for the fan-out; two architecture
+lanes — the Delos/Tango/CORFU/Aurora shared-log lineage + the End-to-End
+at-most-once-notify argument). Three hecate-rt-native primitives on one shared
+substrate: **CACHE + PUB-SUB** = a general mutable KV cache with a coherence
+spine (ValKey CLIENT TRACKING generalized to a cross-node HRW-owner
+invalidation index over the FANOUT + a TAO critical-read escape),
+content-addressed immutability as an opt-in specialization, an
+environment-derived robust flash tier (DRAM-only laptop / provisioned
+two-layout Navy engine — BlockCache + BigHash/Kangaroo — at scale); **QUEUE**
+= at-least-once over WAL logical logs, environment-derived durability (no
+hardcoded replica count), opt-in FIFO/lossy/dedup/log-backed, lease-epoch;
+**FANOUT** = composed SNS-shape router, reliable-push default with
+push-notify+pull-recover opt-in. Governing principle: **OSS-compatible safe
+defaults; architecture-native optimizations opt-in behind a declared workload
+property**. §A companion amendments LANDED (same-change doctrine, 14 specs):
+OBJECT_TIER §5a (two-layout cache engine, the one-engine substrate law scoped
+to origin/staging, queue class), WAL §1/§3/§6, PROTOCOL §3/§5 (ephemeral class
+7 + archetype + fan-out-degree scale-walk), CONSENSUS §6 roster (+ stale
+merge-serializer→leader-fused fix), IAM §4 (queue/topic types + cache/channel
+capability atoms), FAULTS §5, LEDGER_CORE §3 (subscriber-index = separate
+instances), `architecture/LEDGER.md` (delivery-class defer to PROTOCOL,
+§7/§7.1 TCP→QUIC, §8 no-outbox), SESSIONS §2, SERVING §4, VFS §4,
+WIRE_SECURITY §6, WIRE_FORMAT §6, REGISTRY §2b. **This UNBLOCKS Branch 39**
+(observability plane + collector): the collector consumes all three (its
+exporter queue = a QUEUE instance, its hot-ring = the CACHE, its live-fanout =
+the FANOUT). The **collector re-statement** and the **ledger-layering settle**
+(the ledger as a state machine over the shared-log primitive — both research
+lanes in) follow as their own exchanges.
 
 **Unbranched gap found by this pass**: the **provider gateway** — LLM request
 shaping, streaming, retry/backoff, rate limits, provider errors, failover
