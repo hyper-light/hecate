@@ -5348,3 +5348,228 @@ Scribe/observability/handoff arc writes. Response-verb table +
 parameter-object families (block-lists / ceilings / phenomenon→action
 maps / feed-subscriptions, template-vs-parameter) + intel-ingestion
 shape all delivered as composed synthesis for that future design.
+
+**RECONCILER R1 LANDED (2026-08-19): PODS/LIFECYCLE set (PODS,
+SUMMONING, AUTOSCALING, VFS, TRANSFER, SERVING, PLATFORM).** Totals
+15 CONFLICT / 38 GAP / 8 PENDING-SITE / 0 STALE-REF / 2 OPEN-QUESTION /
+1 NO-CHANGE. TRANSFER = clean (transport-only, anatomy-agnostic).
+Epicenter PODS: 8 conflicts — §1 pod-def "running one agent" (→ primary
++ Scribe, 2 containers, N+1 census, one-way ring, no shared netns/vol);
+§3 init "exhaustive five-duty" contract must be RE-STATED still-
+exhaustive (duty 3 "the agent runtime process" singular wrong — add
+mint-channel-then-spawn-two, install warden-compiled residuals
+pre-spawn, scribe-first start, supervise-both, tail-drain-hold,
+flush-gated teardown); §3 "Two vsock channels" WRONG COUNT (control +
+agent + Scribe-flow + sensor, all guest↔host); §3 trust-posture
+conflates Bar A/B (container interior contains at Bar A; only Bar B
+owns init's space); §6 "in-guest actions ungated as calls" needs the
+two-workload qualification (residuals gate in-kernel, zero round-trip);
+§7 crash bullet ("Scribe drives replacement") WRONG when the VM itself
+dies — Scribe dies with it ⇒ colocation-unit checkpointed substrate +
+health plane drive replacement, successor brief = last flushed window;
+crit-2 pins the superseded five-duty count. New tests T20–T24 (Scribe
+respawn/tail-drain/channel-tamper/interior-residuals/census). VFS:
+6 gaps (two container rootfs subtrees as RO lowerdirs; upper-on-tmpfs-
+never-virtiofs law per container; work volume mounts PRIMARY container
+ONLY — Scribe attachment-free by law; V12 intra-pod isolation test).
+SERVING: container-upper writes never reach the machine (tmpfs) —
+strengthens AC-1. PLATFORM: §4 "cannot outright block" NOW WRONG
+(Guardian CAN deny — fresh-probe fail ⇒ task-hard ⇒ deny); §6 "derived
+on demand" contradicts the pushed single-writer architecture (RANK/
+LEDGER_CORE already document the push — PLATFORM the lone laggard);
+§5 consumers row hands Guardian continuous conduct analysis (→ detection
+substrate analyzes, Scribe judges, Guardian adjudicates). **TWO
+LOAD-BEARING OPEN-QUESTIONS (need user ruling; several amendment texts
+depend on them):** OQ1 — do pooled/snapshot GENERIC VMs pre-stage the
+two containers, or create-at-assignment? current text implies create-
+at-assignment (pools "generic", bundle "attaches at assignment");
+options (a) both created+started at assignment [T7 trivially clean;
+spawn cost inside the "ms" assignment budget], (b) pre-create at
+pool-fill identity-free + start at assignment [faster ready; T7 scan +
+snapshot-genericity proof + reseed-before-container-start must extend to
+container FS], (c) hybrid: Scribe (role-independent) pre-created,
+primary at assignment. OQ2 — the primary's "agent" channel under the
+new seccomp socket(AF_VSOCK)⇒EPERM: (a) stays vsock, fd PRE-CONNECTED by
+init + passed at spawn (EPERM blocks only NEW socket() creation, not an
+inherited fd — the Scribe pattern), or (b) agent traffic is
+virtio-net-ONLY per SUMMONING §63/§83 and the PODS agent-vsock row is
+superseded — this surfaces a PRE-EXISTING PODS↔SUMMONING disagreement
+(PODS calls agent-channel vsock; SUMMONING says claims/MCP ride the
+virtual network) that the seccomp rule forces to a decision.
+
+**RECONCILER R5 LANDED (2026-08-19): ROOT/ADR/GAPS set (CONTEXT, ADR
+0001–0005, GAPS).** CONTEXT: 3 CONFLICT (Pod def; Scribe def = retire
+"sidecar"/"monitors performance"/keep "requests" perf-handoff; colo-
+unit service list += score service + detection substrate), + 6 NEW
+GLOSSARY ENTRIES owed (History channel, Runtime emitter [names the §4c
+law's subject so per-turn language can't regrow], hecate-init,
+Detection substrate, Score service, Provenance class) + 2 candidates
+(drained, Runbook); office-naming OQ ("sidecar narrator" → "companion
+narrator"?, recommend rename). **ADR RECOMMENDATION (adopt): AMEND
+ADR-0001 Consequences** (same fork decision, GROWN scope — hecate-init
+replaces libkrun init via 2.0 seam + embeds spawner; guest-kernel
+config fork-owned; VMM grows first-party stats surface, upstream exports
+ZERO; dated-amendment house style per ADR-0005) + **WRITE NEW ADR-0006
+"Two-container pod interior / one OCI container per agent loop"** —
+passes all three ADR tests (hard-to-reverse: reshapes init contract/
+channel supervision/lifecycle ordering/census/Σmemory.max admission/
+interior seccomp+cgroup; surprising: SUPERSEDES accepted Design B +
+revises the corpus-wide "VM boundary is the only inter-agent isolation"
+reading — two agents share a guest at Bar A; real tradeoff: Design B
+lower-overhead/weaker-attribution is a live tombstoned alternative);
+ADR-0006 becomes the citation target for CONTEXT Pod + ADR-0001
+amendment. ADR-0001 also: "OS sandboxes kept only as degraded mode" NOW
+FALSE (seccomp/cgroup/ns are interior default at Bar A) — scope to
+"world-facing boundary only in degraded mode; interior compartment-
+alization is default"; STALE-REF "virtio-fs workspace"→"volumes"
+(C-5c sweep missed this ADR). ADR-0002/0003/0005 = NO-CHANGE (0002 has
+a PRE-EXISTING out-of-scope TCP-headline staleness, D-10 territory, not
+ours). ADR-0004 "single binary" = GAP not conflict: literally true
+(whole VM in one HOST process; guest hecate-init+2×hecate-rt are guest-
+kernel, not host) but AMBIGUOUS — scope the claim host-side; 2 OQs
+(init binary identity: one-binary-argv0 / separate / --init-mode-of-rt;
+guest-image distribution embedded-in-binary vs side-shipped). GAPS
+(two-phase per its own C-7 header-authority rule): PHASE-1-NOW — D-5 row
+CONFLICT (says "spec is what remains owed" → ACCEPTED-2026-08-19
+conditional-on-§11, closes-on-write); Branch 39 (observability plane)
+supplied → moves out of undesigned on write (Branch-44 pattern; residual
+= §11b exporter + Branch 17 dashboards); NEW rows: pending-amendments
+tracker (§11a–e, all block write), parked response-authority-branch
+charter row, companion-amendments block; §8 libkrun-fork row expand
+(+init-seam +fork-owned-kernel-config +stats-surface); provider-gateway
+"fold into Branch 14" option EXPIRED (accepted w/o absorbing it; design
+DEPENDS on gateway for provider-authoritative context accounting); §0
+"nine ACCEPTED" already-stale→count-free. PHASE-2-AT-WRITE — add
+MONITORING/HANDOFF §1 inventory rows (C-7: no row without header),
+header counts 20→22 specs +ADR-0006, §9 step-5 strike D-5, C-10 += 
+ADR-0006 candidate. **DESIGN-B SHARED-RUNTIME TRADEOFF TEXT LOCATED
+(statement §12 dangling item RESOLVED): it lives in GRILLING.md itself
+(~3767–3838, 4257–4361, 5013–5035), NOT in any spec — so the "revise
+Design B tradeoff" companion amendment = the not-yet-written MONITORING
+spec CARRIES it as the tombstoned alternative + §5.9 degeneration, no
+existing-spec edit.** §4c-BANNED PER-TURN LANGUAGE LOCATED:
+AGENTS_RUNTIME.md:127 "Scribe feed emitted after every turn; narration
+flush is part of drain." (acceptance criterion 5) — in the still-out
+runtime/agents reconciler's set (a041). R1+R5 done; 3 reconcilers still
+out: runtime/agents (a041), protocol/security/health (a4cda), planes/
+ledger/knowledge (a773).
+
+**RECONCILER R2 LANDED (2026-08-19): RUNTIME/AGENTS set (RUNTIME,
+AGENTS_RUNTIME, AGENTS, REGISTRY, SKILLS_API, SKILLS, SESSIONS).**
+RUNTIME = 0 conflict (placement-agnostic; Design-B text NOT here) but
+GAP: shard-count "N from available cores" would give 2N in a two-process
+guest ⇒ each hecate-rt's shard count is bundle-declared w/ derivation
+(primary N-from-cores; Scribe clamped to 1 = single-ingestion-thread
+design), census N+1 not 2N. AGENTS_RUNTIME = 5 CONFLICT incl. **the
+corpus's ONLY literal "Scribe feed emitted after every turn"
+(AGENTS_RUNTIME:127, acceptance criterion 5)** → runtime-emits-below-
+model + teardown-gates-on-Scribe-flush; also :4-7 (singular in-guest
+process + "Scribe feed" duty + "single shard" — all wrong: 2 hecate-rt
+processes, history EMITTER not feed, primary N shards); :95-96
+"flush narration" at drain (primary has no narration/no Scribe path);
+:21-23 "one pod's mind" (a pod now = two minds); :48-50 TS/Py exec
+in-pod CONTRADICTS accepted SKILLS_API no-interpreter law; §6 handoff
+seq missing 4 statement-§7 elements (drained force-close, key_epoch
+re-bind, suppressed-testament-flush-at-resume, FIR-seed+tier-escalate).
+AGENTS = 6 CONFLICT (pod anatomy+comms-exclusivity; Guardian "cannot
+outright block" → CAN deny; perf-handoff mis-classed as soft-gate →
+adjudication w/ deny; Scribe "monitors performance" → detection
+substrate analyzes/Scribe judges; score "derived on demand" → pushed
+single-writer; "sidecar" ×3 lines 5/32/311 → "companion"). **GLOSSARY-
+WINS PRECEDENCE HAZARD (AGENTS:17-18 "glossary wins"): CONTEXT.md must
+change in the SAME commit or the wrong Scribe/Guardian text stays
+authoritative** (update-all-sites law). REGISTRY = 0 conflict; VERDICT:
+warden/sensor correctly have NO AgentRole entries + must NOT gain them
+(structural mechanism, not agents); GAPs: AgentRole needs scaling+
+placement class (Scribe declares structural-1:1-companion so resolution
+knows a primary's summon also resolves its companion); two-bundle pods
+(primary + Scribe bundles, per-container warden residuals); runbooks =
+ordinary Skill-kind home; "handoff re-resolves, nothing else" protected
+(Scribe respawn-in-place ≠ handoff, re-creates from frozen bundle no
+resolution). SKILLS.md = 2 CONFLICT (§4 executes TS/Py in-pod
+CONTRADICTS accepted SKILLS_API — a PRE-EXISTING SKILLS↔SKILLS_API
+conflict my change surfaces; Scribe capability parenthetical "anything
+beyond narration" → += history serving + runbook skills). SKILLS_API =
+clean, runbooks fit the declared-skill model exactly. SESSIONS: "session
+group" = per-session consensus group (CONSENSUS:16) ⇒ "colocation unit
+per session group" parses cleanly; GAP: detection substrate + score
+service need home in the colo-unit service list; NO-CHANGE on handoff-
+custody axis. NEW OQs: (R2-OQ-a) where does the blocking rustls PROVIDER
+POOL live under Design A? (a) host-side at the gateway chokepoint,
+in-guest speaks hecate-wire over pre-connected fds [in-guest thread
+claim dies] / (b) pre-connected egress fds keep TLS in-guest per
+container — TIES TO R1-OQ2 (agent channel transport); (R2-OQ-b) who owns
+the scaling-class enum: PODS table (today) or AgentRole descriptor
+(canonical, doctrine favors one owner); (R2-OQ-c) fleet priors are
+CROSS-session but the colo-unit is per-session — home = (a) versioned
+logged artifacts in object-tier/registry referenced at boot / (b) a
+meta-group service that publishes them; (R2-OQ-d) score-service pointer
+target = PLATFORM §6 (let it absorb) or the new spec file directly.
+DESIGN-B TEXT CONFIRMED at GRILLING.md:3736-3763 ONLY (needs
+supersession marker; new home = PODS §1).
+
+**RECONCILER R4 LANDED (2026-08-19): PLANES/LEDGER/KNOWLEDGE set
+(LEDGER_CORE, LEDGER, RANK, SCHEDULER, CONSENSUS, MERGE, OBJECT_TIER,
+WAL, FOREST, SIBYL, VECTOR_INDEX).** 3 CONFLICT / 14 GAP / 1 PENDING /
+3 STALE-REF / 4 OQ / 4 NO-CHANGE (MERGE-substantive, WAL, SIBYL,
+VECTOR_INDEX). **KEY GAP (task-mandated check): `drained` is ABSENT
+from the canonical claim-status vocabulary (LEDGER §3: generated→…→
+satisfied|validation_*), exists ONLY as a signal REASON (LEDGER:375
+"drained|revoked|expired|superseded"); the handoff force-close law
+(statement §7) REQUIRES it as a TERMINAL STATE** → add to LEDGER §3
+diagram + LEDGER_CORE L1 sweep TOGETHER (cross-cutting-identifier law:
+closed delta-action enum + IsTerminal affordance predicate + action↔
+delta bijection all change in ONE commit). RANK = 2 CONFLICT: "nothing
+touches the ledger" (RANK:70-71) + AC-4 now LITERALLY contradict the
+push architecture (every core input is WAL-logged) → "writes no ledger
+OBJECTS; its sole ledger-directed output = the modulation snapshot
+pushed as an ordinary logged core input"; "Scribe triggers handoffs on
+the same data" (RANK:56-59) stale → detection substrate detects, Scribe
+judges, Guardian adjudicates; + GAP: RANK carries NO score-architecture
+pointer → add MONITORING §6. **LEDGER STALE-REF (load-bearing ordering):
+§8 "Outbox for projections" (LEDGER:335-338) was SUPERSEDED by
+LEDGER_CORE's ACCEPTED no-outbox decision ("the log IS the outbox") —
+must fix BEFORE adding the Scribe as a delta consumer, else the new
+subscription inherits a DELETED mechanism** (a pre-existing internal
+inconsistency my change surfaces; "narration intake" in that line also
+predates the Scribe→Archivalist flush). LEDGER_CORE GAPs: Scribe = named
+per-primary delta consumer (cursor-consumes its primary's claims/
+testaments/verdicts onto its vsock flow — authority stream, never the
+ring); score-service home pointer; accumulator suppressed across handoff
+(no duplicate testimony). SCHEDULER GAPs: colo-unit membership += score
+service + detection substrate (enter §6 gang-admission whole-unit fit);
+two-container pod admission (requirement vector sums both containers +
+init; Σ memory.max + init ≤ guest RAM enforced); boot/health validation
+pair wording (both containers up IN ORDER, Scribe first). CONSENSUS GAP:
+**the score service is a NEW named single-writer — UNCLASSIFIED today,
+it FAILS the boot roster by CONSENSUS's own chokepoint law
+(CONSENSUS:226-229 "an unclassified writer fails startup")** → classify
+region-scope epoch, add to the Branch-27 audit list (+ detection-
+substrate checkpoint writer). MERGE = NO-CHANGE substantive + minor
+STALE-REF: "─ring─►" arrow (MERGE:292) collides w/ the newly-minted
+"history ring" → relabel "host channel". OBJECT_TIER = 3 OQ: (R4-OQ-a)
+home for fitted baseline artifacts ("versioned logged artifacts") —
+durable-plane class list names none; options (a) new "monitoring
+baselines" generation-shaped class / (b) registry content / (c) archives
+[wrong: live inputs not cooled proof]; (R4-OQ-b) home for checkpointed
+detector-suite state — same species as FOREST field checkpoint
+(host-local, never replicated), both unhomed; options (a) node-local
+pack cache-role never-GC-root re-derivable / (b) declared outside the
+hierarchy like the mutable side — ONE ruling covers both; (R4-OQ-c)
+teardown-gate archival rung for Scribe window flush + trajectory —
+rung 2 sealed (node-local, dies w/ node) vs 3 placed (survives node —
+death-handoff argues this) vs 4 referenced. FOREST = 1 CONFLICT: rank
+inputs — FOREST computes prevalence/specificity/trust as FIELD
+AGGREGATES + pushes to score service (FOREST:180-184), but statement §6
+says the score service computes reputation from (ledger deltas + Scribe
+snapshots) as ONE authoritative copy ⇒ field-computed factors = a
+SECOND authoritative computation → field aggregates ADVISORY, score
+service alone computes; OQ rider: OR amend the statement's stream
+enumeration to admit field snapshots as a 3rd logged input class
+(statement-side ruling; FOREST is PROVISIONALLY-DIRECTED so statement
+controls today) + STALE-REF FOREST:220-222 "Branch 14 owns detection"
+→ "MONITORING/HANDOFF (accepted) owns detection". WAL/SIBYL/
+VECTOR_INDEX = NO-CHANGE verified. 4 of 5 reconcilers in; LAST OUT =
+protocol/security/health (a4cda: PROTOCOL vsock-channel-model [critical
+for R1-OQ2], WIRE_SECURITY two-identity keys, FAULTS, IAM Scribe-
+principal/§7.12, HEALTH §3-triggers).
