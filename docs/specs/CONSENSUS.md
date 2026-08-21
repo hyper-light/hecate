@@ -28,9 +28,12 @@ with a single leaf — every collapse below is tree-derived, never a mode.
   The **root group** (spans regions; low-rate, latency-tolerant) owns the
   region directory, cross-region placement policy, root-scoped refs (lineage
   heads, registry publications), and root-scoped epochs. **Per-region
-  groups** own the region's host-inventory map, the region's session-group
-  directory, region-scoped epochs/leases, and the region's durable-plane
-  copyset map. Same core, same code at every level; on a laptop
+  groups** own the region's **shard directory** (`key-range → data-shard →
+  host group + epoch`), region-scoped epochs/leases, and the region's durable-
+  plane copyset map. The region's cluster-state **data** — host-inventory, the
+  session-group directory, placement, and leases-as-records — **range-shards
+  across many per-region data groups** (each a Raft group + a `STORE.md` engine
+  instance); the meta group owns the directory over them, not the data itself. Same core, same code at every level; on a laptop
   root ≡ region ≡ one group. Every fencing token and writer epoch in the
   system is minted by exactly one meta-tree group per §6's scoping law.
   Group membership, configuration, and reconfiguration live as ordinary
@@ -223,7 +226,11 @@ is needed.
   write the resource accepts checks the token; a stale token is a typed
   refusal. **The merge proposer is the exception: it is leader-fused** — a
   role of its session group's Raft leader, with the term as its only fence
-  (MERGE §2, M13d), so it holds no separate lease or epoch token.
+  (MERGE §2, M13d), so it holds no separate lease or epoch token. **Each
+  `STORE.md` data-shard writer is leader-fused likewise** — the data shard's own
+  Raft leader owns apply and ingest, the term as its only fence, no separate
+  lease; the shard directory that routes to it is a placement-map version
+  (CAS-first, above), so it introduces no new epoch class.
 - **The epoch-scoping law**: an epoch/fencing authority lives in the
   **smallest failure domain that contains every legal holder of the fenced
   resource**. A ledger sequencer's holders all live in the session's region

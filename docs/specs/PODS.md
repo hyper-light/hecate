@@ -18,8 +18,9 @@ running one agent. Its world:
 
 - **vCPU/memory**: fixed at summon, derived from role profile + host capacity;
   resized only via handoff (config reaches live work exclusively through handoff).
-- **Devices**: virtio-fs (mounts), virtio-vsock (channels), virtio-net (egress via
-  the host user-space network stack — the Guardian chokepoint). Nothing else.
+- **Devices**: virtio-fs (mounts), virtio-vsock (control + sensor channels only),
+  virtio-net (the claims plane, the tool plane, and external egress — all via the
+  host user-space network stack, the Guardian chokepoint; ADR-0002). Nothing else.
 - **Identity**: pod uid, per-pod HKDF keys, fencing identity — all bound at
   **assignment**, never present in pooled or snapshotted state.
 
@@ -56,10 +57,19 @@ Contract (exhaustive — init does nothing else):
 4. Report lifecycle events and resource telemetry on the control channel.
 5. Execute shutdown/abort orders (graceful drain, then hard stop).
 
-- **Two vsock channels**, both speaking the framed protocol (`PROTOCOL.md`):
+- **vsock carries the control + observability plane only** — guest↔host,
+  `PROTOCOL.md` framing:
   - **control** (harness ↔ init): Control class, admission-reserved; spawn, health,
     shutdown, telemetry.
-  - **agent** (agent runtime ↔ claims plane + MCP): per-pod keys, standard envelope.
+  - **sensor** (sensor → warden, §6): behavioral telemetry, tighten-only, its own
+    channel.
+- **The claims plane and the tool plane never ride vsock.** The agent runtime's
+  ledger operations, delta streaming, summon control, and health speak the
+  ground-up dual-stack UDP/TCP claims protocol; skills and tools speak MCP — **both
+  ride virtio-net** through the host user-space network stack, the Guardian
+  chokepoint (§1; ADR-0002; `SUMMONING.md` §4; `PROTOCOL.md` §2). Per-pod keys and
+  the standard envelope apply to the claims plane on that transport; the agent
+  runtime holds no vsock channel of its own.
 - **Trust posture**: init runs inside the trust boundary of an untrusted workload. A
   compromised agent owns init's process space; therefore nothing init can send grants
   authority the pod does not already hold — the harness treats every control-channel

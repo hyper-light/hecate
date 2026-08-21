@@ -8029,3 +8029,146 @@ grilling): the sibyl federation mechanics + the global directory (research:
 Monarch global query/config layer, Spanner placement/directories/movedir,
 service-mesh multi-region ingress) + the ingress gateway. LEDGER_SUBSTRATE §5
 already region-local — consistent, no rework needed.**
+
+**BRANCH-1 MONITORING/HANDOFF WRITE + BRANCH-6 STORAGE ENGINE (2026-08-20):**
+- **MONITORING.md + HANDOFF.md WRITTEN** at spec rigor (§11 arc lanes + §7
+  detection stack folded). **PODS DUAL-STACK COMPLIANCE LANDED** (§1 devices +
+  §3 channels): claims plane + tool plane (MCP) ride virtio-net (the Guardian
+  chokepoint); vsock = control + sensor only. PODS §3 "agent vsock channel" was
+  the OUTLIER vs ADR-0002 / SUMMONING §4 / PROTOCOL §2 — receipts-resolved (not a
+  fork); user ratified ("PODS outdated → bring into dual-stack compliance").
+- **`drained`-AS-CLAIM-TERMINAL REJECTED** (user challenge, correct): violates
+  LEDGER:131 one-status-vocabulary + agents-own-terminals. Handoff = UID-chain
+  adoption of ALL open claims (PLATFORM §4:67-70 already says exactly this); a
+  moot claim is agent-authored revoke/supersede, never a mechanical harness
+  drain. `drained` stays ONLY as the LEDGER:397 signal/parked-turn teardown
+  reason. HANDOFF.md §10/HA8/test-row FIXED; the R4 "add drained to LEDGER §3"
+  amendment WITHDRAWN.
+- **CLUSTER STATE ≠ LEDGER (user standing principle):** ledger = agent WORK
+  only. Cluster/lifecycle homes = CONSENSUS meta-tree (membership / epoch /
+  leases / region+session-group directories / host-inventory map) + health plane
+  + registry + summoning. UID→pod binding = registry/summoning, re-resolved at
+  access, NEVER claim state.
+- **BRANCH-6 = the settled-state STORAGE ENGINE.** User caught the corpus-wide
+  conflation: **a WAL is a recovery log, NOT settled storage** (CONSENSUS §5
+  rejected boltdb but never named a replacement; OBJECT_TIER §192 punts the
+  mutable side to "WAL.md"; MATERIALIZER applies into unspecified in-mem state).
+  Need a WAL-fronted proper DB / disk-backed sharded K/V engine.
+  RESEARCH RECEIPTS: **(etcd) VALIDATED** — single-Raft leader + fdatasync-per-
+  write ceiling (~44–50K w/s benchmark peak on tiny values, real deployments far
+  lower); 2 GiB-default / 8 GiB-suggested quota → NOSPACE read-only; K8s
+  5000-node limit "assumes a sharded etcd config"; shard-into-many-groups is
+  UNIVERSAL (Borg ~10K-machine cells / Spanner tablets 100-1000/server / TiKV
+  regions / CRDB 512MiB ranges / Twine per-region 1M machines). **(Delos, Meta's
+  7yr-prod control plane)** = RocksDB-LSM settled engine behind a shared log
+  (VirtualLog + pluggable Loglets; NativeLoglet=consensus-free seal-based P/B;
+  LeaseEngine=0-RTT reads 48ms→220µs = the CONSENSUS §3 deferred local-read).
+  Hecate CONSENSUS §1 ALREADY cites the Delos VirtualLog shape → the multi-group
+  FOUNDATION is already right; only the settled engine is missing.
+  **RULING (user): FOUNDATIONAL engine** — cluster-state + ledger-materialization
+  + registry + IAM all instantiate it (not cluster-state-only). Consequence: one
+  design must serve read/watch-heavy (cluster state) AND write-heavy (ledger).
+  INTERNALS SKELETON (precedent-determined, proposed): **single log = the
+  consensus/shared log IS the WAL** (no separate engine WAL — TiKV disables
+  RocksDB-WAL for raft-applied data, Delos engines are learners above the log;
+  avoids double-fsync; = LEDGER_SUBSTRATE's SMR-over-shared-log); engine applies
+  the log → settled NVMe state, DRAM-served; **checkpoints seal to Tectonic**
+  (OBJECT_TIER durable plane, immutable/content-addressed) to bound replay;
+  **apply layer differs per instance** (linearizable-sync = cluster state;
+  MATERIALIZER-parallel = ledger). OPEN FIRST FORK: **engine data structure** —
+  LSM (RocksDB; Delos/TiKV/CRDB) vs modern B-tree (FDB Redwood) vs pluggable —
+  pending research lane 3 (FDB / RocksDB / FASTER: write-amp, read-latency,
+  DRAM/NVMe split). Lane 3 still out at write time.
+
+**BRANCH-6 STORAGE ENGINE — data-structure fork SETTLED (2026-08-20 cont):**
+Lane 3 IN (durable DRAM+NVMe). FDB unbundled = closest template: control plane
+Paxos-for-config-ONLY; data plane = stateless Sequencer/Proxies/Resolvers +
+LogServers (the WAL tier, k=f+1 fsync-before-ack) + StorageServers (async-apply,
+"distributed B-tree"). **STORAGE DECOUPLED FROM DURABILITY** — the engine
+async-applies the committed log OFF the commit path; recovery = find the log
+end, NO redo replay, MTTR <5s (median reconfig 3.08s). NVMe fsync REALITY:
+consumer-NVMe ms-class (960 PRO 3.8ms); only PLP-DC-NVMe (P3700 135µs) / BBU
+(43µs) reach µs — hence GROUP COMMIT (batch N = throughput multiplier;
+100/fsync @P3700 ≈ 738K commits/s) = WAL.md's ω. Watch = per-shard
+RESOLVED-TIMESTAMP streams (CRDB RangeFeed), NOT a global watchableStore;
+per-key order, global reassembled downstream. Lease = checkpoint remaining-TTL
+into the consensus log (etcd 5-min interval). Single-Raft ceiling ~44K w/s and
+DEGRADES with nodes → many groups scale ~linearly (100TB TiKV @256MiB ≈ 400K
+groups). FASTER 160M ops/s but hash (NOT ordered) → OUT as the engine; its
+HybridLog + epoch-latch-free inform the DRAM hot region.
+**DECISION — user OVERRULED my one-LSM rec (correct):** my "one engine more
+correct" was banned complexity-weighting; FDB storage engines AND Delos Loglets
+are BOTH pluggable (mis-cited precedent); at 100Ks-of-agents the workload
+heterogeneity is real. **PLUGGABLE ENGINE.** Design = ONE shared unbundled
+engine (log tier + async-apply driver + DRAM MVCC window + per-shard
+resolved-ts watch + checkpoint→Tectonic + sharding — ALL workload-independent)
++ a SMALL pluggable **`StorageBackend {apply, point_read, range_scan,
+seal_checkpoint, recover}`** = the cold settled store ONLY. Backend chosen by a
+DECLARED WORKLOAD PROPERTY (the opt-in-by-declared-property principle from
+CACHE/QUEUE/FANOUT — a fact about the instance, never a mode): **LSM**
+(write/append-dominated → ledger materialization) | **B-tree** (Redwood-shape,
+SSD-native, NOT boltdb mmap; read/watch-dominated → cluster state, registry,
+IAM). Skeleton ACCEPTED (single-log-IS-the-WAL, engine-applies, checkpoint→
+Tectonic, apply-layer-per-instance = linearizable-sync [cluster state] vs
+MATERIALIZER-parallel [ledger]). OPEN NEXT (order TBD): the `StorageBackend`
+trait exact contract → watch (per-shard resolved-ts) → sharding↔consensus map.
+
+**StorageBackend trait ACCEPTED — v2 after the "is it maximally X?" audit (2026-08-20):**
+v1 REJECTED (`&mut self` serialized the MATERIALIZER's parallel apply + blocked reads;
+no backpressure; window+memtable double-DRAM-buffer; no corruption detection). v2 reframe:
+the backend is PURELY COLD -- the MATERIALIZER's parallel apply + all fresh writes hit the
+shared DRAM WINDOW (concurrent multi-writer = FASTER epoch-latch-free, a shared-layer job);
+the window ages OUT immutable batches to the backend. Trait is ALL `&self` interior-concurrent:
+`ingest(AgedBatch)` (idempotent+monotonic; NO self-WAL/no-fsync -- the consensus log IS the
+WAL, `flush` promotes durability), `flush`/`durable_watermark` (log truncation gated on min()
+across consumers), `lag()` (backpressure -> admission throttle, FDB RateKeeper),
+`snapshot()->ColdSnapshot` (version-tagged consistent pin, concurrent-with-ingest; `point_read`
+checksum -> typed Corruption -> shared re-fetch; `range_scan` resumable via `after`),
+`seal_checkpoint(range)` (range-scoped: Tectonic seal AND shard split), `recover`.
+`Value = Inline | Ref(hash)` (WIRE_FORMAT inline-vs-Tectonic). 8 ACs: no-writer-blocks-reader,
+bounded-lag, single-DRAM-buffer, corruption-caught-never-served, LSM/B-tree
+observational-equivalence-under-concurrency, prefix-recoverable, no-self-WAL, resumable-scan.
+Split/merge deferred -> SHARDING fork (seal_checkpoint already ranged). NEXT FORK: watch =
+per-shard resolved-timestamp.
+
+**Conflict-B DISSOLVED + foundational scope REFINED (2026-08-20):** User correction:
+CACHE + FANOUT + LEDGER_SUBSTRATE §6 wake are the CLAIMS ledger's machinery, NOT the
+cluster ledger's -- my Conflict-B compared across two different ledgers (an error). CLEAN
+MODEL: TWO distinct ledgers over ONE shared storage SUBSTRATE. **Foundational = the storage
+substrate ONLY** (pluggable StorageBackend + single consensus log/WAL + group-commit +
+checkpoint->Tectonic + async-apply driver + intrinsic recent-tier + sharding). **Read/notify
+is PER-LEDGER, matched to consistency need:** CLAIMS ledger = MATERIALIZER-parallel apply +
+CACHE (lossy writer-less projection reads, projection-tolerant) + FANOUT/wake notify
+[accepted LEDGER_SUBSTRATE, UNCHANGED]; CLUSTER ledger = linearizable-sync apply +
+authoritative recent-tier "window" reads (ReadIndex, no lossy projection) + per-shard
+resolved-ts WATCH notify [new, additive]. window/watch are the CLUSTER ledger's layer (NOT
+shared with claims); LEDGER_SUBSTRATE's claims-read/wake lines need NO change (I was wrong to
+flag them). Conflict A (CONSENSUS §1 region-group-owns-cluster-state vs the sharded engine)
+REMAINS = the sharding fork + a CONSENSUS §1 amendment.
+
+**Whale split-model CHECKED + earlier over-claim corrected (2026-08-21):** MATERIALIZER
+§5 ALREADY partitions a whale's apply BY KEY toward "the shard boundary" (SESSIONS §2, §5
+line 10/190) -> the work-splitter is NOT an independent 2nd splitter; it already follows one
+set of cuts. ONE SPLITTER confirmed (user): one authority owns the key-cuts, data + work both
+follow it. CORRECTION to my earlier over-broad "sharding machinery identical for both
+ledgers": the STATE-sharding (by-key, one splitter) IS shared, but the LOG/ORDER model
+DIFFERS per ledger. CLAIMS = ONE ordered log per session (claims causally depend -- caused_by
+DAG; MATERIALIZER applies in the log's order; Calvin apply+state partitioned by key;
+SESSIONS §2 "log/writer/sequencer stays the one colocation node"). CLUSTER = one log PER
+SLICE (records independent; cross-shard order via resolved-ts). This log-model-per-ledger
+difference IS the apply-layer fork (NEXT).
+
+**STORE.md WRITTEN + CONSENSUS §1/§6 AMENDED (2026-08-21):** The settled-state storage
+engine spec is written (docs/specs/STORE.md) -- closes the 3 internal forks (pluggable
+LSM/B-tree backend; per-shard resolved-ts watch; foundational two-level sharding) + the
+apply seam (in-order [cluster] / MATERIALIZER [claims] + the determinism rule) + reads
+(ReadIndex + window-over-backend, single-version cold + bounded window, integrity-checked)
++ backpressure (lag -> admission) + recovery (checkpoint + tail-replay, prefix-recoverable)
++ the two-ledgers-over-one-substrate table (FOUNDATIONAL = substrate; PER-LEDGER =
+apply/read/notify). 12 ACs (ST1-ST12) + test matrix + references. CONSENSUS §1 AMENDED:
+per-region meta group owns the SHARD DIRECTORY (key-range -> data-shard -> host + epoch),
+NOT the region's cluster-state data; data range-shards across many per-region data groups
+(each a Raft group + STORE instance). CONSENSUS §6: data-shard writer = leader-fused (like
+the merge proposer); the directory = a CAS-first placement-map version (no new epoch class).
+STATUS: presented for user acceptance. REMAINING TREE: response-authority (parked),
+COLLECTOR, sibyl-federation, summoning-mechanics; + GAPS/header-count bookkeeping (+1 spec).
