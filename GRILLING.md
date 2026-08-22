@@ -8322,3 +8322,22 @@ worked example, §12 acceptance-sweep list, CL1-CL12 + SIM matrix. THREE SPECS n
 pending user verdict: STORE.md, TRACING.md, COLLECTOR.md (each with its acceptance-time
 amendment sweep). Branch tree remaining after collector: response-authority (parked),
 sibyl-federation, summoning-mechanics.
+
+**COLLECTOR.md IMPLEMENTATION PASS (2026-08-22, user: "I don't *see* the detailed
+implementation"):** six implementation blocks embedded at MATERIALIZER-style rigor:
+§4 ExpHistogram (index = exponent-bit fast path scale<=0 / log2*2^scale; record O(1)
+in-window-by-derivation; downscale = pairwise integer fold i>>1 [perfect subsetting];
+merge = align-to-min-scale + add — associative+commutative ⇒ CL4 byte-identical);
+§5 SeriesRegistry.admit (the ONE label->slot chokepoint; exact HashMap membership;
+HLL observes all keys, alarms at derived fraction BEFORE the cap; fold->overflow
+counted+alarmed; drop/whole-reject/drop-new-series UNREPRESENTABLE — no drop path
+exists); §6 Assembler (TraceSlot state machine Open->seal(WindowClosed|Evicted);
+weighted_hrw routing debug-asserted; timing-wheel expiry reused from CACHE; capacity
+derived; incomplete-never-silently-whole; membership-change semantics stated);
+§7 bind_live (closed-four boot binding, assert_exactly both directions);
+§8 ClaimsCapture (dedup key = per-claim log_seq — the ledger's OWN total order, no
+transition vocabulary/window to tune; applied-watermark map bounded by live claims,
+retire at terminal-and-released; ONE atomic persist {cursor', watermark-deltas} —
+crash-replay => `continue`, exactly-once, no 2PC) + join_work impl (caller-threaded
+capability per plane, "deny never widen" — the query service holds no capability of
+its own). Presented in-message per standing rule.

@@ -94,6 +94,59 @@ Aggregation state that must merge **exactly** across tiers, chosen by proof:
   failure-domain tree may downscale (derived resolutions per tier); the merge stays
   exact at every hop.
 
+**Implementation (per-shard, single-owner — no lock exists):**
+
+```rust
+struct ExpHistogram {
+    scale: i8,            // derived ONCE from (span, α) at series registration
+    zero_count: u64,      // |v| ≤ derived zero-threshold
+    buckets: Vec<u64>,    // dense window [index_offset ..]; length bounded by the
+    index_offset: i32,    //   derivation — never reallocated on the hot path
+    count: u64, sum: f64, min: f64, max: f64,
+}
+
+impl ExpHistogram {
+    /// Bucket covering v: ceil(log_base v), base = 2^(2^−scale).
+    /// scale ≤ 0 fast path is pure bit extraction — no transcendental call.
+    fn index(v: f64, scale: i8) -> i32 {
+        if scale <= 0 {
+            ieee_exponent(v) >> (-scale)          // floor(log2 v) from the bit pattern;
+                                                  //   each bucket = 2^−scale octaves
+        } else {
+            (v.log2() * (1i64 << scale) as f64).ceil() as i32 - 1
+        }                                         // 2^scale sub-buckets per octave
+    }
+
+    fn record(&mut self, v: f64) {
+        self.count += 1; self.sum += v;
+        self.min = self.min.min(v); self.max = self.max.max(v);
+        if v <= self.zero_threshold() { self.zero_count += 1; return; }
+        *self.slot(Self::index(v, self.scale)) += 1;   // O(1); in-window by derivation
+    }
+
+    /// Halve resolution: bucket i at scale s lands EXACTLY in bucket i>>1 at
+    /// scale s−1 (perfect subsetting) — zero added error, pure integer folds.
+    fn downscale_to(&mut self, target: i8) {
+        while self.scale > target {
+            for i in 0..self.buckets.len() { fold: new[i >> 1] += old[i]; }
+            self.index_offset >>= 1;
+            self.scale -= 1;
+        }
+    }
+
+    /// Tier merge: align to min(scale), then integer addition. Associative +
+    /// commutative ⇒ any merge tree, any arrival order, byte-identical (CL4).
+    fn merge_from(&mut self, other: &ExpHistogram) {
+        let s = self.scale.min(other.scale);
+        self.downscale_to(s);
+        let o = other.at_scale(s);                // copy-fold, other is immutable here
+        add aligned buckets; self.zero_count += o.zero_count;
+        self.count += o.count; self.sum += o.sum;
+        self.min = self.min.min(o.min); self.max = self.max.max(o.max);
+    }
+}
+```
+
 ## 5. The cardinality limiter (D4b)
 
 - **Primary defense — bounded by construction**: the label tuple is closed —
@@ -113,6 +166,45 @@ Aggregation state that must merge **exactly** across tiers, chosen by proof:
 - **Detector — HyperLogLog per scope** (~12 KB at <1% error): cheap fleet-wide distinct
   tracking feeding capacity planning and the alarm *before* the cap trips.
 
+**Implementation (per `(scope, metric)`, single-owner shard):**
+
+```rust
+struct SeriesRegistry {
+    admitted: HashMap<SeriesKey, SeriesIdx>, // EXACT membership — enforcement needs to
+                                             //   know WHICH series is new; a sketch can't
+    cap: usize,                              // derived: tier memory budget ÷ per-series
+                                             //   cost (sizeof ExpHistogram at this scale)
+    overflow: SeriesIdx,                     // pre-created at registration, labels
+                                             //   = {overflow: true} — never allocated late
+    folded: u64,                             // distinct keys folded — the counted drop
+    hll: Hll,                                // registers derived from target error
+                                             //   (1.04/√m); observes ALL keys, admitted+not
+}
+
+impl SeriesRegistry {
+    /// The ONLY path from a label tuple to a series slot (chokepoint).
+    fn admit(&mut self, key: &SeriesKey) -> SeriesIdx {
+        self.hll.observe(key.hash);                    // detector sees everything
+        if let Some(&i) = self.admitted.get(key) { return i; }
+        if self.hll.estimate() > self.alarm_line() {   // derived fraction of cap:
+            raise_health(CardinalityPressure);         //   loud BEFORE the fold starts
+        }
+        if self.admitted.len() < self.cap {
+            let i = self.alloc(key);                   // registers the series
+            self.admitted.insert(key.clone(), i);
+            return i;
+        }
+        self.folded += 1;                              // counted (CL5/CL10)…
+        if self.folded == 1 { raise_health(CardinalityOverflow); } // …and alarmed
+        self.overflow                                  // totals exact; attribution
+    }                                                  //   degrades — never a silent drop
+}
+```
+
+The three rejected dispositions are unrepresentable here: there is no drop path (every
+measurement lands in *some* series), no whole-batch reject, and no drop-new-series —
+the fold is the only overflow behavior, and it is counted + alarmed by construction.
+
 ## 6. The trace assembler (D5)
 
 - Kept spans (`TRACING.md` §5 head decision) route to a regional assembler by
@@ -127,6 +219,50 @@ Aggregation state that must merge **exactly** across tiers, chosen by proof:
   windows on a dead assembler are lost-and-counted — lossy-tolerant by class, never on
   a work path.
 
+**Implementation (per-assembler, single-owner; routing = the CACHE's `weighted_hrw`):**
+
+```rust
+enum TraceSlot {
+    Open { spans: Vec<Span>, first_seen: Instant, gap_records: u32 },
+    // Sealed slots leave the map — the row is the terminal form.
+}
+
+struct Assembler {
+    slots: HashMap<TraceId, TraceSlot>,   // capacity = derived(throughput × window W)
+    window: Duration,                     // W = p99 trace duration × derived margin
+    timers: TimingWheel<TraceId>,         // ordered expiry — the CACHE's wheel, reused
+}
+
+impl Assembler {
+    fn on_span(&mut self, s: Span) {
+        debug_assert_eq!(weighted_hrw(s.trace_id, roster()), self.id); // fenced routing
+        match self.slots.entry(s.trace_id) {
+            Vacant(e)   => { e.insert(open_slot(s)); self.timers.arm(s.trace_id, self.window); }
+            Occupied(e) => e.get_mut().push(s),      // gap records counted as they arrive
+        }
+        if self.slots.len() > self.capacity() {      // derived bound, never unbounded:
+            self.seal(self.timers.oldest(), Evicted) //   oldest seals early, counted
+        }
+    }
+
+    fn on_expiry(&mut self, t: TraceId) { self.seal(t, WindowClosed) }
+
+    fn seal(&mut self, t: TraceId, why: SealReason) {
+        let slot = self.slots.remove(&t);
+        let complete = slot.gap_records == 0 && slot.has_root() && why == WindowClosed;
+        let row = TraceRow { trace_id: t,
+                             spans: sort_by(parent, start),      // the tree, materialized
+                             complete,                            // NEVER silently whole
+                             seal_reason: why };                  // Evicted is a counted loss
+        self.hot.put(t, row);                                     // CACHE; retention seals
+    }                                                             //   to OBJECT_TIER
+}
+```
+
+Membership change: `weighted_hrw` re-routes exactly the dead assembler's share; a
+surviving assembler receiving a mid-trace span with no slot opens one — the earlier
+spans died with the dead node's window and the row seals `incomplete` (counted, honest).
+
 ## 7. The consumer surface (D2) — two classes, mechanically
 
 **Live class — the closed four, on/near the stream.** Scribe (handoff judgment,
@@ -136,6 +272,17 @@ FANOUT instance delivers class-tagged streams; each consumer **binds at boot or 
 fails** (the chokepoint-registration law — the consumer set is closed structurally, not
 by convention); live delivery rides reserved capacity. **No fifth live consumer exists**;
 adding one is a spec change here, not a subscription.
+
+```rust
+// Boot: the closed set binds, and ONLY the closed set — both directions fail loudly.
+const LIVE: [LiveConsumer; 4] = [Scribe, ScoreService, Guardian, Guide];
+
+fn bind_live(reg: &mut FanoutRegistry) -> Result<(), BootError> {
+    for c in LIVE {
+        reg.bind(c, c.class_filter(), c.scope_filter())?;  // missing ⇒ typed boot failure
+    }                                                      // (Scribe: its primary's scope
+    reg.assert_exactly(Class::Live, &LIVE)                 //  only, stamped here)
+}                                                          // a fifth binder ⇒ boot failure
 
 **Query class — the stored plane, off the ingest path.** One gated API:
 
@@ -181,6 +328,39 @@ trait ObservabilityQuery {
   `claim_coherence` (activity-vs-assignment, the HEALTH §1 signal). The ledger is
   observed; it is never written, sampled into, or mirrored as content.
 
+**Implementation (one capture task per session stream, single-owner):**
+
+```rust
+struct ClaimsCapture {
+    cursor: DeltaCursor,                  // position on the session's delta stream
+    applied: HashMap<ClaimUid, LogSeq>,   // max per-claim log_seq already COUNTED;
+                                          //   entries retire at terminal-and-released
+                                          //   (bounded by live claims, not history)
+}
+
+impl ClaimsCapture {
+    fn on_batch(&mut self, deltas: &[Delta]) -> Result<()> {
+        for d in deltas {
+            let w = self.applied.entry(d.claim_uid).or_insert(LogSeq::ZERO);
+            if d.log_seq <= *w { continue; }    // redelivery — already counted (CL8):
+                                                //   at-least-once delivery, exactly-once
+                                                //   metric effect
+            self.derive(d);                     // counters + transition histograms +
+                                                //   exemplar stamp (claim UID, bounded N)
+            *w = d.log_seq;
+            if d.is_terminal_released() { self.retire.push(d.claim_uid); }
+        }
+        // ONE atomic record on the collector's own state: cursor' + watermark deltas.
+        // Crash ⇒ replay from the committed cursor; the watermarks turn every
+        // reprocessed delta into the `continue` above. No 2PC, no ledger write.
+        self.persist_atomic(self.cursor.advanced(deltas), &self.applied_delta())
+    }
+}
+```
+
+The dedup key is the delta's per-claim `log_seq` — already totally ordered by the
+ledger's own log, so no transition vocabulary or window tuning exists to get wrong.
+
 **The one ledger-side amendment**: the runtime stamps **`trace_refs`** — the trace ids
 of the operations that serviced a claim — into the **system-written** portion of the
 claim's lifecycle record (beside timestamps/status in `ClaimLifecycle`; bounded array,
@@ -202,7 +382,36 @@ read from each plane separately — **both** capabilities are checked, per plane
 observability capability alone never reads ledger content through the join, and
 vice-versa. No capability bridge exists (architecture test + authz fuzz). Neither store
 holds the other's data — integration at the query layer, separation at the storage
-layer. Worked example: "claim 47 was slow" → `join_work(47)` → posted 14:01, testament
+layer.
+
+```rust
+impl ObservabilityQuery for QueryService {
+    fn join_work(&self, caller: &Principal, claim: ClaimUid)
+        -> Result<WorkExecutionView>
+    {
+        // 1. The ledger's OWN read surface, under the CALLER's ledger capability —
+        //    the join holds no ledger authority of its own to lend.
+        let skel: ClaimSkeleton =                     // lifecycle timestamps, status
+            self.ledger_read.skeleton(caller, claim)?; // history, trace_refs — no content
+
+        // 2. Each trace under the CALLER's observability capability, per read.
+        let traces = skel.trace_refs.iter()
+            .map(|t| self.read_trace_for(caller, *t)) // PEP inside; partial results
+            .collect::<Vec<_>>();                     //   surface as typed per-ref errors
+
+        // 3. The UID-exemplared series over the claim's own time span.
+        let series = self.read_series(caller, skel.scope(),
+                                      LabelSelector::exemplar(claim),
+                                      skel.time_span(), Resolution::Raw)?;
+
+        Ok(WorkExecutionView { lifecycle: skel.timeline(),
+                               per_edge: skel.edge_durations(),
+                               traces, series })
+        // No method on this path takes anything but `caller` — a compromised query
+        // service can deny, never widen: it holds no capability to escalate with.
+    }
+}
+``` Worked example: "claim 47 was slow" → `join_work(47)` → posted 14:01, testament
 14:09; `per_edge_durations` shows 6 min in `progressed`; `traces[0]` shows the VFS
 mount span at 5.8 min → the answer, one call, two planes, zero fusion.
 
