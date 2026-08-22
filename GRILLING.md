@@ -8786,3 +8786,16 @@ its purpose corrected (trajectories feed the session/lineage curve store, never 
 global corpus). RESEARCH DISPATCHED (per-tenant baseline practice; cold-start:
 inheritance/pooled-priors/defaults; poisoning literature incl. ANTIDOTE/
 boiling-frog). Design lands as one piece on research + verdict.
+
+**ARCHIVALIST DUTY SET COMPLETED (2026-08-22, user addition): + PROVIDES AND
+FACILITATES QUERIES** — the session's investigation surface: facilitates (agents/
+user consult IT via consult_peer; its judgment = where to look + what findings
+mean), provides (composes answers by querying the archive store/index it manages +
+the collector query surface [read_series/read_trace/join_work] under its own IAM
+grants, read-only, per-plane checked, off the ingest path). The hop rule holds:
+queries EXECUTE on the query services; the Archivalist directs and interprets,
+never a pipeline stage. Full duty set: admit/prune trajectories, trigger refits,
+approve lineage-seed export, provide/facilitate investigation queries — judgment
+atop administered machinery. (Consistent w/ its charter's "deep investigation" +
+the collector branch's query-yes-ingest-no settlement.) Research still out;
+design lands whole on receipts + verdict.
