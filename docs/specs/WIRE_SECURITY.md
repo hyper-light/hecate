@@ -75,16 +75,37 @@ fork and the guest image removes even that friction.
 
 - **Derivation (RFC 5869 / SP 800-108 — the KDK pattern TLS 1.3 and SigV4
   run at planetary scale)**:
-  - At summon, pod Q's host mints root `R_Q`; hecate-init installs
-    `recv_root_Q = HKDF(R_Q, "hecate/flow/recv-root")` in the guest.
-  - Receive key, derived *by the guest itself, no key delivery*:
-    `K(P→Q) = HKDF(recv_root_Q, encode(P_uid) ‖ encode(epoch_P) ‖
-    encode(epoch_Q))` — **all context fields fixed-width-encoded**
-    (SP 800-108's explicit failure mode: ambiguous context concatenation;
-    our encoding is hecate-wire canonical, unambiguous by construction).
-  - Seal key, host-side: host(P) obtains `K(P→Q)` from host(Q) via
-    `FlowKeyRequest{P_uid, Q_uid, epochs} → FlowKeyGrant{key, grant_epoch}`
-    over the host↔host session — cached, invalidated on any epoch bump.
+  - At summon, pod Q's host mints root `R_Q`. **Per-workload roots (amended
+    2026-08-22, the five-site flow-key landing — supersedes the guest-global
+    root)**: `recv_root_{Q,w} = HKDF(R_Q, "hecate/flow/recv-root" ‖
+    encode(workload_id_w))` for each of Q's four workloads {primary, Scribe,
+    sensor, init}; **hecate-init installs each root ONLY into that
+    workload's container fd table at spawn** (custody separation — no
+    guest-global receive root exists; the primary cannot derive the
+    Scribe's receive keys). Attribution is thereby **re-derivable from the
+    mint record alone** — the derivation path IS the identity; no mutable
+    table sits on the attribution chain.
+  - Receive key, derived *by the owning workload itself, no key delivery*:
+    `K(P_w→Q_v) = HKDF(recv_root_{Q,v}, encode(P_uid) ‖ encode(w) ‖
+    encode(epoch_P) ‖ encode(epoch_Q))` — **all context fields
+    fixed-width-encoded** (SP 800-108's explicit failure mode: ambiguous
+    context concatenation; our encoding is hecate-wire canonical,
+    unambiguous by construction).
+  - Seal key, host-side: host(P) obtains `K(P_w→Q_v)` from host(Q) via
+    `FlowKeyRequest{P_uid, w, Q_uid, v, epochs} → FlowKeyGrant{key,
+    grant_epoch}` over the host↔host session — cached, invalidated on any
+    epoch bump (one `key_epoch` per pod; all four workload keys re-derive
+    together at rotation; an in-pod respawn keeps workload id and epoch —
+    custody unchanged, no rotation).
+  - **The key-hint law**: the cleartext prologue's `key_hint` names the
+    per-workload key — workload-granular **by construction**, since that
+    is what finds the key. **Hints are never coarsened to pod granularity**
+    — that "optimization" would erase the attribution the derivation
+    carries (a permanent prohibition, tested).
+  - **The host authentication point binds frame → workload** and stamps
+    actor attribution host-side (`HostObserved` — the lie-detector's
+    actor-attribution row gets its host veto here): identity is only ever
+    proven by key possession, never asserted in data.
     **Epochs are explicit counters carried in the grant protocol, never
     wall-clock** — deleting Kerberos's clock-skew failure mode instead of
     inheriting it.
@@ -154,6 +175,11 @@ tuple `(hop_kind, lane, enforcement_point, flow_identity)`; direct socket
 construction is lint-banned (the same wall as `Arc`). Boot walks the
 registry against the declared table; an unclassified path fails startup.
 This is the chokepoint-coverage law applied to transport, as settled.
+**`flow_identity` carries the workload dimension** (amended 2026-08-22):
+a flow is identified `(pod_uid, workload_id, …)`, matching the §3
+per-workload derivation; the declared table gains the **Scribe-flow** rows
+(authority-in, alert/handoff-request out, Archivalist-flush bulk) and
+confirms the sensor row — each with its own enforcement point.
 
 **Sibling-primitive registrations (QUEUE, FANOUT, CACHE pub-sub — 2026-08-20; no new
 frame class):**

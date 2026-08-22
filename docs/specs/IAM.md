@@ -48,7 +48,7 @@ compiled artifacts are CAS content referenced by hash.
 
 | Object | Shape | Note |
 |---|---|---|
-| **Principal** | immutable UID + kind (`agent_pod` \| `system_service` \| `user` \| `external` \| `node`) + attestation binding | A Principal is a Participant viewed by the authority plane — 1:1 map (`agent_pod`→agent, `system_service`→service/system, `user`/`external`→external, `node`→system). **Wire never branches on kind; kind is a read field** (CONTEXT.md Participant law). Identity minted elsewhere (summon mint / node enrollment); IAM stores no keys. |
+| **Principal** | immutable UID + kind (`agent_pod` \| `system_service` \| `user` \| `external` \| `node`) + attestation binding | A Principal is a Participant viewed by the authority plane — 1:1 map (`agent_pod`→agent, `system_service`→service/system, `user`/`external`→external, `node`→system). **Wire never branches on kind; kind is a read field** (CONTEXT.md Participant law). Identity minted elsewhere (summon mint / node enrollment); IAM stores no keys. **Two agent principals may share one pod** (amended 2026-08-22 — the primary and its Scribe are distinct principals; each is bound to its own per-workload flow identity, so speaking-as is proven by key custody, per container, never by pod membership). |
 | **Resource** | typed ref `(resource_type, scope_id, name)` | Types are a closed schema-versioned taxonomy (§4). Instances live in their owning system; IAM only names them. |
 | **Role** | named versioned bundle: policy statements + assumption trust statement + optional ceiling | Shipped role packs per office + system roles; scope-authored roles. |
 | **Policy** | owned Cedar-dialect statements; text in CAS, hash + attachment metadata in the record | Mandatory scope structure (Cedar indexability). |
@@ -238,6 +238,13 @@ not authorization — retry/park, never proceed. Every verdict carries provenanc
 (determining policy IDs + epoch — Vault `GrantingPolicies` / AVP `determiningPolicies`).
 
 ## §6 Compile-and-distribute (networking + caching)
+
+**Amended 2026-08-22 (the five-site flow-key landing):** distribution is
+**per-workload**: a pod receives one residual per container (the primary's and
+the Scribe's compile separately — different principals, different capabilities),
+installed by hecate-init pre-spawn and pinned; each artifact is addressed to its
+workload's flow identity, so a residual can never be delivered to, or claimed
+by, the pod's other workload.
 
 Per-scope compilers (owned tasks, derived caps, `Cancelled`-handling; classified
 CAS-first at boot) tail the store watch and emit **per-PEP artifacts** — compiled

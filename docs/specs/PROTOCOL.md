@@ -115,14 +115,23 @@ present well-formed admission fields — garbage dies at the tag, counted.
 ## 2. Keys and identity
 
 Owned by `WIRE_SECURITY.md`; this section defers to it: one summon-mint
-root per pod with HKDF-labeled per-plane derivations (control-plane
-envelope keys; flow-key material), atomic `key_epoch` rotation at handoff;
-per-flow end-to-end keys (guest-derivable receive keys, host-brokered
-seal-key grants with counter epochs, never wall-clock); host/terminal
-Noise identities for sessions; the warden seals what it inspected; sending
-guests hold no transport keys. A compromised pod speaks only as itself —
-enforced by physics (ring ownership) plus flow-key custody, not per-hop
-pod crypto.
+root per pod with HKDF-labeled **per-workload** derivations (amended
+2026-08-22, the five-site flow-key landing — the pod's four interior
+workloads {primary, Scribe, sensor, init} each derive their own flow keys
+from the pod root; `k_workload = HKDF(pod_root, pod_uid ‖ workload_id ‖
+epoch)`), atomic `key_epoch` rotation at handoff (all four re-derive
+together); per-flow end-to-end keys (container-custodied receive keys,
+host-brokered seal-key grants with counter epochs, never wall-clock);
+host/terminal Noise identities for sessions; the warden seals what it
+inspected; sending guests hold no transport keys. **A compromised WORKLOAD
+speaks only as itself** — enforced by physics (fd and key custody per
+container) — and therefore a compromised pod still speaks only as that
+pod (the mint root is pod-scoped). The envelope stays pod-granular
+(`src_pod`/`dst_pod`, unchanged — no version bump): workload identity is
+carried by the key itself, so the cleartext `key_hint` is
+workload-granular **by construction** and mis-attribution is
+unrepresentable — there is no sender-written identity field to
+cross-check or to lie in.
 
 ## 3. Classes, archetypes, admission
 

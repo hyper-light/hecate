@@ -25,7 +25,9 @@ MONITORING acceptance — supersedes "running one agent"). Thread census N+1, ne
 - **Devices**: virtio-fs (mounts), virtio-vsock (control + sensor channels only),
   virtio-net (the claims plane, the tool plane, and external egress — all via the
   host user-space network stack, the Guardian chokepoint; ADR-0002). Nothing else.
-- **Identity**: pod uid, per-pod HKDF keys, fencing identity — all bound at
+- **Identity**: pod uid, the pod mint root with **per-workload HKDF flow keys**
+  (four workloads: primary, Scribe, sensor, init — WIRE_SECURITY §3, amended
+  2026-08-22), fencing identity — all bound at
   **assignment**, never present in pooled or snapshotted state.
 
 ## 2. Boot: rootfs is a manifest projection (6a)

@@ -301,7 +301,7 @@ The PODS §6 host contract, extended (§17 lands the qualification):
   compiled policy (SafetyPolicy + IAM residual + capability atoms + claim
   scopes), hold-and-escalate, fail-closed. Unchanged — and it now also gates the
   Scribe's flow (per-workload flow keys: a compromised primary cannot forge as
-  its Scribe even at Bar A; the R3 five-site amendment cluster, §18 rider).
+  its Scribe even at Bar A — landed 2026-08-22, WIRE_SECURITY §3).
 - **Interior enforcement** = warden-compiled kernel residuals installed by init
   pre-spawn (I3), **pinned** — the Kata precedent: policy compiled outside,
   installed at spawn, enforced inside; `IAM.md` §6's compile-and-distribute
@@ -496,12 +496,13 @@ per-subsystem span-clause sweep** (TRACING §12) lands jointly here.
 
 ## 18. Open riders (the reconcilers' unresolved questions — the user's, flagged)
 
-- **R3's cross-cutting cluster (load-bearing)**: per-workload flow keys + per-
-  container fd custody must land **together across five sites** (PROTOCOL §2,
-  WIRE_SECURITY §2/§3/§6, FAULTS §1, IAM §1/§6) — including the envelope
-  question: keep pod-granular `src/dst` + carry the loop in the flow layer
-  (cheaper) vs version-bump to `src_loop/dst_loop` (attribution survives
-  flow-table loss). One ruling, five sites, one commit.
+- ~~R3's cross-cutting cluster~~ **LANDED 2026-08-22** (user-accepted as the
+  maximal design): per-workload flow keys from the pod mint root, per-container
+  custody, the workload-granular key-hint law (hints never coarsened), the
+  pod-granular envelope kept (mis-attribution unrepresentable — no
+  sender-written identity field exists), host-side attribution stamping, and
+  the two-bar model recorded in FAULTS — one commit across PROTOCOL §2,
+  WIRE_SECURITY §3/§6, FAULTS §1, IAM §1/§6, PODS §1.
 - **R1-OQ1**: do pooled/snapshot generic VMs pre-create the two containers
   (faster ready; T7's genericity proof extends to container FS) or
   create-at-assignment (current text) — or hybrid (Scribe pre-created)?

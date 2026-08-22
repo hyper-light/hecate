@@ -8710,3 +8710,30 @@ tracker closed; riders tracked at MONITORING §18.
 bar. OPEN: the MONITORING §18 riders (user exchanges — R3's five-site flow-key
 cluster FIRST, load-bearing); branches: sibyl-federation (research BANKED),
 summoning-mechanics, response-authority (parked).
+
+**THE FLOW-KEY CLUSTER SETTLED + LANDED (2026-08-22, user: "correct. accepted."):**
+The exchange: pod-granular trust vs the four-actor pod interior. The maximal design
+(user-accepted): (1) per-workload HKDF flow keys from the pod mint root —
+k_workload = HKDF(pod_root, pod_uid || workload_id || epoch) for {primary, Scribe,
+sensor, init}; ATTRIBUTION RE-DERIVABLE FROM THE MINT RECORD ALONE (the derivation
+path IS the identity — no mutable table on the attribution chain); (2) per-container
+root custody (init installs each recv_root ONLY into its workload's fd table — no
+guest-global root; the primary cannot DERIVE the Scribe's keys, not merely cannot
+read them); (3) the KEY-HINT LAW — the cleartext key_hint is workload-granular BY
+CONSTRUCTION (it names the key), with the permanent no-coarsening prohibition; (4)
+ENVELOPE UNCHANGED (pod-granular src/dst, NO version bump) — the decisive receipt:
+the envelope is ENCRYPTED, so (b)'s src_loop/dst_loop fields would need the very
+keys whose identity they duplicate — (b) was strictly redundant + added a
+sender-written field requiring a cross-check (a new mismatch failure class);
+mis-attribution is UNREPRESENTABLE under (a); (5) host auth point binds
+frame->workload and stamps HostObserved actor attribution (the lie-detector's host
+veto mechanism); (6) one key_epoch per pod, all four re-derive at handoff; in-pod
+respawn = same id+epoch, custody unchanged, no rotation; (7) FAULTS records the
+two-bar model as fault-model law (Bar A: a compromised WORKLOAD lies only as
+itself; Bar B: custody collapses but the pod still lies only as that pod). LANDED
+one commit across: PROTOCOL §2 (per-workload deferral + envelope-unchanged
+rationale), WIRE_SECURITY §3 (per-workload roots/derivation/grant dims + key-hint
+law + host-attribution point) + §6 (flow_identity workload dimension + Scribe-flow
+rows), FAULTS §1, IAM §1 (two principals per pod) + §6 (per-workload residual
+distribution), PODS §1, MONITORING §9/§18 (rider closed). REMAINING §18 riders:
+R1-OQ1 pre-stage, R2-OQ-a/b/c, R4-OQ-a/b/c, ADR-0004's two — smaller, groupable.

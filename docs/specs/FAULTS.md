@@ -28,8 +28,16 @@ claims — in scope precisely because CONSENSUS §3b's fabric law promises
 safety is untouched by it).
 
 **Out of scope, explicitly**: Byzantine participants (the pod/warden
-boundary and per-pod keys are the authenticity mechanism — a compromised pod
-can lie only as itself and cannot forge consensus traffic); undetected
+boundary and **per-workload flow keys** are the authenticity mechanism —
+amended 2026-08-22, the five-site flow-key landing: **a compromised
+workload lies only as itself** — at Bar A (an ordinarily-compromised
+agent, guest kernel intact) the primary cannot forge as its Scribe, since
+each container holds only its own keys; at Bar B (guest-kernel compromise)
+interior custody collapses but the mint root is pod-scoped, so the pod
+still lies only as that pod, contained host-side. **The two-bar adversary
+model is recorded here as fault-model law**: Bar A degradation is
+HANDOFF's domain; Bar B forges no consensus traffic and gains no
+authority beyond the pod's own. Neither bar can forge consensus traffic); undetected
 corruption past the checksum layer (BLAKE3-everywhere makes the undetected
 residue the hash-collision probability, stated, not defended further).
 
