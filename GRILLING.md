@@ -8449,3 +8449,34 @@ RESOLUTIONS (all landed in the spec; conflicts resolved TOWARD accepted texts):
 §16 REWRITTEN as the full two-part sweep (substrate registrations + planes).
 STATUS: COLLECTOR.md now recon-clean against both lanes; presented for acceptance.
 On branch worktree-collector-rigor (user merges).
+
+**COLLECTOR §9a QUERY LAYER + §9b REGION SHARDING WRITTEN (2026-08-22, user: "no query
+layer despite the Scuba research; missing sharding/replication"):** Both correct — the
+Scuba/Monarch query receipts never landed in the spec (a trait != a query layer) and
+the region tier's own distribution was one hand-waved Vec. ADDED:
+§9a QUERY EXECUTION: plan (split by tier ownership: hot/rolled/cold) -> PRUNE via the
+SeriesIndex — EXACT inverted postings per closed dimension (our closed vocabulary makes
+Monarch's probabilistic field-hints index exact; fanout = index-named shards/nodes ONLY,
+never broadcast) -> aggregation TREE of derived fanout F (Scuba shape; interior merges =
+the same §5 exact merge, tree adds latency structure never error) -> derived LEAF
+TIMEOUTS (omitted+counted, never hang on a straggler) -> **Completeness on EVERY result**
+{leaves_reported/expected, (min,max) freshness, estimated} — the Scuba "only 94.6%
+processed" warning as a machine-readable contract; a partial that doesn't say so = the
+named failure -> sampled-source compensation (head-kept trace series carry keep_rate;
+estimates scale 1/keep_rate + marked) -> COST BOUNDS (unbounded selector = typed refusal;
+chunked streaming under a derived memory bound [KEP-3157 LIST-blowup class];
+per-principal query budgets at the serving edge).
+§9b REGION TIER: R region shards partitioned by SeriesKey.hash (SAME function as node
+shards — one home per series at every tier); R derived; uplink fragments CUT ALONG
+region-shard boundaries => per-shard fan-in stays bounded by node count; assemblers
+shard separately (trace-HRW); query executors stateless. **NO REPLICAS — the projection
+argument**: region state is per-(node,series) absolutes re-derivable from the nodes
+(STORE reconstructible-projection precedent); replicating buys availability-during-reseed
+at the price of a consensus group per shard for seconds-stale telemetry — REJECTED;
+availability honesty via Completeness instead. RESEED = the ordinary §7 uplink: shard
+epoch bumps -> nodes mark that shard's series dirty -> re-ship absolutes ->
+replace-apply idempotent; no new protocol, no handoff, old instance discarded.
+RIPPLES: data model (RegionShard/SeriesIndex/Completeness/QueryService), §11 region row
+-> reseed, §13 +5 derived constants (R/F/leaf-timeout/budgets/convergence), §14 worked
+example gains the query walk (3/3 leaves, Completeness shown), CL14 (query honesty +
+pruning) + CL15 (reseed correctness) + two test rows. Presented for acceptance.

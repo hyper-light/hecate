@@ -159,11 +159,29 @@ struct CollectorShard {                // single-owner: no lock exists in this s
     drops: DropCounters,               // §12 — one counter per taxonomy category
 }
 
-// ---- the region tier ----
-struct RegionCollector {
-    merged: Vec<CollectorShard>,       // same shard type — federation reuses the node's
-    assemblers: Vec<Assembler>,        //   machinery; §8
-    query: QueryService,               // §9/§10; reads merged + hot + cold, never ingest
+// ---- the region tier (sharded; §9b) ----
+struct RegionShard {                   // one of R instances; R derived (§9b); owns the
+    id: RegionShardId,                 //   series whose hash lands in its range
+    epoch: Epoch,                      // instance epoch — bumps on (re)placement; the
+                                       //   nodes' reseed trigger (§9b)
+    merged: CollectorShard,            // same shard type — federation reuses the node's
+                                       //   machinery; holds per-(node, series) absolutes
+    index: SeriesIndex,                // §9a — exact inverted postings for fanout pruning
+}
+struct SeriesIndex {                   // EXACT, not probabilistic — the closed label
+                                       //   vocabulary makes Monarch's field-hints index
+                                       //   trivial: every dimension is bounded
+    postings: DetHashMap<(DimId, DimValue), SeriesIdSet>,  // dimension-value → series
+    by_node: DetHashMap<SeriesIdSet, NodeSet>,             // …and which nodes hold raw
+}
+struct Assemblers { ring: Vec<Assembler> }   // HRW-owned by trace_id (§8)
+struct QueryService {                  // stateless executors; count derives from query
+    budget: QueryBudget,               //   load; reads region shards + nodes + cold —
+}                                      //   never an ingest queue (§9)
+struct Completeness {                  // every query result carries one (§9a)
+    leaves_expected: u32, leaves_reported: u32,
+    freshness: (Hlc, Hlc),             // min/max source freshness in the merge (H7)
+    estimated: bool,                   // true if any input was a sampled source (§9a)
 }
 
 // ---- trace assembly (§8) ----
@@ -612,18 +630,113 @@ trait ObservabilityQuery {
   PEP): Scribe → its primary's scope; Guardian broad; user per SafetyPolicy;
   Archivalist per its grant (wired in the agents' spec — the collector owns the
   surface, each consumer's contract lives with the consumer).
-- **Pushdown**: `Resolution::Raw` within the hot horizon executes at the owning
-  node(s); rolled-up ranges execute at the region's merged shards; a range spanning
-  both fans to at most `nodes(scope)` sub-queries (bounded by node count) and merges
-  via §5 (exact) — partial sub-query failures surface as typed per-tier gaps, never
-  silently absent (AbsenceIs). A merged regional read carries **per-node freshness**:
-  each `(node, series)` absolute contributes `(value, freshness)` (HEALTH H7 —
-  staleness is data the consumer judges), so a dead node's frozen entries are visibly
-  stale in the merge from the moment its uplink lapses, not first at the liveness
-  verdict that retires them.
+- **Execution** is §9a's model (plan → prune → tree → merge → completeness); the
+  region tier it reads is §9b's sharded, reseedable projection.
 - **Structurally off ingest** (CL7): the `QueryService` is a separate task class with
   its own budget; no query path touches an ingest queue (architecture test) — an
   investigation storm cannot degrade the telemetry it investigates.
+
+## 9a. Query execution — plan, prune, tree, merge, honesty
+
+The research this section stands on: Monarch's pushdown + field-hints index (fanout
+pruned 99.5% at zone level; disabling it cost 10×) and Scuba's aggregation tree
+(fanout 5, 10 ms leaf timeouts, **best-effort with the completeness printed on the
+result** — "Only 94.6% of all samples were processed"). Both imported, with one
+upgrade our closed vocabulary buys: the index is *exact*, not probabilistic.
+
+**1. Plan.** `read_series(scope, sel, range, res)` splits by tier ownership:
+
+```
+range ∩ hot-horizon(scope)   → NODE sub-queries (raw, at the owning nodes)
+range ∩ rolled(scope)        → REGION-SHARD sub-queries (merged absolutes)
+range ∩ cold(scope)          → COLD sub-queries (sealed blocks by ref, OBJECT_TIER)
+```
+
+**2. Prune (the fanout killer).** The selector is resolved against the
+`SeriesIndex` — exact inverted postings per closed dimension (`metric`, `principal`,
+`op`, `domain`, `provenance`, declared dims). Intersection of the selector's posting
+sets names the exact series set; `by_node` names the exact node set holding raw
+data. **A query touches only the shards and nodes the index names** (CL14) — never
+a broadcast. Monarch needed trigram fingerprints because its fields are open
+strings; ours are closed registries, so the index is small (postings over bounded
+vocabularies), exact, and rebuilt-with-the-shard (it is derived state).
+
+**3. Tree.** Sub-queries fan through an **aggregation tree of derived fanout `F`**
+(`F` from per-hop merge cost vs latency budget — the Scuba shape; depth
+`log_F(targets)`); every interior node merges partials with the *same* §5 merge
+(exact, order-free), so the tree adds latency structure, never error.
+
+**4. Leaf discipline.** Each leaf has a **derived timeout** (from the tier's measured
+response distribution); a leaf that misses it is *omitted and counted* — the query
+never hangs on a straggler (Scuba's 10 ms rule, derived instead of literal).
+
+**5. Honesty — every result carries `Completeness`.** `leaves_reported /
+leaves_expected`, the merge's `(min, max)` source freshness (H7: staleness is data
+the consumer judges — a dead node's frozen absolutes are visibly stale from the
+moment its uplink lapses, not first at the liveness verdict), and `estimated`.
+**A partial result that doesn't say it's partial is the failure class** (CL14); the
+Scuba warning line — "only 94.6% processed, sums will be low" — is the contract,
+machine-readable.
+
+**6. Sampled-source compensation.** Series derived from head-kept traces (TRACING
+§5) carry their keep-rate in the metric registry; rate/count estimates from them
+scale by `1/keep_rate` and set `estimated: true` (Scuba's `sample_rate`
+compensation, made explicit). Series from 100%-kept classes and all durable-class
+events are exact and never marked.
+
+**7. Cost bounding (the LIST-blowup class).** Three structural bounds, all derived:
+a selector must resolve through the index to a **bounded series set** before
+execution (an unresolvable/unbounded selector is a typed refusal, not a scan);
+results stream in **bounded chunks** with a cursor (no whole-result
+materialization — the KEP-3157 lesson: "16 informers took down the cluster");
+per-principal **query budgets** admission-gate concurrent cost at the serving edge
+(IAM-attributed, so an investigation storm is throttled per principal, not
+collapsed globally).
+
+## 9b. The region tier — sharding, reseed, and why there are no replicas
+
+**Sharding.** The region tier is `R` **region shards**, partitioned by
+`SeriesKey.hash` — the *same* hash-partition function the node shards use, so a
+series has one home at every tier. `R` derives from the region's admitted-series
+count × per-series cost ÷ per-instance memory budget. Each node's uplink **cuts its
+interval fragments along region-shard boundaries** (§7's by-series fragmenting,
+aligned to the shard ranges), so a region shard receives exactly its own series
+from every node — fan-in per shard stays bounded by node count (H6), and no region
+instance sees the whole region's series. Assemblers shard separately by
+`trace_id`-HRW (§8); query executors are stateless and scale by query load.
+
+**Why no replicas — the projection argument.** A region shard holds only
+**re-derivable state**: per-`(node, series)` absolutes whose source of truth is the
+nodes (which hold current state and re-ship it), plus an index derived from those
+absolutes. This is the same class as the materializer's read projections (STORE's
+"reconstructible projection" precedent): durability lives in the op-log lanes, the
+cold blocks, and the nodes' own state — **replicating the projection would buy
+availability-during-reseed at the price of a consensus group per shard**, for data
+that is by definition seconds-stale telemetry. Rejected; availability during reseed
+is handled honestly by `Completeness` instead.
+
+**Reseed (the recovery mechanic, exact).** A region shard's `epoch` bumps on any
+(re)placement. Nodes observe the bump (the shard roster is a watched, fenced map —
+the standard epoch-consumed-map discipline):
+
+```
+region-shard lifecycle:   PLACED(epoch′) ──▶ RESEEDING ──▶ LIVE
+                                              ▲      │
+node side, on epoch′:  mark ALL admitted      │      └ converged when every live
+series owned by that shard DIRTY ──▶ normal   │        node's reseed interval is
+uplink machinery re-ships absolutes ──────────┘        applied (per-node seq seen)
+```
+
+No new protocol exists: reseed **is** the §7 uplink with every relevant dirty bit
+set — replace-apply makes it idempotent, arrival order free. During RESEEDING the
+shard serves queries with `Completeness` showing the gap (leaves_reported over
+expected + stale freshness), never a silent hole. The old instance's state needs no
+handoff — it is discarded (the nodes are the source).
+
+**Cold reads.** Queries over cold ranges resolve sealed-block refs from the op-log
+lanes (each sealed interval's `sealed_refs`, §7) and read the content-addressed
+blocks from OBJECT_TIER directly — the region shard indexes refs, never proxies
+block bytes.
 
 ## 10. Claims-work capture + the join (D3+)
 
@@ -731,7 +844,7 @@ impl ObservabilityQuery for QueryService {
 | The node PERMANENTLY (own_log gone) | additionally: the capture checkpoints | `drops[NodeCollectorLoss]` | the re-summoned capture task has no checkpoint ⇒ full re-derivation from the delta stream (or its RESYNC re-seed point) — correct by the same replay purity, priced as recovery time, never as wrong counts |
 | The uplink / an interval | one interval's latency | absorbed (dirty bits persist until ack, §7) | the next interval re-ships current absolutes; replace-apply makes any re-delivery safe; sustained ⇒ region AbsenceIs staleness |
 | An assembler | its open windows | `SealReason::AssemblerLost` rows | HRW re-routes exactly its share; survivors seal partial rows incomplete |
-| The region collector | merged hot + open windows | `drops[RegionLoss]` | node tiers unaffected (autonomy); region re-merges from next intervals; cold blocks + op_log intact |
+| A region shard | its merged absolutes + index | `drops[RegionLoss]` | node tiers unaffected (autonomy); epoch bumps ⇒ nodes mark its series dirty ⇒ the ordinary uplink reseeds it (§9b — no handoff, no replica); queries meanwhile carry the gap in `Completeness`, never a silent hole |
 | The QUEUE log's node | per QUEUE's own spec | — | QUEUE durability (environment-derived replication); not this spec's mechanism |
 
 The invariant across every row: **proof-grade classes (Verdict/Lifecycle/Audit,
@@ -760,6 +873,11 @@ category (CL10); a new loss path without a category fails the build.
 | Keep baseline rates | kept-volume budget ÷ measured class volume (TRACING §5) | region capacity, class volumes |
 | Hot retention | hot budget ÷ ingest byte rate | node memory share |
 | Cold seal trigger | age/size from retention class | scope class policy |
+| Region shards `R` | admitted-series count × per-series cost ÷ instance memory budget | region series census, instance budget |
+| Tree fanout `F` | per-hop merge cost vs the query latency budget | measured merge cost, latency SLO |
+| Leaf timeout | derived from the tier's measured response distribution | per-tier response p99 |
+| Query budgets | per-principal concurrent-cost admission at the serving edge | executor capacity, principal class |
+| Reseed convergence | every live node's post-epoch interval applied (per-node seq) | node census, `T_up` |
 
 No literal constant exists in this spec's implementation; each formula's inputs are
 measured anchors, recomputed as they drift (CL12).
@@ -790,8 +908,12 @@ An Engineer services claim `C47` (scope `Session(s9)`); its VFS mount is slow.
    through the Scribe's live binding.
 7. **Investigation** (§10): the Scribe runs `join_work(C47)` under its own
    capabilities: skeleton (posted 14:01, testament 14:09, `trace_refs=[T]`), trace `T`
-   (the 5.8 s `vfs.mount` span), the exemplared series. Answer: *the claim was slow
-   because its mount was* — one call, two planes, zero fusion.
+   (the 5.8 s `vfs.mount` span), the exemplared series. The series read executes per
+   §9a: the index resolves the selector to exactly the s9/`vfs.mount` series on two
+   region shards + the raw hot horizon on node-3; three leaves, one merge hop
+   (`F` ≥ 3), all leaves report ⇒ `Completeness{3/3, fresh, estimated: false}`.
+   Answer: *the claim was slow because its mount was* — one call, two planes, zero
+   fusion, and the result says how complete it is.
 8. **A failure variant**: had assembler `A3` died mid-window, `C47`'s row seals
    `AssemblerLost/incomplete` on a survivor; `join_work` returns the trace with its
    typed gap; the *metrics* (steps 3–4, durable + exact) still carry the 6-minute
@@ -870,6 +992,8 @@ acceptance, unchanged.)
 | CL11 | **Fan-in bounded by node count**: 10× pod growth ⇒ collector message rate bounded by nodes (with PODS T10, HEALTH H6) | telemetry self-DDoS |
 | CL12 | **Laptop ≡ fleet**: `N=1` runs the identical pipeline (loopback uplink); every constant appears in §13 with formula + anchors | mode creep; magic numbers |
 | CL13 | **Recovery matrix holds**: kill-fuzz each §11 row ⇒ the stated loss (counted, in-category) and the stated recovery, nothing more lost, nothing silent | undocumented loss; recovery drift |
+| CL14 | **Query honesty + pruning**: every result carries `Completeness` (a partial that doesn't say so is the named failure); a query touches only index-named shards/nodes (measured fanout ≤ index resolution); an unbounded selector is a typed refusal; results stream chunked under a derived memory bound; sampled-source results marked `estimated` with `1/keep_rate` compensation | silent partials; broadcast fanout; the LIST memory blowup; unmarked estimates |
+| CL15 | **Reseed correctness**: kill/re-place a region shard at any point ⇒ nodes re-ship via the ordinary uplink on the epoch bump; the shard converges to byte-identical merged state vs an oracle; queries during reseed carry the gap in `Completeness` | a reseed protocol fork; silent post-recovery holes |
 
 ## 18. Test matrix (SIM)
 
@@ -885,6 +1009,8 @@ acceptance, unchanged.)
 | Drop-taxonomy walk | CL10 (every loss path → exactly one §12 category) |
 | Fan-in scale | CL11 (pods ×10, nodes fixed ⇒ flat) |
 | Recovery kill-fuzz | CL13 (each §11 row, at every step boundary) |
+| Query suite | CL14 (completeness on induced leaf timeouts/losses; fanout ≤ index resolution; unbounded-selector refusal; chunked-stream memory ratchet; keep-rate compensation vs oracle) |
+| Reseed fuzz | CL15 (kill/re-place at every reseed point; converged-state differential; completeness during the gap) |
 | Laptop parity | CL12 |
 
 ## 19. References (load-bearing few)
