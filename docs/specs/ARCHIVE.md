@@ -280,16 +280,70 @@ truth; index loss = re-index, never data loss):
 
 - **Full-text**: one per-session FTS instance over the **declared text fields**
   of each doc kind (narration body, summary text, flush annotations — the kind
-  registry declares which fields index; closed, like everything). Behind an
-  `ArchiveSearch` trait — the same pluggable-seam discipline as STORE's
-  backends — with **Tantivy as the exemplar-library engine** (Rust,
-  Lucene-lineage, immutable segment files — which fit the plane naturally: on
-  a derived cadence, sealed segments checkpoint to the durable plane as
-  archive-class objects, bounding rebuild to checkpoint + tail-reindex).
-  Recommendation flagged, not smuggled: the library-behind-a-seam posture is
-  Sylk's authorized-search-tech precedent (Bleve there, Tantivy here); an
-  owned engine remains a swap behind the same trait if the dependency ever
-  fails the corpus's bar.
+  registry declares which fields index; closed, like everything).
+
+  **What the Lucene design actually is, and what we take from it** (the
+  reference extracted, not name-dropped — Tantivy is the Rust implementation
+  of this same architecture, which is why it is the exemplar library):
+
+  1. **The inverted index**: tokenize each declared text field into terms;
+     each term maps to a **postings list** — the sorted set of document ids
+     (with positions) containing it. A text query is an intersection/union of
+     postings lists, never a document scan. *Taken as-is.*
+  2. **Immutable segments**: writes accumulate in an in-memory buffer; a flush
+     writes one complete, self-contained, **never-modified-again segment**
+     (its own term dictionary, postings, stored fields). *Taken — and it is
+     the property that makes the engine fit this plane*: an immutable segment
+     file is exactly a content-addressed object, so on the derived checkpoint
+     cadence, sealed segments hash and place into the durable plane like any
+     archive object, and rebuild = load checkpointed segments + re-index only
+     the docs newer than the checkpoint watermark.
+  3. **Search = per-segment search + merge**: a query runs against every live
+     segment independently and merges results — which is what makes 2's
+     immutability workable. *Taken as-is.*
+  4. **Deletes as tombstones**: a removed doc (an Archivalist `Prune`) is
+     marked in a live-docs bitmap; segments are never rewritten in place.
+     *Taken; the bitmap is node-local derived state, rebuilt with the index.*
+  5. **Tiered background merging**: small segments periodically merge into
+     larger ones, bounding segment count (per-query cost ∝ live segments).
+     *Taken; merge outputs are new immutable segments — old ones become
+     unreferenced checkpoint objects and GC normally.*
+  6. **FST term dictionaries** (finite-state transducers: prefix-compressed
+     term → postings-offset maps) and **BM25 scoring** (term-frequency ×
+     inverse-document-frequency with length normalization — the standard
+     relevance function). *Taken via the library; we do not re-derive
+     information-retrieval scoring.*
+  7. **Fast fields** (Tantivy's columnar per-doc attributes) carry our
+     kind/agent/time attributes, so `search_text(kinds, range)` filters
+     inside the engine rather than post-filtering hits. *Taken.*
+
+  **What we deliberately do NOT take**: Lucene/Elasticsearch's *distribution*
+  layer — cluster sharding, replica coordination, its own discovery. Our
+  instance is per-session and colocation-resident; durability is the
+  checkpoint-to-durable-plane path; scale-out across sessions is session
+  count, not intra-index sharding. Taking their distribution would duplicate
+  our substrate — the exact retrofit-in-reverse the plane rules ban.
+
+  **The seam, as a contract** (the same pluggable discipline as STORE's
+  backends — "swap behind the seam" is this trait, not a vibe):
+
+  ```rust
+  trait ArchiveSearch: Send + Sync {
+      fn add(&self, doc: ContentHash, kind: DocKind,
+             fields: &[(FieldId, &str)], attrs: &Attrs) -> Result<()>;
+      fn delete(&self, doc: ContentHash) -> Result<()>;        // tombstone
+      fn search(&self, q: &TextQuery, kinds: &[DocKind],
+                range: TimeRange, cursor: Option<Cursor>) -> Result<HitPage>;
+      fn seal_checkpoint(&self) -> Result<SearchCheckpoint>;   // sealed segment
+                                                               //   set + watermark
+      fn recover(cp: SearchCheckpoint) -> Result<Self> where Self: Sized;
+  }
+  ```
+
+  The library-behind-a-seam posture is Sylk's authorized-search-tech precedent
+  (Bleve there, Tantivy here); an owned engine implementing this same trait —
+  and the seven mechanisms above are its build sheet — remains the swap if the
+  dependency ever fails the corpus's bar.
 - **Semantic (opt-in per session profile)**: one per-session `VECTOR_INDEX.md`
   instance (the accepted HNSW spec, instantiated) over embeddings of the same
   declared fields. Embeddings are computed by a **paced, budget-bounded

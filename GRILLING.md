@@ -8937,3 +8937,23 @@ constants, +4 test rows, +VECTOR_INDEX/REGISTRY/knowledge amendment touchpoints.
 (c) D-6 (the knowledge document DB / Glean stacked-DB arc) QUEUED behind
 finishing observability — remaining there: ARCHIVE's verdict + residual small
 riders (R2-OQ-a/b, ADR-0004's two).
+
+**ARCHIVE §6b FTS REFERENCE EXTRACTED (2026-08-22, user: "dropping names like
+Lucene but not what we're taking from them"):** the bullet rewritten with the
+architecture itself — SEVEN MECHANISMS TAKEN, each marked: (1) the inverted index
+(term -> postings; queries = postings intersections, never scans); (2) IMMUTABLE
+SEGMENTS (the property that fits the plane: sealed segments = content-addressed
+durable-plane objects at checkpoint; rebuild = checkpoint + tail-reindex); (3)
+per-segment-search-and-merge; (4) tombstone deletes (live-docs bitmap, node-local
+derived); (5) tiered background merging (per-query cost ∝ live segments; merge
+outputs = new immutable segments, old ones GC); (6) FST term dictionaries + BM25
+scoring (via the library — we do not re-derive IR scoring); (7) fast fields
+carrying kind/agent/time so filters run in-engine. WHAT WE DO NOT TAKE:
+Lucene/ES's distribution layer (cluster sharding/replica coordination) — the
+instance is per-session/colocation; durability = the checkpoint path; scale-out =
+session count (taking their distribution would duplicate our substrate = the
+retrofit ban in reverse). THE SEAM AS A CONTRACT: the ArchiveSearch trait
+(add/delete/search/seal_checkpoint/recover) — the seven mechanisms are an owned
+engine's build sheet if the Tantivy dependency ever fails the bar. STANDING
+LESSON: references name the mechanisms taken + adapted + refused, never lineage
+labels.
