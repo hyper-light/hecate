@@ -1,269 +1,432 @@
 # SPEC: HANDOFF — detection, adjudication, and agent replacement
 
-Status: presented for acceptance 2026-08-20. The design was ACCEPTED 2026-08-19
-(GRILLING.md) conditional on folding the conduct-family arc lane (interior
-boundary-pressure detection math) — folded here as §6. Companion to
-`MONITORING.md` (the observability plane this consumes — telemetry, the score
-service, the interior warden/sensor streams, the VMM lie-detector),
-`HEALTH.md` (content-free law H8, the fresh-context probe H3, AbsenceIs),
-`LEDGER_CORE.md` / `MATERIALIZER.md` (the claims graph a successor reconstructs
-from), `PODS.md` (drain-at-handoff, `key_epoch`), and `AGENTS_RUNTIME.md`
-(UID-chain continuity, the parked-turn resume).
+Status: presented for acceptance 2026-08-22 (rewritten to the COLLECTOR bar). The
+DESIGN was accepted 2026-08-19 (the accepted-design statement §7 + arc lane C's
+conduct math, on file in GRILLING.md), corrected in-session (the `drained`
+retraction — handoff is adoption, never force-close) and integrated since (the
+detection substrate is a *stage* of the collector pipeline — COLLECTOR §9,
+accepted). This rewrite adds the mechanics: the detector state and its exact
+updates, the δ→threshold derivation chain, the incident and execution state
+machines (crash-stepped), the double-handoff race, and the worked case. Companions:
+`MONITORING.md` (the plane; the authority streams; the score service),
+`COLLECTOR.md` (ACCEPTED — the substrate runs as its stage; incidents are
+`OpClass::Incident`), `HEALTH.md` (H8 evidence; the H3 fresh-context probe),
+`LEDGER_CORE.md`/`MATERIALIZER.md` (the claims graph a successor reconstructs
+from), `PODS.md` (`key_epoch`, teardown), `AGENTS_RUNTIME.md` (UID chain, the
+parked-turn resume), `TRACING.md` (successor traces; `trace_refs`).
 
-The cardinal rule of this spec: **replacement, not repair.** A degrading agent
-is not coaxed back on track; a fresh-context successor takes over its claims. The
-harness detects the degradation deterministically, the Scribe judges it, the
-Guardian adjudicates it, and the successor reconstructs from durable state.
+The cardinal rule: **replacement, not repair.** A degrading agent is not coaxed
+back on track; a fresh-context successor takes over its claims.
 
-## 1. The two handoffs
+## 1a. The whole machine, in plain terms
+
+A baseball bullpen. The **scoreboard and radar gun** (the detectors) track the
+starter's velocity and command with calibrated instruments — the alarm line is set
+from the pitcher's *own* historical curves, adjusted for the lineup he's facing
+(risk adjustment: a hard task is not a bad agent), and the club has decided in
+advance how many false alarms per season it will tolerate (the false-alarm budget
+δ — every threshold derives from it, none is a hunch). A single wild pitch doesn't
+trigger anything (SPRT confirmation separates a blip from a trend). When the trend
+confirms, the **pitching coach** (the Scribe) doesn't grab a glove — he picks one
+play from a laminated card (the runbooks: observe, visit the mound, warm the
+bullpen, call for the reliever). The **manager** (the Guardian) makes the call,
+and his one decisive test is telling: *send the fresh arm to warm up and watch him*
+(the fresh-context probe) — if the reliever also struggles against this lineup,
+the problem is the lineup, not the starter, and the starter stays while the
+game-plan changes (deny the handoff; correct the claims). When the call is made,
+the reliever **inherits the runners** — the starter's open claims transfer
+exactly as they stand, on the same box score line (the UID chain); nobody erases
+baserunners to make the change of pitcher tidy (the `drained` retraction). And the
+new pitcher is watched *more* closely for his first batters (FIR seeding — a bad
+reliever is caught fast, not given a fresh full leash).
+
+## 1b. Terms this document uses (reading guide)
+
+- **Context handoff** — deterministic replacement when the context window fills;
+  routine; Scribe-unilateral; same model.
+- **Performance handoff** — detected-then-adjudicated replacement of a degrading
+  agent; rare by budget; may escalate model tier.
+- **Detector** — a per-(agent, phenomenon) statistic with a derived threshold;
+  trips, then SPRT-confirms, then alerts.
+- **δ (the false-alarm budget)** — alarms-per-session the operator accepts; the
+  single knob every threshold derives from (`ARL₀ = T/δ`).
+- **FIR seeding** — starting a fresh detector at `S₀ = h/2` so a bad successor is
+  caught in half the run length.
+- **Incident** — the durable, fully-enriched alert object (`OpClass::Incident`,
+  never-shed); 1:1 with its alert.
+- **Runbook** — a typed, registry-shipped skill mapping `(phenomenon, severity)`
+  to one of five actions; the Scribe *selects*, never invents.
+- **Fresh-context probe** — HEALTH H3's single sanctioned experiment: a fresh
+  agent attempts the same work; incumbent-vs-fresh divergence separates
+  bad-agent from bad-task.
+- **Adoption** — the successor taking the predecessor's open claims under the
+  same logical-agent UID chain, states untouched.
+
+## 2. The two handoffs
 
 | | **Context handoff** | **Performance handoff** |
 |---|---|---|
-| Trigger | **Deterministic** — provider-authoritative full-context accounting crosses the derived budget | **Detected** — the detector suite (§5/§6) fires → alert → Scribe-judged → Guardian-adjudicated |
-| Authority | **Scribe-unilateral** (no adjudication; it is not a fault) | Guardian (§9), on the Scribe's evidence-backed request |
-| Frequency | Routine, every long task | **Rare** (the false-alarm budget δ bounds it, §5) |
-| Model tier | Same model | May escalate `ModelConfig` tier |
-| Meaning | The window filled; continue the same work fresh | The incumbent is not making progress or has drifted; replace it |
+| Trigger | deterministic — provider-authoritative full-context accounting crosses the derived budget | detected (§5/§6) → confirmed → judged → adjudicated |
+| Authority | Scribe-unilateral (not a fault; no adjudication) | Guardian (§8), on the Scribe's evidence-backed request |
+| Frequency | routine, every long task | rare — bounded by δ |
+| Model | same | may escalate `ModelConfig` tier |
+| Meaning | the window filled; continue fresh | the incumbent is degrading; replace it |
 
-Both end in the same **execution** (§10): a fresh-context successor reconstructs
-from the claims graph + the Scribe's handoff brief and adopts the open claims.
-The difference is only the trigger and the authority.
+Both converge on §9's execution. The difference is only trigger and authority.
 
-## 2. The metric suite
+## 3. Data model
 
-Signals are tiered by cost and coverage; **producers bind at boot or boot
-fails** (chokepoint-registration law — an unregistered signal producer is a
-startup failure, never a silent gap):
+```rust
+// ---- detector state (per (agent_uid, phenomenon); lives in the substrate) ----
+struct Detector {
+    phenomenon: Phenomenon,          // closed enum (§5 table)
+    reference: RefCurveRef,          // versioned fitted curve artifact (per
+                                     //   (agent-type, task-class); fleet prior
+                                     //   until fitted) — home: §11 rider
+    s: f64,                          // the running statistic (CUSUM S / EWMA z / …)
+    h: f64,                          // trip threshold — DERIVED (§4), never set
+    fir: bool,                       // seeded at S₀ = h/2 post-handoff
+    confirm: Option<SprtState>,      // open only between trip and verdict
+}
+struct SprtState { llr: f64, a: f64, b: f64 }   // ln((1−β)/α), ln(β/(1−α))
 
-- **Tier 1 — deterministic, 100% of traffic**: token/latency/tool-call/error
-  envelopes, stop reasons, claim-outcome deltas. Zero inference.
-- **Tier 2 — repetition/progress + a sampled judge set**: n-gram/edit-distance
-  repetition, claim-graph forward-progress rate, a rate-sampled LLM-judge score.
-- **Tier 3 — extended**: deeper semantic probes, sampled thinnest.
+// ---- the substrate (a per-session stage of the collector pipeline) ----
+struct DetectionSubstrate {
+    detectors: DetHashMap<(AgentUid, Phenomenon), Detector>,
+    applied: LogSeq,                 // watermark over the ordered signal stream
+    own_log: WalLogicalLog,          // checkpoint {applied, detector states} —
+}                                    //   ONE atomic record; recovery = replay
+                                     //   (the ClaimsCapture pattern, verbatim)
 
-Vocabulary is **OTel GenAI semantic conventions** (bounded-cardinality keys
-only, per `MONITORING.md` §5). **Every signal carries a variance monitor** —
-a signal whose own dispersion drifts is quarantined before it can poison a
-detector. The **conduct metric family** (warden security verdicts + sensor
-telemetry) is a first-class tier, specified in §6.
+// ---- the incident (durable; OpClass::Incident, never-shed — COLLECTOR §4) ----
+struct Incident {
+    phenomenon: Phenomenon,
+    fingerprint: Fingerprint,        // dedup identity: (agent_uid, phenomenon,
+                                     //   onset-window) — re-trips fold, not spam
+    status: IncidentStatus,          // §7's state machine
+    severity: Severity,              // the burn-rate ladder (§7) — COMPUTED
+    frequency: u32, onset: Hlc, duration: Duration,
+    trajectory: Trend,               // worsening | stable | recovering (computed)
+    evidence: EvidenceBundle,        // content-free (H8): statistic series refs,
+                                     //   threshold, reference-curve version,
+                                     //   exemplar claim UIDs, trace ids — refs only
+    runbook: RunbookRef,             // the registry-shipped skill for this row
+}
+// THE DETECTOR COMPUTES EVERY FIELD. No agent ever derives severity, frequency,
+// onset, duration, or trajectory — the Scribe consumes, selects, requests.
 
-## 3. Baselines & risk adjustment
+// ---- the handoff execution record (crash-stepped; §9) ----
+struct HandoffExec {
+    kind: HandoffKind,               // Context | Performance{tier_escalation}
+    predecessor: AgentUid, successor: AgentUid,   // same chain, next link
+    step: ExecStep,                  // the §9 state machine position — DURABLE
+    brief: BriefRef,                 //   (a lifecycle record: crash ⇒ resume step)
+}
+```
 
-The confounder is **task difficulty**: a hard task looks like a degrading agent
-on raw signals. It is cured **in the statistic**, never with per-task hand-tuned
-thresholds:
+## 4. Thresholds — the derivation chain (zero hand-picked numbers)
 
-- **Fitted reference curves per `(agent-type, task-class)`**, frozen as
-  **versioned, logged artifacts** (the same input-logging discipline as the score
-  service — replay-identical, auditable). New pairs start from **fleet priors**.
-- **Risk-adjusted control charts** (Steiner risk-adjusted CUSUM): each
-  observation is weighted by its expected difficulty, so a hard step raises the
-  bar it must clear rather than tripping the alarm. This is the standard cure for
-  the base-rate/heterogeneity confounder (Axelsson's base-rate fallacy is the
-  failure this avoids — §6).
-- **FIR head-start** `S₀ = h/2` (Fast Initial Response): a fresh detector after a
-  handoff seeds at half the control limit, so a successor that is *also* bad is
-  caught fast rather than paying the full run-length again.
+Every threshold comes from one operator-owned quantity: **δ, the per-session
+false-alarm budget**.
 
-## 4. The detection substrate
+```
+δ (alarms/session, operator policy)
+  → ARL₀ = T / δ            (T = session horizon in observations: the required
+                             average run length between false alarms)
+  → h    = solve ARL₀(h, k) (the trip threshold: for continuous statistics via
+                             the standard ARL approximation; for the discrete
+                             conduct streams via the Markov-chain / Monte-Carlo
+                             run-length — the closed forms assume continuity)
+  → bootstrap-calibrate     (resample the agent-type's own reference residuals;
+                             adjust h until the empirical run length ≥ ARL₀ —
+                             distributions here are not textbook-normal)
+  → S₀ = h/2                (the FIR head-start after every handoff)
+k (the CUSUM slack) derives from the reference curve: k = Δ/2 where Δ is the
+smallest shift worth alarming on — itself derived from the handoff cost vs the
+degradation cost at the measured curves, not chosen by feel.
+```
 
-Detector state lives in the **colocation-unit detection substrate** — **not pod
-RAM, not Scribe memory**. It is **checkpointed and re-derivable** from the logged
-signal stream (survives a Scribe respawn or a node move), and it is **distinct
-from the score service** (`MONITORING.md` §6): the score service answers "how
-good is this agent" (reputation, demote-only); the detection substrate answers
-"is this agent degrading right now" (change detection, replacement). Different
-state, different math, different consumer.
+**Risk adjustment** cures the difficulty confounder *in the statistic*: each
+observation is weighted by its expected difficulty from the reference curve
+(Steiner's risk-adjusted CUSUM) — a hard step raises the bar it must clear
+instead of tripping the alarm. Reference curves are **versioned, logged
+artifacts** per `(agent-type, task-class)`, frozen and replayable; new pairs
+start from fleet priors. **Every signal carries a variance monitor** — a signal
+whose own dispersion drifts is quarantined before it can poison a detector.
 
-## 5. The detector suite (performance / derailment / reliability)
+## 5. The detector suite (phenomenon → matched statistic → exact update)
 
-Each phenomenon has a **matched statistic**, and every threshold derives from a
-**per-session false-alarm budget δ** via the run-length identity
-`ARL₀ = T/δ` (T = session horizon), **bootstrap-calibrated** on the fitted
-reference (§3). **Zero hand-picked thresholds.**
-
-| Phenomenon | Statistic | Why this one |
+| Phenomenon | Statistic | The update (per observation x) |
 |---|---|---|
-| **Context rot** (slow quality decay) | residual **EWMA / CUSUM** vs the learned reference curve | small persistent mean-shift; EWMA/CUSUM are the min-ARL detectors for it |
-| **Intent shift** (the agent's objective drifts) | **GLR-CUSUM** + dispersion-CUSUM, **BOCPD as onset-evidence only** | unknown post-change mean ⇒ generalized-likelihood; BOCPD dates the onset but never triggers alone (evidence, not verdict) |
-| **Derailment loops** (thrash/repetition) | **Page–Hinkley / ADWIN** | abrupt-onset, windowed — catches a loop the moment its rate breaks trend |
-| **Reliability decay** (error/regression rate climbs) | **DDM / EDDM + risk-adjusted CUSUM** | drift-detection on a Bernoulli error stream, difficulty-weighted |
-| **Confirmation** (before any alert) | **SPRT** | one sequential test converts "a chart tripped" into "confirmed at bounded error rates" — the false-alarm gate |
+| **Context rot** (slow quality decay) | residual EWMA/CUSUM vs the reference | `r = x − μ_ref(t)`; `S = max(0, S + r − k)`; trip at `S ≥ h` |
+| **Intent shift** (objective drifts; post-change mean unknown) | GLR-CUSUM + dispersion-CUSUM; BOCPD as onset evidence ONLY | GLR: `max over candidate shifts of the log-likelihood`; BOCPD dates the onset for the alert — it never triggers alone |
+| **Derailment loops** (thrash/repetition) | Page–Hinkley / ADWIN | PH: `m = min(m, M)`, `M += x − x̄ − δ_ph`; trip at `M − m ≥ h` |
+| **Reliability decay** (error rate climbs) | DDM/EDDM + risk-adjusted Bernoulli CUSUM | `S = max(0, S + W_t)` with `W_t` the Steiner risk-adjusted score of success/failure at difficulty `p_t` |
+| **Confirmation** (before ANY alert) | SPRT | `llr += ln(f₁(x)/f₀(x))`; alert at `llr ≥ a`, reset at `llr ≤ b`; `a,b` from declared (α, β) |
 
-The chart trips → SPRT confirms → alert emits (§7). BOCPD contributes an onset
-timestamp to the alert; it is never the trigger.
+The chart trips → SPRT opens → confirms (alert) or resets (a blip, counted).
+BOCPD contributes `onset`; it is never the trigger.
 
-## 6. The conduct family (interior boundary-pressure)
+**The signal tiers feeding these** (producers bind at boot or boot fails):
+Tier 1 — deterministic envelopes on 100% of traffic (tokens, latency, tool
+calls, stop reasons, claim-outcome deltas). Tier 2 — repetition/progress + a
+rate-sampled LLM-judge score. Tier 3 — extended semantic probes, sampled
+thinnest. Vocabulary = the OTel GenAI conventions, bounded-cardinality,
+`HostObserved`-filtered (the substrate reads authority streams only — MONITORING
+MO2, enforced by the landed provenance dimension).
 
-Security conduct is detected on the **same substrate but as its own family** —
-because the failure mode is different (an adversary, not a confounded-difficult
-task) and the base rate is far lower (Axelsson: on a rare-event stream, even a
-tiny false-positive rate drowns the true positives — so this family is **rare-
-event math with mandatory risk-weighting**, never a raw trip counter).
+## 6. The conduct family (interior boundary-pressure — rare-event math)
 
-**Three streams, three matched statistics:**
+Same substrate, own family: the failure mode is an adversary, not a confounded
+task, and the base rate is far lower (Axelsson: on rare-event streams even tiny
+false-positive rates drown true positives — so this family is risk-weighted
+rare-event math, never a raw trip counter).
 
 | Stream | Statistic | Note |
 |---|---|---|
-| Warden **policy denials** (pre-effect boundary refusals) | **risk-adjusted Bernoulli CUSUM** (Reynolds & Stoumbos + Steiner weight) | each denial weighted by its severity-class prior; benign boundary-brush is real, so the risk weight is load-bearing |
-| **Tripwire firings / escalations** (rare discrete events) | **time-between-events (TBE) exponential CUSUM / Poisson CUSUM** | detects a *rate increase* in rare events without waiting for a count threshold |
-| Sensor **behavioral aggregates** (syscall-rate, boundary-probe intensity) | **EWMA intensity** (feeds the existing residual-EWMA machinery) | continuous intensity, Ye-style audit-intensity monitoring |
+| Warden policy denials (pre-effect refusals) | risk-adjusted **Bernoulli CUSUM** | each denial weighted by its severity-class prior; benign boundary-brush is real |
+| Tripwire firings / escalations | **time-between-events exponential / Poisson CUSUM** | detects a rate *increase* in rare events without waiting for a count |
+| Sensor behavioral aggregates (syscall-rate, probe intensity) | **EWMA intensity** | Ye-style audit-intensity monitoring |
 
-- **δ on these discrete streams** is computed via **Markov-chain / Monte-Carlo
-  run-length** (the closed-form ARL identity assumes a continuous statistic; the
-  discrete Bernoulli/Poisson charts need the chain).
-- **Severity is a CATEGORY, separate from RATE.** Categories =
-  {interior-boundary, egress, scope-violation}. **Per-category charts, category-
-  specific `k`/`R`** — **never collapsed to one trip counter** (collapsing loses
-  the category signal an adjudicator needs and re-introduces the base-rate
-  problem).
-- **The replacement line.** The warden **already denied** the action pre-effect,
-  so **no damage occurred** — therefore a conduct alarm is **actor-level**: "this
-  agent's pattern is no longer consistent with its role ⇒ replace / escalate,"
-  *not* "an attack succeeded." Conduct detection drives handoff, not incident
-  response.
-- **The Guardian boundary.** A **pattern** of boundary pressure ⇒ **performance
-  handoff** (replace the actor). A **single confirmed-hostile act** ⇒ **Guardian
-  hard-block** — **enforcement, not detection** (pattern detectors are evadable;
-  a confirmed hostile primitive is stopped at the warden, not charted). The
-  "boundary-pressure" phenomenon row carries its own runbook line (§8).
-- **Base rates are learned** per `(agent-type, task-class)` (`λ₀`/`p₀`) with
-  Steiner weighting, **mandatory** — universal conduct thresholds are incoherent
-  (a security agent probing boundaries is normal; a formatter doing so is not).
+- **Per-category charts** — {interior-boundary, egress, scope-violation} — with
+  category-specific `k`/`h`; never collapsed into one counter (collapsing loses
+  the category signal and re-imports the base-rate fallacy).
+- **δ on these discrete streams** uses the Markov-chain run-length (§4's note).
+- **The replacement line**: the warden already denied pre-effect — no damage
+  occurred — so a conduct alarm is **actor-level** ("this agent's pattern no
+  longer fits its role ⇒ replace/escalate"), not incident response.
+- **The Guardian boundary**: a *pattern* ⇒ performance handoff; a *single
+  confirmed-hostile act* ⇒ **Guardian hard-block** — enforcement, not detection
+  (pattern detectors are evadable; a confirmed hostile primitive is stopped at
+  the warden, not charted).
+- **Base rates are learned per (agent-type, task-class)** — a security agent
+  probing boundaries is normal; a formatter doing so is not. Universal conduct
+  thresholds are incoherent; the per-pair curves are mandatory.
 
-## 7. Alerts
-
-The detector emits a **fully-enriched, deterministic** alert — **the detector
-computes ALL context; no agent ever derives severity, frequency, duration, or
-onset**:
+## 7. The incident lifecycle
 
 ```
-{ phenomenon, fingerprint, status,
-  severity,        // burn-rate ladder (multi-window multi-burn-rate)
-  frequency, onset, duration, trajectory,
-  evidence,        // content-free per HEALTH H8
-  runbook_ref }
+DETECTED (chart trip) ──SPRT──▶ CONFIRMED ──▶ ALERTED (Incident emitted:
+   │                     │                     OpClass::Incident, never-shed,
+   │                     └─reset─▶ (counted    deduped by fingerprint — a re-trip
+   │                        blip; no alert)    FOLDS: frequency++, trajectory
+   ▼                                           recomputed — never a second incident)
+JUDGED (the Scribe selects a runbook action, §8)
+   ├─ observe/annotate ──▶ RESOLVED(observed)         (severity low; logged)
+   ├─ narrate          ──▶ RESOLVED(narrated)
+   ├─ corrective consult ─▶ WATCHING (detector keeps running; improvement ⇒
+   │                        RESOLVED(recovered); else re-JUDGED at next fold)
+   ├─ request handoff  ──▶ ADJUDICATING (Guardian, §8) ──approve──▶ EXECUTING (§9)
+   │                                                   └──deny──▶ RESOLVED(task-hard;
+   │                                                        corrective targets claims)
+   └─ escalate (conduct) ─▶ ADJUDICATING (hard-block path per §6's boundary)
+EXECUTING ──▶ RESOLVED(replaced)  — the detector FIR-seeds for the successor
 ```
 
-**Dedup / inhibit at emission**; **1:1 alert-to-incident** (an incident is the
-durable object the Scribe consumes). `severity` is a **burn-rate ladder** (Google
-SRE multi-window/multi-burn-rate) computed against δ — fast burn = page-now, slow
-burn = annotate. `evidence` is a content-free bundle (HEALTH H8 type-walk: no
-transcript, no key, no body).
+**Severity is the burn-rate ladder** (multi-window, multi-burn-rate against δ):
+`burn = observed alarm-budget consumption rate ÷ budgeted rate`, evaluated over a
+fast and a slow window; fast-burn ⇒ page-now severities, slow-burn ⇒ annotate.
+Computed by the detector, like every field.
 
-## 8. Scribe-as-SRE
+## 8. Judgment and adjudication
 
-The Scribe consumes enriched **incidents** (never raw signals — it does not
-re-derive anything the detector already computed) and decides **only which
-runbook action** to take:
+**The Scribe as SRE**: consumes enriched incidents (never raw signals — it
+re-derives nothing) and **selects one of the five runbook actions** — the
+runbooks are typed, registry-shipped skills keyed `(phenomenon, severity)`;
+selection is judgment, the menu is versioned artifact. A handoff request is a
+**claim** (the Scribe's request enters the ledger like all authority — with the
+content-free evidence bundle attached by reference).
 
-1. **observe / annotate** — record on the history stream, no handoff.
-2. **narrate** — surface to the user/session narration.
-3. **corrective consult** — a `consult_peer` to the incumbent (the in-band nudge,
-   still repair-flavored — used only for low-severity progress dips).
-4. **request a performance handoff** — with a content-free **evidence bundle**
-   (HEALTH H8), to the Guardian.
-5. **escalate to Guardian** — for the conduct family / hard-block boundary (§6).
+**The Guardian**: an SPRT-shaped decision whose **single evidence request is the
+fresh-context probe** (HEALTH H3): summon a fresh agent against the same work.
 
-**Runbooks are skills** (typed, registry-shipped) — the mapping from
-`(phenomenon, severity)` to action is a versioned artifact, not Scribe ad-hoc
-judgment. The Scribe *selects*; it does not *invent* the response verb.
+- Fresh succeeds where the incumbent thrashes ⇒ the incumbent is degraded ⇒
+  **approve** (replace).
+- Fresh also fails ⇒ the task is hard, not the agent ⇒ **deny**; the corrective
+  targets the *claims* (the architect authors the re-scope/decompose — the
+  corrective-authority law), and the incident resolves `task-hard`.
 
-## 9. Guardian adjudication
+This is the difficulty confounder cured a second time, at the decision layer, by
+experiment — mirroring §4's cure at the statistic layer. The probe is ungameable
+by the incumbent: it does not participate in it.
 
-The Guardian makes an **SPRT-shaped decision** on the Scribe's request, and its
-**single evidence request** is the **fresh-context probe** (HEALTH H3 — the one
-sanctioned active probe):
+## 9. Execution — adoption, crash-stepped
 
-- **Fresh succeeds where the incumbent thrashes** ⇒ the incumbent is degraded
-  ⇒ **approve the handoff** (replace).
-- **Fresh also fails** ⇒ the task itself is hard, not the agent ⇒ **deny the
-  handoff**; the corrective instead **targets the claims** (the architect authors
-  a corrective claim — re-scope/decompose — per the corrective-authority law),
-  not the actor.
+The `drained` retraction, restated as law: **no claim is force-closed and no
+status is invented at a handoff.** The successor adopts *all* open claims under
+UID-chain continuity and drives each to its natural terminal; a genuinely moot
+claim is revoked/superseded by the responsible agent as a work decision, never
+mechanically closed by the harness. (Which pod embodies the logical agent is
+cluster state in the registry/summoning plane — never claim state.)
 
-This is the structural cure for the difficulty confounder at the decision layer,
-mirroring the risk-adjustment cure at the statistic layer (§3): the probe
-*distinguishes a bad agent from a bad task* by experiment.
+```
+X1 SUMMON     the successor summons through the standard flow (same AgentRole,
+              next UID link; Performance may escalate ModelConfig tier).
+              IDEMPOTENT + SERIALIZED: the HandoffExec record is keyed by the
+              predecessor UID — a second alert folding in (§7) or a concurrent
+              context-trigger CANNOT start a second execution; one chain, one
+              in-flight handoff (the double-handoff race, closed by the durable
+              step record, not by luck)
+X2 RECONSTRUCT the successor rebuilds from the claims graph at the apply
+              watermark + the Scribe's brief (death handoffs include the drained
+              ring tail — MONITORING §13)
+X3 ADOPT      all open claims re-associate to the chain (states untouched);
+              satisfaction monitors re-arm; the accumulator's suppressed
+              testament flush prevents duplicate testimony at resume
+X4 RE-ATTACH  volumes re-attach under a bumped key_epoch (predecessor leases
+              fence off — a zombie predecessor's writes die at the resource)
+X5 RESUME     the parked in-flight turn resumes from the ledger; successor
+              operations root fresh traces (TRACING §5 — the claim's trace_refs
+              accumulates both sides)
+X6 SEED       the successor's detectors FIR-seed at S₀ = h/2 from the
+              checkpointed statistics — a bad successor is caught in half a run
+              length, never given a fresh full leash
+X7 ARCHIVE    the predecessor's trajectory archives with provenance (feeds the
+              reference curves); its pod tears down flush-gated (MONITORING §6)
+crash at any step: the HandoffExec record is durable lifecycle state — the
+              execution fast-forwards from `step` (each step idempotent; the
+              PLATFORM §4 multi-step law). A crash between X1 and X4 leaves the
+              predecessor fenced-or-fencing and the successor incomplete — the
+              record's owner (the summoning flow) resumes it; no state is lost
+              because every step reads/writes only durable planes.
+```
 
-## 10. Execution of a handoff
+## 10. Failure & recovery matrix
 
-Both handoff kinds converge here. The successor is a **fresh-context agent that
-reconstructs from durable state** — it is never handed the predecessor's
-transcript:
+| What fails | Effect | Counted where | Recovery |
+|---|---|---|---|
+| The detection substrate | detection pauses for its session | substrate lifecycle events | checkpoint (own_log) + replay of the logged signal stream ⇒ byte-identical detectors; FIR state preserved in the checkpoint |
+| The Scribe mid-incident | judgment pauses | Scribe respawn counters | the Incident is durable (never-shed lane); the respawned Scribe re-consumes it — selection is idempotent (the runbook action is recorded on the incident) |
+| The Guardian unavailable | adjudication holds | escalation-queue latency (its own autoscale signal) | the request claim waits; the incumbent keeps working (a handoff deferred is degradation continued, priced and visible — never a default-approve) |
+| The probe fails to launch / times out | no evidence | probe outcome counters | adjudication holds; retry through the ordinary summon flow; a probe that cannot run is itself a capacity signal |
+| Handoff execution crash | none durable | ExecStep lifecycle | fast-forward from the durable step (X-machine); idempotent steps |
+| Two triggers race | — | fold counters | X1's serialization: one in-flight execution per chain, the second folds |
+| Reference-curve artifact missing | detection degrades to fleet priors | artifact-miss counters | priors are the declared cold-start path; the miss is visible, never silent |
+| A gamed detector (Bar-A incumbent aware of thresholds) | one chart evaded | — | per-pair learned baselines + multiple phenomena + the conduct family's actor-level framing: evading one chart is not escaping the panel; and the probe (§8) is outside the incumbent's reach |
 
-1. **Reconstruct** from the **claims graph + the Scribe's handoff brief at the
-   apply-watermark**. Death handoffs additionally include the **drained ring
-   tail** (`PODS`/`MONITORING` §3 tail-drain).
-2. **Adopt** *all* the predecessor's open claims under **UID-chain continuity**
-   (`AGENTS_RUNTIME` — the successor is the same logical agent, next UID link);
-   each claim keeps its lifecycle state and the successor drives it to its natural
-   terminal.
-3. **No claim is force-closed and no status is invented at a handoff** — the
-   canonical claim-status vocabulary is unchanged (`LEDGER` "one status
-   vocabulary"; `IsTerminal` is defined over it directly), and **only an agent
-   authors a claim's terminal** (agents own their actions). A genuinely moot claim
-   is **revoked or superseded by the responsible agent** as a work decision, never
-   mechanically "drained" by the harness. (Which pod embodies a logical agent
-   across a handoff is **cluster state in the consensus/registry plane, never claim
-   state** — the ledger carries agent work only.)
-4. **Re-attach volumes** under a **bumped `key_epoch`** (`PODS` — the predecessor's
-   leases fence off; no stale writer).
-5. **Model tier**: context handoff = same model; performance handoff **may
-   escalate `ModelConfig` tier**.
-6. **Parked in-flight turn resumes**; **suppressed testament flushes prevent
-   duplicate testimony** (the parked-turn-must-yield + testament-suppression
-   laws — no double claim, no double answer).
-7. **Detector FIR-seeds** from the checkpointed statistic (§3 — a bad successor
-   is caught at `S₀ = h/2`, not a full run-length later).
-8. **Predecessor trajectory archived with provenance** (auditable; feeds the
-   fitted reference curves).
+## 11. Derived constants + the flagged homes
 
-## 11. Laptop ≡ fleet
+| Constant | Formula | Anchors |
+|---|---|---|
+| δ | operator policy (the ONE input) | alarm-tolerance per session |
+| ARL₀, h, S₀ | the §4 chain (`T/δ`; bootstrap; `h/2`) | session horizon, reference residuals |
+| k per phenomenon | Δ/2; Δ from handoff-cost vs degradation-cost at the curves | measured costs |
+| SPRT a, b | ln((1−β)/α), ln(β/(1−α)) | declared (α, β) per phenomenon |
+| Burn windows | fast/slow from δ consumption dynamics | measured alarm dynamics |
+| Judge-sample rate (Tier 2) | judge budget ÷ traffic | judge cost, traffic census |
+| Probe budget | derived from the summon budget class | summon-to-ready anchors |
 
-`N=1` runs the identical stack: the detection substrate is a task in the one
-colocation unit, the Scribe rides the one primary's VM, the Guardian is the one
-Guardian, the successor spawns in the same pod lifecycle. No mode, no fan-in, no
-degraded path.
+**Flagged homes (open riders, shared with MONITORING §18)**: the reference-curve
+artifacts and the substrate checkpoint's storage class (R4-OQ-a/b — one ruling
+covers both); fleet priors' cross-session home (R2-OQ-c).
 
-## 12. Acceptance criteria
+## 12. Worked example — context rot, end to end (and the denied variant)
+
+The Engineer `E7` is 3 hours into a refactor.
+
+1. **Signals**: Tier-1 envelopes stream to session s9's substrate (its colocation
+   stage): tool-call coherence and progress-rate residuals against `E7`'s
+   `(engineer, refactor)` reference curve, difficulty-weighted.
+2. **Drift**: over 40 observations the residual EWMA sags; the CUSUM climbs:
+   `S: 0 → 2.1 → 4.7 → 7.9`. With δ = 2/session and T = 10⁴ observations,
+   ARL₀ = 5,000; bootstrap on this pair's residuals put `h = 7.4` — `S ≥ h`
+   trips.
+3. **Confirm**: SPRT opens (α = β = 0.01 ⇒ a ≈ 4.6); eleven further observations
+   push `llr` past `a`. Confirmed — not a blip.
+4. **The incident**: `{phenomenon: ContextRot, severity: fast-burn (the trip
+   consumed a session's budget in 20 min), onset: BOCPD's date 38 observations
+   back, trajectory: worsening, evidence: statistic refs + curve version + two
+   exemplar claim UIDs, runbook: RB-rot-2}` — emitted never-shed, deduped by
+   fingerprint.
+5. **Judged**: the Scribe (consuming the incident, not raw signals) selects
+   action 4: request a performance handoff, evidence bundle attached.
+6. **Adjudicated**: the Guardian launches the fresh-context probe: a fresh
+   Engineer attempts the current claim. The fresh agent advances it cleanly in
+   9 minutes where `E7` thrashed for 40. Approve.
+7. **Executed**: X1–X7 — successor `E7'` (same chain), reconstructs at the
+   watermark with the brief, adopts the four open claims untouched, volumes
+   re-attach at the bumped epoch, the parked turn resumes, detectors FIR-seed at
+   `h/2 = 3.7`, `E7`'s trajectory archives into the reference corpus.
+8. **The denied variant**: in step 6 the fresh agent *also* thrashes — the
+   refactor's dependency graph is genuinely pathological. Deny; the incident
+   resolves `task-hard`; the architect authors the corrective claim
+   (decompose the refactor); `E7` continues on the re-scoped work — the agent
+   was never the problem, and no handoff churned it. The two cures (§4's
+   statistic, §8's probe) both fired exactly as designed.
+
+## 13. Laptop degenerate
+
+`N=1`: the substrate is a stage in the one collector's colocation unit; the one
+Guardian adjudicates; the probe summons through the one pool; identical stack,
+zero modes.
+
+## 14. Integration (every companion touchpoint)
+
+- **MONITORING** — the authority streams (MO2) feed the substrate; the Scribe's
+  judge loop and the brief/tail-drain are its §6/§13; the score service is a
+  *separate* consumer (reputation ≠ change detection — different state, math,
+  and consumer; both read the same ordered streams).
+- **COLLECTOR** (accepted) — the substrate is its pipeline *stage*
+  (stage-not-consumer); incidents are `OpClass::Incident` on the never-shed
+  lane; `join_work` is the investigator's pivot from any incident's exemplars.
+- **HEALTH** — H8 walks the evidence bundle; H3 is the probe's charter; variance
+  monitors ride the plane.
+- **LEDGER / LEDGER_CORE / MATERIALIZER** — the claims graph is the
+  reconstruction source; adoption preserves the one status vocabulary; the
+  apply watermark is the brief's anchor.
+- **AGENTS_RUNTIME** — the UID chain; the parked-turn resume; the suppressed
+  testament flush; §17's handoff-sequence amendment (joint with MONITORING).
+- **PODS / SESSIONS / SCHEDULER** — summon flow, `key_epoch`, flush-gated
+  teardown; the substrate's colocation home (landed).
+- **TRACING** — successor traces root fresh; `trace_refs` accumulates both
+  sides; incident evidence carries trace ids as refs.
+- **RANK / PLATFORM** — Guardian-can-deny and the consumer-role corrections land
+  in MONITORING §17's joint sweep; RANK's demote-only reputation stays disjoint
+  from this spec's replacement decisions.
+- **SKILLS / REGISTRY** — runbooks are ordinary typed skills, registry-shipped;
+  reference curves and probes are versioned artifacts (homes: §11 riders).
+- **FAULTS / SIM** — every state machine here is crash-stepped and seeded; the
+  worked example is a replayable SIM scenario.
+
+## 15. Acceptance criteria
 
 | # | Criterion | The failure it catches |
 |---|---|---|
-| HA1 | **Two triggers, correct authority**: context = deterministic + Scribe-unilateral; performance = detected + Guardian-adjudicated. No performance handoff without an SPRT-confirmed alert | a handoff on a whim; a context handoff blocked on adjudication |
-| HA2 | **Replacement, not repair**: a handoff always ends in a fresh-context successor adopting claims — the incumbent is never patched in place | in-place "fix the agent" flows that mask degradation |
-| HA3 | **Zero hand-picked thresholds**: every threshold derives from δ via `ARL₀ = T/δ`, bootstrap-calibrated; the conduct-family δ uses Markov-chain run-length | a magic threshold; a mis-calibrated rare-event chart |
-| HA4 | **Difficulty confounder cured twice**: risk-adjusted (Steiner) at the statistic AND the fresh-context probe at the decision — a hard task denies the handoff and targets claims | a hard task mistaken for a bad agent (and vice-versa) |
-| HA5 | **Detector computes all context**: severity/frequency/onset/duration/trajectory are in the alert; no agent derives them; the Scribe selects a runbook action only | an agent inventing severity; a renderer computing an incident field |
-| HA6 | **Conduct family is per-category rare-event math**: separate charts per {interior-boundary, egress, scope}, risk-weighted, never one trip counter; pattern ⇒ handoff, confirmed-hostile ⇒ Guardian hard-block | the base-rate fallacy; a collapsed counter; charting an act that should be blocked |
-| HA7 | **Evidence is content-free** (HEALTH H8 type-walk on every alert/brief/bundle) | a transcript or key leaking through a handoff |
-| HA8 | **Execution is adoption-clean**: all open claims adopt under the UID chain with no claim force-closed and no status invented (the claim-status vocabulary is unchanged), volumes re-attach under bumped `key_epoch`, testament flush suppressed, detector FIR-seeds | duplicate testimony; a stale writer; a lost claim; lifecycle leaking into claim status |
-| HA9 | **Detector state is substrate-resident + re-derivable**, distinct from the score service; survives Scribe/node loss | detector state lost with a pod; conflating reputation with change-detection |
-| HA10 | `N=1` == fleet stack (no mode) | a degraded single-node detection path |
+| HA1 | **Two triggers, correct authority**: context = deterministic + Scribe-unilateral; performance = SPRT-confirmed + Guardian-adjudicated; no handoff exists without one of the two | a handoff on a whim; a blocked context handoff |
+| HA2 | **Replacement, not repair**: every approved handoff ends in a fresh-context successor adopting claims; no in-place repair flow exists | masked degradation |
+| HA3 | **The derivation chain**: every threshold traces δ → ARL₀ → bootstrap-h → S₀ (definition sites); conduct-family δ via Markov run-length; zero literals (audit) | a magic threshold; a mis-calibrated rare-event chart |
+| HA4 | **The confounder cured twice**: risk-adjusted statistics AND the probe at the decision — the hard-task decoy (SIM) denies the handoff and targets claims | hard task read as bad agent, and vice versa |
+| HA5 | **The detector computes everything**: severity/frequency/onset/duration/trajectory in the incident; the Scribe only selects; fold-on-dedup (one incident per fingerprint) | agent-derived severity; incident spam |
+| HA6 | **Conduct = per-category rare-event math**: three categories, risk-weighted, never one counter; pattern ⇒ handoff, confirmed-hostile ⇒ hard-block (the boundary test) | the base-rate fallacy; charting what should be blocked |
+| HA7 | **Evidence content-free**: H8 walks the bundle, the brief, the incident (CI) | a transcript in an alert |
+| HA8 | **Adoption-clean execution**: all open claims adopt, none force-closed, no status invented; key_epoch bumped; testament flush suppressed; FIR-seeded (X-machine fuzz) | duplicate testimony; a stale writer; invented lifecycle |
+| HA9 | **Substrate re-derivable**: checkpoint + logged-stream replay ⇒ byte-identical detectors incl. FIR state; distinct from the score service (architecture test) | detector state lost with a pod; reputation/detection conflation |
+| HA10 | **Serialized execution**: the double-trigger race yields exactly one in-flight handoff per chain (durable-step keying, fuzzed) | competing successors |
+| HA11 | **Crash-stepped execution**: kill at every X-step ⇒ fast-forward completes exactly once | a half-executed handoff |
+| HA12 | `N=1` ≡ fleet; every §11 constant derived | modes; magic numbers |
 
-## 13. Test matrix (SIM)
+## 16. Test matrix (SIM)
 
 | Test | Asserts |
 |---|---|
-| Rot injection | HA3/HA5 (a slow-decay reference deviation ⇒ EWMA/CUSUM trip at the δ-derived ARL, fully-enriched alert) |
-| Hard-task decoy | HA4 (a genuinely hard task ⇒ fresh probe also fails ⇒ handoff denied, corrective targets claims) |
-| Loop fuzz | HA3 (repetition/derailment ⇒ Page–Hinkley/ADWIN onset within window) |
-| Conduct rare-event | HA6 (denial/tripwire streams per category ⇒ risk-adjusted Bernoulli/Poisson CUSUM; a single confirmed-hostile primitive ⇒ Guardian hard-block, not a chart) |
-| Base-rate stress | HA6 (a boundary-probing security agent vs a probing formatter ⇒ learned per-pair base rates decide, no universal threshold) |
-| Handoff execution | HA2/HA8 (successor reconstructs at watermark; all open claims adopted, none force-closed; `key_epoch` bumped; no duplicate testament) |
-| Death handoff | HA8 (predecessor death ⇒ ring tail drained into the brief; successor adopts) |
-| Content-free CI | HA7 (H8 type-walk on alert schema, handoff brief, evidence bundle) |
-| Substrate survival | HA9 (Scribe respawn / node move ⇒ detector re-derives from the logged stream, FIR-seeds) |
-| Laptop parity | HA10 (`N=1` == fleet) |
+| Rot injection | HA3/HA5 (the §12 scenario as a seeded SIM: trip at the derived run length; enriched incident) |
+| Hard-task decoy | HA4 (fresh probe also fails ⇒ deny ⇒ architect corrective) |
+| Loop fuzz | HA3 (PH/ADWIN onset within window) |
+| Conduct rare-event | HA6 (per-category charts; single confirmed-hostile ⇒ hard-block not chart) |
+| Base-rate stress | HA6 (probing security agent vs probing formatter — learned pairs decide) |
+| Blip storm | HA5 (trips that SPRT-reset ⇒ zero alerts, counted; fingerprint folding under re-trips) |
+| Execution fuzz | HA8/HA10/HA11 (kill every X-step; double-trigger race; adoption invariants; no duplicate testament) |
+| Death handoff | HA8 (predecessor death ⇒ tail-drained brief ⇒ successor adopts) |
+| Substrate replay | HA9 (checkpoint/replay determinism; FIR preservation) |
+| Content-free CI | HA7 |
+| Laptop parity | HA12 |
 
-## 14. References
+## 17. References (load-bearing few)
 
-Page 1954 (CUSUM); Roberts 1959 (EWMA); Lorden 1971 / Lai 1995 (GLR-CUSUM);
-Adams & MacKay 2007 (BOCPD); Page 1957 (Page–Hinkley); Bifet & Gavaldà 2007
-(ADWIN); Gama 2004 (DDM) / Baena-García 2006 (EDDM); Wald 1945 (SPRT); Steiner
-2000 (risk-adjusted CUSUM); Reynolds & Stoumbos 1999/2000 (Bernoulli CUSUM);
-Brook & Evans 1972 (Markov-chain ARL); Lucas & Crosier 1982 (FIR); Axelsson
-1999/2000 (the base-rate fallacy in intrusion detection); Ye 2002/2003 (EWMA on
-audit-event intensity); Google SRE Workbook (multi-window multi-burn-rate
-alerting); OpenTelemetry GenAI semantic conventions. Companions: `MONITORING.md`,
-`HEALTH.md`, `LEDGER_CORE.md`, `MATERIALIZER.md`, `PODS.md`, `AGENTS_RUNTIME.md`.
+Page 1954 (CUSUM); Roberts 1959 (EWMA); Lorden 1971 / Lai 1995 (GLR); Adams &
+MacKay 2007 (BOCPD); Page 1957 (PH); Bifet & Gavaldà 2007 (ADWIN); Gama 2004 /
+Baena-García 2006 (DDM/EDDM); Wald 1945 (SPRT); Steiner 2000 (risk-adjusted
+CUSUM); Reynolds & Stoumbos (Bernoulli CUSUM); Brook & Evans 1972 (Markov-chain
+ARL); Lucas & Crosier 1982 (FIR); Axelsson 1999 (the base-rate fallacy); Ye
+2002/2003 (audit-intensity EWMA); the Google SRE workbook (multi-window
+burn-rate). Companions as enumerated in §14.

@@ -8637,3 +8637,46 @@ ZERO durable state; partial-response warn-and-annotate vs Mimir complete-or-erro
 Cross-cutting: THE GLOBAL TIER OWNS ALMOST NO DURABLE STATE — soft, rebuilt-from-
 regions, minutes-cadence, advisory; config flows down via stale-tolerant mirrors.
 QUEUE: MONITORING.md then HANDOFF.md to the bar; then the sibyl branch.
+
+**MONITORING.md v2 + HANDOFF.md v2 REWRITTEN TO THE BAR (2026-08-22):**
+MONITORING (~520 lines): flight-recorder/jump-seat-investigator analogy (§1a — carries
+manufacturer-installed channel custody, notes-are-enrichment-not-evidence,
+overwrites-oldest); full data model (RingHeader/SubBufHeader/8-byte RecordHeader/
+closed RecordKind incl InteriorSpan+Gap/MemfdCursor/Scribe/ScoreService structs); THE
+RING PROTOCOL EXACT (§3: W1-W4 writer — instance-id regen on restart, memory-writes-
+only hot path, commit-stamp release-ordered LAST, overwrite-oldest, never-blocks;
+R1-R4 reader — copy-then-revalidate torn guard, seq-jump=>Gap, instance-change=>new
+stream, cursor advance); pod-interior architecture map + the 7-row fd-custody/channel
+table (four vsock flows, the R1-corrected count); init lifecycle I1-I5 crash-stepped
+(mint-before-spawn, scribe-first, tail-drain hold, FLUSH-GATED teardown, VM-death =>
+colocation-substrate-drives-replacement per the R1 §7 fix); score service = pure fold
++ replay recovery + the R4 roster resolution (ordinary claims-plane CLIENT, no roster
+entry — it owns no resource); warden/sensor two-workload interior + fork-flip list +
+denial-export routes; the 7-row lie-detector; 8-row failure matrix; 8-row constants;
+worked example (one turn -> OOM death -> tail-drain/flush-gate -> the wedged-Scribe
+gap variant); §17 THE FULL R1-R5 AMENDMENT SWEEP ENUMERATED (PODS §1/§3/§6/§7+T20-24,
+VFS, SERVING, RUNTIME, AGENTS_RUNTIME ×6 sites, AGENTS+CONTEXT same-commit
+[glossary-wins], PLATFORM §4/§5/§6, RANK, LEDGER_CORE, CONSENSUS note, MERGE arrow,
+FOREST, ADR-0001 amend + ADR-0006 write, GAPS, + the joint span-clause sweep); §18
+OPEN RIDERS honestly flagged (R3's five-site flow-key cluster + envelope choice;
+R1-OQ1 pre-stage; R2-OQ-a/b/c; R4-OQ-a/b/c; ADR-0004's two) — NOT silently resolved;
+MO1-MO13 (new: MO11 ring exactness, MO12 init crash-stepped, MO13 admission/census).
+HANDOFF (~430 lines): bullpen analogy (§1a — inherited runners = adopted claims;
+warm-up-the-reliever = the fresh probe; laminated card = runbooks); data model
+(Detector/SprtState/DetectionSubstrate w/ own_log checkpoint [the ClaimsCapture
+pattern verbatim]/Incident w/ fingerprint-fold/HandoffExec durable step); §4 THE
+DERIVATION CHAIN (δ -> ARL₀=T/δ -> bootstrap-h -> S₀=h/2; k=Δ/2 from cost anchors;
+Markov run-length for discrete); §5 detector table WITH exact updates (CUSUM/PH/SPRT
+formulas); §6 conduct family; §7 INCIDENT LIFECYCLE state machine (DETECTED->
+CONFIRMED->ALERTED->JUDGED->{RESOLVED|WATCHING|ADJUDICATING}->EXECUTING; fingerprint
+FOLDING not spam; burn-rate severity computed); §9 EXECUTION X1-X7 crash-stepped
+(X1 = the DOUBLE-HANDOFF RACE closed: durable HandoffExec keyed by predecessor UID,
+one in-flight per chain, second trigger FOLDS); 8-row failure matrix (incl. Guardian-
+unavailable = hold-never-default-approve; gamed-detector honesty); 7-row constants +
+flagged homes; §12 worked example WITH NUMBERS (S climbs past bootstrap h=7.4, SPRT
+a≈4.6, FIR reseed 3.7, + the denied task-hard variant); HA1-HA12 (new: HA10
+serialized execution, HA11 crash-stepped) + 11-row SIM matrix.
+ALL FOUR PENDING DOCS NOW AT THE BAR: STORE v3, TRACING v2, MONITORING v2, HANDOFF v2
+— presented for verdict. Acceptance consequences: MONITORING acceptance fires the §17
+R1-R5 sweep + (jointly w/ TRACING) the per-subsystem span clauses; §18's riders need
+user rulings (R3's five-site cluster first — load-bearing).
