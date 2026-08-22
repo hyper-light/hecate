@@ -8827,3 +8827,35 @@ finalize; shipped defaults for new lineages; (5) Archivalist = admission/pruning
 refit-triggers/export-approval/query-provision — judgment atop THIS plane's
 machinery. Baseline-isolation research still out; the plane lands whole on
 receipts + verdict.
+
+**ARCHIVE.md WRITTEN AT THE BAR (2026-08-22, ~430 lines) — presented for acceptance:**
+The archive plane specced whole (the boundary LEDGER §8 always named but never
+built): §1 three laws (session-scoped/lineage-inherited; ONE collection path —
+sufficient statistics + documents, never a second points store; infrastructure-not-
+agent); §1a the medical-records analogy (per-patient charts / distill-don't-rewire /
+officer-never-courier / exclusions-from-events-not-the-chart); full data model
+(ArchiveDoc kinds incl RetiredProof coexisting; CurveVersion w/ frozen prev +
+DriftReport + provenance chain; ArchiveIngest = OWN QUEUE lane, ack = the durable
+enqueue ack GATING TEARDOWN; ArchiveIndex = a STORE §16 instance; Fitter w/
+SubWindowRing[K] of ExpHistogram-per-difficulty-bucket + own_log; ExclusionMark w/
+closed lifecycle reasons + ArchivalistJudged{claim}; ArchivalistDirective = CLAIMS);
+architecture map + 9-hop table (zero new channels; Scribe records provably-its-own
+via the flow-key landing); §4 ingest lifecycle + the gate precisely (service ack,
+waits visibly on partition, never proceeds unlanded); §5 THE FITTER ALGORITHM
+(collect-inside-retention w/ exclusion-before-accumulation; per-sub-window
+median/MAD fits from histogram quantiles; VOTE w/ deviation-discard [≤1/K
+influence]; THE DRIFT GATE vs the frozen version — publish within bound, else
+WITHHELD via consult claim; admission MODEL-INDEPENDENT structurally = the
+boiling-frog loop severed); §6 the cold-start ladder (current -> LineageSeed ->
+ShippedDefault; LC-CUSUM default-distrust posture; lineage flagged honestly as
+precedent-free-but-single-owner); §7 the Archivalist duties; 8-row failure matrix
+(incl. the poisoning row: blast radius = own session even on total guard failure);
+closed taxonomy; 8-row constants; §11 worked example (lineage seed -> exclusion ->
+refit -> THE POISONING VARIANT: 2/6 windows discarded by vote, drift withheld,
+Archivalist prunes, detection on frozen v1 throughout -> finalize/seed-export);
+§13 the amendment sweep (MONITORING §6/§13 gate re-pointed to the ingest ack;
+HANDOFF cold-start ladder replaces fleet priors + R4-OQ-a/R2-OQ-c close; SESSIONS
+colocation += archive services; STORE §16 row; AGENTS/CONTEXT same-commit;
+LEDGER §8 pointer; OBJECT_TIER archive-class confirm; GAPS); AR1-AR12 + 10-row SIM
+matrix; research receipts inline (per-entity practice, Steiner/LC-CUSUM,
+ANTIDOTE/boiling-frog/Kloft-Laskov/Cretu, NIST AI 100-2).
