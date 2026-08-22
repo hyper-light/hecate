@@ -8799,3 +8799,31 @@ approve lineage-seed export, provide/facilitate investigation queries — judgme
 atop administered machinery. (Consistent w/ its charter's "deep investigation" +
 the collector branch's query-yes-ingest-no settlement.) Research still out;
 design lands whole on receipts + verdict.
+
+**STANDING CORRECTION (2026-08-22, user — the retrofit pattern named and banned):**
+"Stop retrofitting existing services; create clean new boundaries that utilize
+similar architecture and the underlying infrastructure." Named instances of my
+failure mode: window-vs-CACHE, cluster-state-in-claims-ledger, curves-in-REGISTRY,
+baselines-in-COLLECTOR ("the collector is for TELEMETRY AND OBSERVABILITY" — do
+NOT bolt the baseline corpus onto it). THE REFLEX: new purpose => NEW INSTANCE on
+the shared substrate (own boundary/owner/retention class); one-authority-per-
+CONCEPT cuts by PURPOSE not shape; the primitives were designed for multiple
+instances.
+**THE ARCHIVE PLANE (corrected design, pending research+verdict):** its own
+bounded per-session component, Archivalist-administered, collector-untouched:
+(1) ARCHIVE INGEST SERVICE (durable landing for Scribe emissions; own QUEUE-over-
+WAL lane in the session durable scope; issues the teardown-gating ack); (2) THE
+TRAJECTORY STORE (per-session time-series of agent performance; reuses windowed-
+series/exp-histogram/STORE machinery AS A LIBRARY over its OWN instance; retention
+= COMPLETE + SESSION-LIFETIME — the opposite class from lossy-expiring telemetry,
+which is exactly why collector-bolt-on was wrong); (3) data path = THE SCRIBE'S
+(already each agent's signal source, already emits score snapshots): Scribe ->
+archive ingest -> trajectory store; the collector appears NOWHERE in this plane's
+dataflow (Archivalist may separately QUERY the collector under its own grant =
+cross-plane consultation, not dependency); (4) FITTING SERVICE -> versioned curve
+documents -> ARCHIVE STORE+INDEX (content-addressed; scope/agent/domain/lineage/
+time); detection reads curves from the store (colocated); lineage-seed export at
+finalize; shipped defaults for new lineages; (5) Archivalist = admission/pruning/
+refit-triggers/export-approval/query-provision — judgment atop THIS plane's
+machinery. Baseline-isolation research still out; the plane lands whole on
+receipts + verdict.
