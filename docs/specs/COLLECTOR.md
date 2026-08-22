@@ -32,6 +32,55 @@ single-owner model: one owner task per shard, telemetry never crossing shards on
 path, bounded channels everywhere (the OTAP shape receipt: 2.47M logs/s/core vs 121K
 on the row path — shape, not dependency).
 
+## 1a. The whole machine, in plain terms
+
+Think of a national electricity utility. Every appliance has a **meter**
+(a chokepoint emitting measurements). The **neighborhood substation** (the node
+collector) doesn't forward every tick of every meter to headquarters — it keeps
+running totals locally (the roll-up) and periodically reports **absolute meter
+readings** upward. The **regional utility** (the region tier) files each
+neighborhood's latest readings and can total across neighborhoods at any time.
+Auditors (the query surface) examine the filed records at the office — they never
+stand in the substation slowing the metering down. Fraud detection (the HANDOFF
+stack) watches the regional totals continuously.
+
+The analogy carries the design's three least-obvious choices:
+
+- **Why absolute readings, not "usage since last report" (§7):** real meters report
+  cumulative totals precisely so a *lost report* can never mis-bill you — the next
+  reading carries the truth on its own. A "usage-since" report that gets delivered
+  while its acknowledgment is lost would be double-billed. Same here: absolute
+  snapshots + replace-on-apply make loss and re-delivery harmless by construction.
+- **Why totals at the substation, not raw ticks upward (§5, §7):** aggregating at
+  the edge is what makes a million meters affordable — Monarch's measured 36:1
+  reduction at ingest is this exact move.
+- **Why auditors stay in the office (§9):** an audit, however heavy, must never slow
+  the metering. Query load is structurally separated from ingest.
+
+## 1b. Terms this document uses (reading guide)
+
+- **Series** — one named stream of numbers with fixed labels (`SeriesKey`), e.g.
+  "vfs.mount latency for Engineer-pod-7 on node-3." The unit of roll-up state.
+- **Roll-up** — replacing a stream of raw values with a compact running summary
+  (a counter, or a histogram of the distribution).
+- **Dirty bit** — a per-series flag meaning "changed since the region last confirmed
+  receiving it"; cleared only on that confirmation (§7).
+- **Watermark** — the highest position already processed; anything at or below it is
+  known-done and can be skipped on re-delivery (§10). A stamped-mail ledger: record
+  the highest stamp number processed per sender, discard re-delivered lower stamps
+  unopened.
+- **Exemplar** — a bounded sample of opaque ids (here: claim UIDs) riding on a series
+  so an investigator can pivot from a statistic to a concrete case.
+- **Seal** — the moment a mutable in-progress thing (a trace window, a log segment)
+  becomes an immutable record.
+- **Cursor** — a durable bookmark into a stream; resuming from it re-reads exactly
+  what follows it.
+- **HRW routing (§2b)** — a deterministic lottery: every (trace, assembler) pair
+  computes a score from a hash; the trace goes to its highest scorer. Remove one
+  assembler and only *its* traces move — nobody else's ticket changes.
+- **PEP** — the policy-enforcement point: the single place a read crosses IAM's
+  authorization check (`IAM.md`).
+
 ## 2. Data model
 
 ```rust
@@ -86,8 +135,14 @@ struct NodeCollector {
 struct CollectorShard {                // single-owner: no lock exists in this struct
     registry: SeriesRegistry,          // §6 — the label→slot chokepoint
     series: Vec<SeriesState>,          // dense, indexed by SeriesIdx
-    hot: CacheHandle,                  // CACHE instance: recent raw events + rows
-    dirty: BitSet,                     // series touched since last uplink interval
+    hot: CacheHandle,                  // CACHE instance: keyed lookups (trace rows,
+                                       //   latest-event-by-key)
+    events: EventRings,                // per-(scope,class) bounded deques — recent
+                                       //   events in arrival order (read_events' hot
+                                       //   horizon; durable classes ALSO cursor-read
+                                       //   from the op log beyond it)
+    dirty: BitSet,                     // series touched since last ACKED uplink (§7 —
+                                       //   cleared on ack, not on ship)
     drops: DropCounters,               // §12 — one counter per taxonomy category
 }
 
@@ -124,6 +179,29 @@ durable state the collector itself authors (cursors/watermarks); everything else
 re-derivable (hot, registry, dirty) or already durable elsewhere (the op log, cold
 blocks).
 
+## 2b. Routing — the four placement functions (all of them, nothing implicit)
+
+```
+measure → shard:      shard_of(k: &SeriesKey) = k.hash % N_shards
+                      (stable within a node; N_shards = derived core share; a series
+                       lives its whole life on one shard — the single-owner premise)
+
+event   → ring:       events[(record.scope, record.class)] on the shard that drained
+                      the source ring (source→shard assignment is fixed at BIND)
+
+record  → log:        op_log partition key = hash(record.scope)
+                      (the QUEUE instance's partition key — scope IS the route)
+
+span    → assembler:  a* = argmax over roster n of  ( −w_n / ln(u_n) ),
+                      u_n = H64(trace_id ‖ n.id) / 2^64
+                      (weighted rendezvous/HRW — the CACHE's placement function,
+                       verbatim; logarithmic weighting so only a changed node's score
+                       changes; membership change re-routes exactly K/N)
+```
+
+Every routed hop above is fenced by the roster epoch it was computed against
+(stale-epoch delivery is refused + re-routed, the corpus's standard fence discipline).
+
 ## 3. The node collector — lifecycle and the ingest tick
 
 **Component lifecycle** (one owner task per node drives it):
@@ -149,7 +227,8 @@ sources fire doorbells:  host hot-ring (MONITORING §5)   Scribe flows (guest in
                ClaimMetric             ─▶ op_log.append(class=Standard)    //   then hot
                Telemetry|Span          ─▶ hot only (durable only via §7 interval blocks)
 4. REDUCE    Measure ⇒ idx = registry.admit(&key); series[idx].record(v); dirty.set(idx)
-             Event   ⇒ hot.put(event_key, record)
+             Event   ⇒ events[(scope, class)].push(record)   // bounded deque, §2;
+                                                             //   overflow ⇒ RingOverrun
              Span    ⇒ keep-flag? forward to assembler route : hot-only (TRACING §5)
 5. DELIVER   live FANOUT: class-filtered, scope-filtered push to the bound four (§9)
 ```
@@ -188,6 +267,15 @@ buckets = `log2(hi/lo) × 2^scale`. Worked: α=1%, 1 ns→1 day (46.3 octaves) �
 ~1,482 buckets ≈ 12 KB. (The OTel default of 160 buckets would force 17% error over
 that span — bucket count is derived, never defaulted; CL4.)
 
+*The ruler analogy* (why cross-resolution merging is exact): scales are rulers whose
+tick marks nest — every millimeter mark falls exactly on a centimeter ruler's grid,
+so re-reading a fine measurement on the coarser ruler is rounding-free re-binning,
+not re-measuring. Two nodes can histogram at different precisions and the region
+still combines them with zero added error: fold the finer one's ticks onto the
+coarser grid (`downscale_to`), then add counts. A ruler whose marks *don't* nest
+(fixed-γ DDSketch at a different γ, or t-digest's centroids) can't do this — that is
+the entire selection argument.
+
 ```rust
 impl ExpHistogram {
     /// Bucket covering v. scale ≤ 0 is pure bit extraction — no transcendental.
@@ -222,6 +310,45 @@ impl ExpHistogram {
 }
 ```
 
+**The series lifecycle** (per key, on its owning shard):
+
+```
+UNKNOWN ──admit: miss + room──▶ ADMITTED ──record()──▶ DIRTY ──uplink ACK──▶ ADMITTED
+   │            ▲                    ▲                   │        (dirty bit clears;
+   │            └──admit: hit────────┘                   └─record─┘  state persists)
+   │
+   └──admit: miss + registry full──▶ FOLDED (measurements land on the overflow
+                                     series; counted + alarmed; §6 — terminal until
+                                     capacity returns or the metric is re-registered)
+
+Retire: Session-scoped series die with their session's archive seal; System-scoped
+series live until their metric is deregistered (a registry change, never runtime GC).
+```
+
+**Implementation notes an implementer actually needs:**
+
+```rust
+#[inline] fn ieee_exponent(v: f64) -> i32 {   // floor(log2 v), v > 0: biased-exponent
+    ((v.to_bits() >> 52) & 0x7ff) as i32 - 1023   // bit extraction; subnormals fall
+}                                                  //   into the zero bucket below
+
+fn slot(&mut self, i: i32) -> &mut u64 {           // dense window addressing
+    debug_assert!(self.in_window(i));              // guaranteed: [lo,hi] fixed the
+    &mut self.buckets[(i - self.index_offset) as usize]   // window at registration
+}
+```
+
+- **Domain**: `Measure` values are durations/sizes — non-negative by construction; a
+  negative value is `Malformed` at decode (step 2), never a histogram concern.
+- **`zero_threshold = lo`** (the registered span floor): `v ∈ (0, lo]` counts in
+  `zero_count` — no bucket below the span exists.
+- **`v > hi`**: clamp into the top bucket **and count** `drops[RangeClamped]` (§12) —
+  the value is not lost, the clamp is not silent, and a clamp rate above the derived
+  alarm line means the registered span anchor has drifted (re-derive, don't widen
+  silently).
+- `index_offset` initializes to `index(lo, scale)`; the window never moves after
+  registration — `record` is allocation-free for the series' whole life.
+
 Why not the alternatives (receipts): **t-digest is banned** — no proven error bound,
 adversarially unbounded (Cormode et al.), order-dependent merge: a tiered roll-up
 cannot stand on it. HDR is exact but ~311 KB at this span/precision vs ~12 KB.
@@ -235,7 +362,13 @@ OTel/Prometheus interchange form our vocabulary already targets.
 ids are H8-forced out of labels into bounded exemplars. This is Monarch's position
 (950 B series, *no* cap — bounded by schema + 36:1 collection aggregation).
 
-**Backstop — aggregate-into-overflow, loud** (per `(scope, metric)`, in the shard):
+**Backstop — aggregate-into-overflow, loud** (per `(scope, metric)`, in the shard).
+*The coat-check analogy*: a cloakroom with a fixed number of numbered hooks. When the
+hooks run out, additional coats still go in — onto one communal rack. **No coat is
+ever turned away** (every measurement is counted; totals stay exact); what degrades
+is *retrieval by ticket* (you can no longer ask "which series was that?" for the
+communal ones — attribution, not data, is what overflows). The attendant counts every
+communal coat and rings a bell the first time the rack is used:
 
 ```rust
 struct SeriesRegistry {
@@ -280,30 +413,78 @@ not hidden (telemetry class; Verdict/Audit never depend on the registry).
 
 ## 7. Federation — what actually moves node → region
 
-The uplink is an interval shipper, not a stream mirror:
+The uplink is an interval shipper of **absolute series state**, not a stream mirror
+and not a delta protocol:
 
-- **What**: for each dirty series (the `dirty` BitSet), one `SeriesDelta` — `(SeriesKey,
-  state-delta)`: counter deltas as integers; histograms **downscaled to the tier's
-  derived resolution** then shipped as sparse `(index, count)` pairs; plus the interval's
-  sealed **event/span block ref** (content hash) if one sealed. Never raw events upward.
-- **When**: interval `T_up` derives from the uplink byte budget:
-  `T_up = Σ dirty-series-bytes / uplink_budget_bytes_per_sec`, clamped by the staleness
-  bound consumers declared (HEALTH freshness). Recomputed as the anchors drift.
-- **Wire**: class-1 sheddable datagrams under the PROTOCOL MTU budget; a lost interval
-  is *absorbed* — the next interval ships state-deltas since the last **acked**
-  interval (cumulative-since-ack), so loss costs latency, never correctness; sustained
-  loss trips AbsenceIs staleness on the region side (HEALTH: staleness is data).
-- **At the region**: `merge_from` per series (§5 — exact), assembler routing for spans
-  (§8), and the region's own shard set serves rolled-up queries. Fan-in is bounded by
-  **node count** (one uplink per node, H6), never pod count.
-- `N=1`: the uplink target is the node itself — the same code path with a loopback
-  hop, no mode.
+```rust
+struct UplinkInterval {
+    node: NodeId, roster_epoch: Epoch,       // fenced (§2b)
+    seq: u64,                                // monotone per node; gaps legal
+    series: Vec<(SeriesKey, SeriesSnap)>,    // ABSOLUTE state of each dirty series:
+                                             //   Counter(total) | Gauge(v) |
+                                             //   Histo(downscaled sparse (idx,count)+
+                                             //   count/sum/min/max/zero)
+    sealed_refs: Vec<ContentHash>,           // event/span blocks sealed this interval
+}
+```
+
+**The uplink state machine** (one per node):
+
+```
+ACCUMULATING ──T_up fires──▶ SHIP(seq=n: absolute snap of every DIRTY series)
+      ▲                            │
+      │                       IN_FLIGHT(n)
+      │                        │        │
+      │   ack(n): clear the    │        │ loss / timeout (derived from measured RTT):
+      │   shipped series'  ◀───┘        │ NOTHING is resent —
+      └── dirty bits                    └──▶ ACCUMULATING (bits still set; the NEXT
+                                             interval re-ships current absolutes)
+```
+
+- **Idempotent by construction**: the region applies an interval by **replace**, keyed
+  `(node, series)` — `region[(node, key)] = snap` if `seq` > the stored seq for that
+  node, else discard. Re-delivery, re-ship after a lost ack, reordering: all safe —
+  replace is idempotent; a stale `seq` is simply discarded.
+  - *Rejected alternative, recorded*: shipping **deltas** since the last ack. It
+    double-counts on the ack-lost-but-interval-received path (the node re-ships
+    changes the region already merged) unless a base-sequence negotiation is added —
+    a protocol to get wrong, for bytes we don't need to save. Absolute-replace has no
+    such path. Correctness over wire thrift (the doctrine's ordering).
+- **Cross-node aggregation happens at read/roll-up, not at apply**: the region holds
+  per-`(node, series)` latest absolutes; a regional series value = `merge_from` across
+  the node entries (§5 — exact, any order). A dead node's entries freeze and retire
+  with node liveness (the fabric's verdict, not a timer here).
+- **When**: `T_up = Σ dirty-series-bytes / uplink_budget_bytes_per_sec`, clamped by the
+  staleness bound consumers declared (HEALTH freshness); recomputed as anchors drift.
+- **Wire**: class-1 sheddable datagrams under the PROTOCOL MTU budget; an interval
+  larger than the datagram budget splits by series (each fragment a complete,
+  independently-appliable `UplinkInterval` sharing `seq` — replace semantics make
+  partial arrival safe). Sustained loss trips AbsenceIs staleness region-side.
+- **Fan-in bounded by node count** (one uplink per node, H6), never pod count.
+- `N=1`: the uplink target is the node itself — same code path, loopback hop, no mode.
 
 ## 8. The trace assembler (D5)
 
 Kept spans (TRACING §5 head decision) arrive at the region tier; routing is
-**`weighted_hrw(trace_id, roster)`** — the CACHE's placement mechanism reused; HRW
-re-routes exactly a dead assembler's share (provably optimal K/N), no routing table.
+**`weighted_hrw(trace_id, roster)`** (the §2b function — the CACHE's placement
+mechanism reused; a membership change re-routes exactly the departed share, K/N).
+
+**The trace-slot state machine** (per `trace_id`, on its HRW-owned assembler):
+
+```
+(no slot) ──first span──▶ OPEN ──span──▶ OPEN   (append; in-band gap records → gaps+=1)
+              │
+              ├── window W expires ─────▶ SEAL(WindowClosed)
+              │                            complete = (gaps == 0 ∧ has_root)
+              ├── capacity eviction ────▶ SEAL(Evicted)        incomplete, counted
+              └── assembler dies ───────▶ state lost; survivors that receive later
+                                          spans open a fresh slot ▶ SEAL(AssemblerLost)
+                                          incomplete, counted
+
+SEAL is terminal: row → hot (CACHE) → OBJECT_TIER on retention; the slot is removed.
+A span arriving AFTER its trace sealed opens a new slot that will itself seal
+incomplete (no root) — late spans never resurrect a sealed row (rows are immutable).
+```
 
 ```rust
 struct Assembler {
@@ -404,15 +585,45 @@ impl ClaimsCapture {
                                                //   park/resume; claim_coherence; exemplar
             *w = d.log_seq;
             if d.is_terminal_released() { self.retire.push(d.claim_uid); }
-        }                                      // `applied` is bounded by LIVE claims
-        // ONE atomic append to own_log: {cursor', applied-deltas}. Crash ⇒ replay
-        // from the committed cursor; watermarks turn every reprocessed delta into
-        // the `continue` above. Exactly-once effect, no 2PC, ZERO ledger writes.
+        }
+        self.applied.retain(not_retired());    // retirement lands in the SAME checkpoint
+                                               //   that records the terminal — no window
+                                               //   where a redelivered terminal re-counts
+        // ONE atomic append to own_log: {cursor', the FULL applied map}. The map is
+        // bounded by LIVE claims (small), so a full snapshot per checkpoint buys
+        // single-record recovery — read the LAST checkpoint, nothing replayed from
+        // older ones. Crash ⇒ resume the delta stream from that cursor; the
+        // watermarks turn every reprocessed delta into the `continue` above.
+        // Exactly-once effect, no 2PC, ZERO ledger writes.
         self.own_log.append_atomic(&CaptureCheckpoint {
-            cursor: self.cursor.advanced(deltas), applied: self.applied_delta() })
+            cursor: self.cursor.advanced(deltas), applied: self.applied.clone() })
     }
 }
 ```
+
+**The capture state machine** (one task per session stream):
+
+```
+BOOT ──read LAST CaptureCheckpoint from own_log──▶ REPLAY(subscribe delta stream
+   (none ⇒ cursor = stream start, applied = ∅)      at checkpoint.cursor)
+        │
+        ▼ caught up to the live edge
+   STREAMING ──batch arrives──▶ DERIVING (the loop above) ──append checkpoint──▶ STREAMING
+        │
+        crash at ANY point ⇒ BOOT.
+```
+
+**The derive-vs-checkpoint crash window, closed.** A crash *between* `derive` and the
+checkpoint append leaves the in-memory series holding effects the durable watermark
+does not record — which would double-count if that state survived into replay. It
+never does: **capture-derived series are owned exclusively by the capture task**, and
+BOOT unconditionally **rebuilds them by replay** from the last checkpoint's cursor —
+it never merges with pre-crash in-memory state (there is none after a restart, and a
+surviving shard's copy of a capture-owned series is discarded at capture BOOT, not
+merged). Re-derivation is safe because `derive` is a pure function of the delta —
+replaying the uncheckpointed suffix reproduces the exact effects once. One writer,
+one recovery source, no double-count path (CL8's crash-fuzz covers precisely this
+window).
 
 **The one ledger-side amendment** (§16): the runtime stamps **`trace_refs`** into the
 **system-written** lifecycle record (beside timestamps/status in `ClaimLifecycle` —
@@ -449,7 +660,7 @@ impl ObservabilityQuery for QueryService {
 | A source ring overflows | oldest unpersisted telemetry | `drops[RingOverrun]` + in-band gap records | nothing — lossy class; gaps surface in assembled traces (§8) |
 | A collector shard task | hot tail since last hot write | `drops[ShardRestart]` | shard restarts; registry rebuilt from hot's live series; series re-admit |
 | The node collector | hot store + registry + dirty set | `drops[NodeCollectorLoss]` | op_log (durable classes) intact; own_log replays capture cursors/watermarks (§10 ⇒ exactly-once holds across the crash); series re-admit; overflow membership may differ (§6, stated) |
-| The uplink / an interval | one interval's latency | absorbed (cumulative-since-ack, §7) | next acked interval carries the delta; sustained ⇒ region AbsenceIs staleness |
+| The uplink / an interval | one interval's latency | absorbed (dirty bits persist until ack, §7) | the next interval re-ships current absolutes; replace-apply makes any re-delivery safe; sustained ⇒ region AbsenceIs staleness |
 | An assembler | its open windows | `SealReason::AssemblerLost` rows | HRW re-routes exactly its share; survivors seal partial rows incomplete |
 | The region collector | merged hot + open windows | `drops[RegionLoss]` | node tiers unaffected (autonomy); region re-merges from next intervals; cold blocks + op_log intact |
 | The QUEUE log's node | per QUEUE's own spec | — | QUEUE durability (environment-derived replication); not this spec's mechanism |
@@ -461,8 +672,8 @@ bounded, counted, and visible** — never silent, never blocking work.
 ## 12. The drop taxonomy (closed — an uncategorized drop is a bug)
 
 `Malformed | RingOverrun | ShardRestart | NodeCollectorLoss | RegionLoss |
-UplinkShed | QueueShed(class) | CardinalityFolded | TraceEvicted | AssemblerLost |
-QueryPartial(tier)` — one counter each, all scope-tagged, all queryable as ordinary
+UplinkShed | QueueShed(class) | CardinalityFolded | RangeClamped | TraceEvicted |
+AssemblerLost | QueryPartial(tier)` — one counter each, all scope-tagged, all queryable as ordinary
 series. CI walks every shed/loss code path and asserts it lands in exactly one
 category (CL10); a new loss path without a category fails the build.
 
@@ -498,8 +709,9 @@ An Engineer services claim `C47` (scope `Session(s9)`); its VFS mount is slow.
 3. **Ledger deltas** (§10): `C47`'s transitions arrive on the capture cursor;
    `claim_transition_duration{edge=progressed}` records 6 min — with `C47` stamped as
    exemplar; the checkpoint `{cursor', C47→log_seq}` appends to own_log.
-4. **Uplink** (§7): at `T_up`, the dirty series ship as sparse histogram deltas;
-   the region `merge_from`s them — exact at the region's scale.
+4. **Uplink** (§7): at `T_up`, the dirty series ship as absolute snapshots
+   (`seq=n`); the region replaces its `(node, series)` entries — idempotent — and
+   the regional value merges across nodes via §5, exact at the region's scale.
 5. **Assembly** (§8): the trace's spans HRW-route to assembler `A3`; the window
    closes; `TraceRow{complete: true}` seals to hot.
 6. **Detection** (HANDOFF): the region's Tier-1 envelope for `vfs.mount` trips its

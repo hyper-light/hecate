@@ -8371,3 +8371,35 @@ branch `worktree-collector-main`... correction: branch `worktree-collector-rigor
 rebase (the guard's initial worktree was cut from a stale origin base). MERGING TO MAIN
 IS THE USER'S CALL (bg sessions never merge): `git merge worktree-collector-rigor` from
 the main checkout.
+
+**COLLECTOR.md DEPTH+READABILITY PASS (2026-08-22, user: "state diagrams, details,
+actual things one would need to know... maximally robust/correct/efficient/performant,
+conflict-free, readable by any human with analogies/examples/definitions"):**
+STATE MACHINES ADDED: series lifecycle (UNKNOWN->ADMITTED->DIRTY->ack-clears; FOLDED
+branch), uplink (ACCUMULATING->SHIP->IN_FLIGHT->ack-clears-dirty / loss->nothing-resent),
+trace slot (OPEN -> SEAL{WindowClosed|Evicted|AssemblerLost}; late-span-never-resurrects
+rule), capture (BOOT->REPLAY->STREAMING->DERIVING->checkpoint loop). IMPLEMENTER
+MECHANICS: §2b the FOUR routing functions (series->shard hash%N; event->ring;
+record->log-partition=hash(scope); span->assembler = weighted HRW −w/ln(u) formula
+inline, roster-epoch fenced); ieee_exponent bit extraction; slot() window addressing;
+zero_threshold=lo; v>hi CLAMP+count (NEW taxonomy category RangeClamped — clamp-rate
+alarm = span-anchor drift signal); window fixed at registration => allocation-free
+record. **REAL BUG FOUND+FIXED by working the ack semantics: delta-shipping
+double-counts on ack-lost-but-interval-received. FIX: uplink ships ABSOLUTE series
+snapshots (UplinkInterval{node,roster_epoch,seq,series,sealed_refs}); region applies by
+REPLACE keyed (node,series) if seq newer — idempotent under loss/redelivery/reorder/
+fragmentation (fragments share seq, independently appliable); cross-node aggregation at
+read/rollup via merge_from; rejected-alternative recorded in-place (deltas need
+base-seq negotiation = a protocol to get wrong). The meter-reading analogy IS this
+(utilities read cumulative meters so a lost report can't mis-bill).** Capture fixed:
+checkpoint = FULL applied map (bounded by live claims) => single-record recovery;
+retirement in the SAME checkpoint as the terminal; the derive-vs-checkpoint crash
+window closed properly (capture-owned series rebuilt by replay at BOOT, never merged).
+READABILITY: §1a whole-machine plain-terms walkthrough (the electricity-metering
+analogy, carrying the 3 least-obvious choices: absolute-readings, aggregate-at-edge,
+auditors-in-the-office); §1b reading-guide definitions (series/roll-up/dirty bit/
+watermark w/ stamped-mail/exemplar/seal/cursor/HRW-lottery/PEP); ruler analogy at §5
+(nesting tick marks = why cross-scale merge is exact = the whole selection argument);
+coat-check analogy at §6 (no coat turned away; retrieval-by-ticket degrades, not data).
+STILL OWED before acceptance: a full conflict-and-coherence recon pass (the
+LEDGER_SUBSTRATE precedent) against QUEUE/CACHE/FANOUT/IAM/HEALTH/SESSIONS.
