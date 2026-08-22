@@ -8287,3 +8287,19 @@ never-shed class with reserved capacity — the PROTOCOL reserved-slot law), nev
 second substrate. IAM §11's "two streams" reads as two scope-classes on the one log
 (clarifying amendment owed at spec write). NEXT: D2 (consumer model) + D3 (claims-work
 capture) presented as one exchange, two separated questions.
+
+**D2 SETTLED (2026-08-22, user): two-class consumer model ACCEPTED.** Live = the closed
+four (Scribe, score service, Guardian, Guide), unchanged. Query = the stored/aggregated
+plane via IAM observability capability (Archivalist, user, any authorized principal);
+a query consumer is NEVER on the collection path; Archivalist wiring lands in the agents'
+spec, not the collector's.
+**D3 OPEN — user counter-signal:** "willing to make an exception for telemetry/
+observability — we should be able to integrate that with the agent ledger." COLLISION to
+resolve before adoption: reads as relaxing ledger-purity (their own prior ruling: ledger =
+AGENT WORK ONLY; LEDGER §9.8; the just-committed TRACING three-id disjointness). Exchange
+presented: integration spectrum (A: already-designed touchpoints — delta-consumption out,
+opaque refs both ways, score/Scribe snapshots IN as logged inputs [the existing sanctioned
+exception]; B: first-class trace refs on claims/testaments + unified query join; C: raw
+telemetry bytes in the work log — collides with the materializer ceiling, replay
+determinism, session scope). REC: A+B = "integration at the query layer, separation at the
+storage layer." Awaiting the user's naming of the concrete integration they want.
