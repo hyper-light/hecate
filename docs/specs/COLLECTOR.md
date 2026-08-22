@@ -10,7 +10,8 @@ weighted-HRW trace assembly (research), D6 hecate-rt-native thread-per-core pipe
 OTel Collector + Vector; OTAP dataflow; Karger/HRW/jump/Maglev; DDSketch/t-digest/
 HDR/exponential histograms; Prometheus/OTel/Mimir cardinality. Companions:
 `MONITORING.md` (emission), `TRACING.md` (spans/head-keep), `HEALTH.md` (content-free,
-AbsenceIs), `HANDOFF.md` (primary live consumer), `IAM.md` (query gate), `CACHE.md`/
+AbsenceIs), `HANDOFF.md` (the detection stack — a stage of this pipeline, §9), `IAM.md`
+(query gate), `CACHE.md`/
 `QUEUE.md`/`FANOUT.md` (substrate), `WAL.md` (logical logs), `OBJECT_TIER.md` (cold),
 `LEDGER_CORE.md`/`LEDGER.md` (delta stream + the one ledger-side amendment).
 
@@ -42,7 +43,9 @@ readings** upward. The **regional utility** (the region tier) files each
 neighborhood's latest readings and can total across neighborhoods at any time.
 Auditors (the query surface) examine the filed records at the office — they never
 stand in the substation slowing the metering down. Fraud detection (the HANDOFF
-stack) watches the regional totals continuously.
+stack) runs *inside* each neighborhood's substation, watching its own meters
+continuously — it is part of the metering machinery, not another customer of it
+(§9's stage-not-consumer rule).
 
 The analogy carries the design's three least-obvious choices:
 
@@ -111,9 +114,17 @@ struct SeriesKey {
     principal: PrincipalUid,    // opaque uid — never a name/path
     op: OpEnum,                 // closed per-subsystem op vocabulary
     domain: DomainRef,
+    provenance: Provenance,     // HostObserved | GuestReported — a SERIES DIMENSION,
+                                //   so the authority/enrichment split (MONITORING
+                                //   MO2) SURVIVES the roll-up: a guest-reported
+                                //   measure can never launder into a host-observed
+                                //   series; detection reads HostObserved series only
     dims: BoundedDims,          // declared bounded dimensions ONLY (≤ D_max, derived);
     hash: u64,                  //   the H8 walk rejects any unbounded dim at CI
 }
+// EventKind and BoundedFields are closed-registry types like MetricId: kinds are
+// boot-validated registry entries; fields are (closed-enum key → numeric | enum |
+// opaque-id) pairs with a derived count bound — the H8 walk covers both by type.
 
 // ---- roll-up state (per admitted series) ----
 struct ExpHistogram {           // §5 — full impl there
@@ -127,7 +138,9 @@ enum SeriesState { Counter(u64), Gauge(f64), Histo(ExpHistogram) }
 // ---- the node collector (one per node; owns every per-node shard) ----
 struct NodeCollector {
     shards: Vec<CollectorShard>,       // N = derived core share; series hash-owned
-    op_log: QueueProducer,             // the ONE scoped operational log (QUEUE instance)
+    op_log: OpLogLanes,                // the ONE logical operational log = three
+                                       //   class-lane QUEUE instances (§4):
+                                       //   {critical, standard, telemetry}
     own_log: WalLogicalLog,            // the collector's OWN durable state: capture
                                        //   cursors + watermarks (§10) — small, node-local
     uplink: UplinkTask,                // §7 — ships interval deltas to the region tier
@@ -194,9 +207,11 @@ record  → log:        op_log partition key = hash(record.scope)
 
 span    → assembler:  a* = argmax over roster n of  ( −w_n / ln(u_n) ),
                       u_n = H64(trace_id ‖ n.id) / 2^64
-                      (weighted rendezvous/HRW — the CACHE's placement function,
-                       verbatim; logarithmic weighting so only a changed node's score
-                       changes; membership change re-routes exactly K/N)
+                      (weighted rendezvous/HRW — the SAME placement mechanism CACHE
+                       and SERVING already mandate; the −w/ln(u) logarithmic form is
+                       DEFINED HERE as the corpus's canonical formula — pattern by
+                       canonical example — so only a changed node's score changes;
+                       membership change re-routes exactly K/N)
 ```
 
 Every routed hop above is fenced by the roster epoch it was computed against
@@ -223,9 +238,10 @@ sources fire doorbells:  host hot-ring (MONITORING §5)   Scribe flows (guest in
 1. DRAIN     batch = ring.drain_available()          // bounded batch, self-paced
 2. DECODE    OpRecord::decode(bytes)?                //   malformed ⇒ drop(Malformed)+count
 3. ROUTE     match record.class:
-               Verdict|Lifecycle|Audit ─▶ op_log.append(class=NeverShed)   // durable FIRST
-               ClaimMetric             ─▶ op_log.append(class=Standard)    //   then hot
-               Telemetry|Span          ─▶ hot only (durable only via §7 interval blocks)
+               Verdict|Lifecycle|Audit ─▶ op_log.critical.enqueue(rec)    // durable FIRST
+               ClaimMetric             ─▶ op_log.standard.enqueue(rec)    //   then hot
+               Telemetry|Span          ─▶ hot only (durable only via §7 interval blocks;
+                                          the op-telemetry lane carries interval refs)
 4. REDUCE    Measure ⇒ idx = registry.admit(&key); series[idx].record(v); dirty.set(idx)
              Event   ⇒ events[(scope, class)].push(record)   // bounded deque, §2;
                                                              //   overflow ⇒ RingOverrun
@@ -240,20 +256,38 @@ ever touches series state except through the §6 chokepoint).
 
 ## 4. The scoped operational log (D1)
 
-One QUEUE instance; `OpClass` maps onto its delivery machinery:
+**One logical log, realized as three class-lane QUEUE instances.** QUEUE's
+opt-ins are *per-instance declared workload properties* (its own model — a queue
+declares what it is; there is no per-message delivery class in QUEUE, deliberately).
+So the operational log is one *logical* log whose `OpClass` families map onto three
+instances of the one primitive, each with its declared property — zero change to
+QUEUE's model:
 
-| OpClass | QUEUE delivery | Durability | Retention | Why |
-|---|---|---|---|---|
-| Verdict, Lifecycle, Audit | **never-shed, reserved slots** (the PROTOCOL reserved-capacity law) | fsync-ack (environment-derived ω, WAL §5) | Session: with session → archive. System: fleet → cold | a flood must not starve a hard-block; audit is evidence |
-| ClaimMetric | standard at-least-once | group-commit | derived (dashboards horizon) | derived work metrics; late shed counted |
-| Telemetry, Span | **opt-in lossy** (the QUEUE lossy class, declared) | none on the item; durability via §7 sealed blocks | hot-ring retention → interval blocks → cold | pure telemetry is re-derivable signal, never proof |
+| Lane (QUEUE instance) | OpClass families | Declared property | Durability | Retention | Why |
+|---|---|---|---|---|---|
+| `op-critical` | Verdict, Lifecycle, Audit | default (at-least-once), admission-reserved carriage | the environment-derived default — the strongest the failure-domain tree affords (QUEUE §4); WAL's one always-full ack policy | Session: with the session → archive. System: fleet → cold | a flood must not starve a hard-block; audit is evidence |
+| `op-standard` | ClaimMetric | default (at-least-once) | same single WAL policy (naturally batched — there is no separate "group-commit" tier, WAL §4) | derived (dashboards horizon) | derived work metrics; late shed counted |
+| `op-telemetry` | Telemetry, Span | **declared lossy** (QUEUE §10's opt-in: reconstructible/loss-tolerant) | self-ack; loss priced Degraded, never silent | hot horizon → §7 interval blocks → cold | pure telemetry is re-derivable signal, never proof |
 
-- **Isolation is the class, not a substrate**: CL3's flood test — 100K/s of Telemetry
-  while a Verdict lands — passes because reserved slots are capacity the sheddable
-  class *cannot occupy*, enforced in the QUEUE instance, not by this spec's prose.
-- **Retention executes by scope**: `Session(uid)` partitions retire when the session's
-  archive seals (SESSIONS' lifecycle, not a second GC); `System` partitions cool to
-  OBJECT_TIER on a derived age/size trigger as content-addressed sealed segments.
+- **Still D1's one log**: the "one scope-tagged operational log" decision bars a
+  *second substrate* (a session store forked from a system store) — the three lanes
+  are class partitions of the one logical log, invisible at the API (`read_events`
+  already takes `class`; no cross-class ordering was ever promised; scope remains the
+  routing/retention/authz key on every lane).
+- **Isolation mechanics, precisely**: never-shed is a *transport-admission* property —
+  `op-critical` appends ride the PROTOCOL reserved-slot admission groups (the law
+  lives at transport admission, PROTOCOL §7.4, not inside queue storage), and the
+  lane's own capacity is not shared with the sheddable lanes *because it is a
+  separate instance*. CL3's flood test — 100K/s of Telemetry while a Verdict lands —
+  passes structurally: the flood is on `op-telemetry`; it cannot occupy `op-critical`
+  capacity at either the transport or the storage layer.
+- **Retention executes by scope, through QUEUE's own machinery**: `Session(uid)`
+  partitions retire at the session's archive-**finalize** transition (SESSIONS'
+  lifecycle word) — the archive-exfiltration consumer acks through the end of the
+  partition, the ack floor reclaims it (QUEUE's existing watermark reclaim), and a
+  small `close_partition` verb seals it (a listed QUEUE amendment, §16). `System`
+  partitions cool to OBJECT_TIER through **QUEUE §7's own cold tier** — the trigger
+  is QUEUE's environment-derived one; this spec adds no second cooling authority.
 
 ## 5. The roll-up engine (D4)
 
@@ -460,6 +494,10 @@ ACCUMULATING ──T_up fires──▶ SHIP(seq=n: absolute snap of every DIRTY 
   larger than the datagram budget splits by series (each fragment a complete,
   independently-appliable `UplinkInterval` sharing `seq` — replace semantics make
   partial arrival safe). Sustained loss trips AbsenceIs staleness region-side.
+  **`UplinkInterval` registers as a message kind under the `supersession` archetype**
+  (a newer absolute for the same `(node, series)` supersedes an older one; nothing is
+  ever retransmitted — exactly supersession's contract) in PROTOCOL's boot classifier
+  (§16 amendment; an unclassified kind fails startup, PROTOCOL's law).
 - **Fan-in bounded by node count** (one uplink per node, H6), never pod count.
 - `N=1`: the uplink target is the node itself — same code path, loopback hop, no mode.
 
@@ -490,8 +528,9 @@ incomplete (no root) — late spans never resurrect a sealed row (rows are immut
 struct Assembler {
     slots: DetHashMap<TraceId, TraceSlot>,  // capacity = derived(throughput × W)
     window: Duration,                       // W = p99 trace duration × derived margin
-    timers: TimingWheel<TraceId>,           // the CACHE's ordered wheel, reused
-}
+    timers: TimingWheel<TraceId>,           // the same ordered-wheel mechanism CACHE
+}                                           //   uses internally (shared component in
+                                            //   the runtime, not a CACHE export)
 impl Assembler {
     fn on_span(&mut self, s: SpanRecord) {
         debug_assert_eq!(weighted_hrw(s.trace_id, roster()), self.id);  // fenced route
@@ -536,7 +575,24 @@ fn bind_live(reg: &mut FanoutRegistry) -> Result<(), BootError> {
 
 Delivery is the FANOUT instance (reliable-push default), class- and scope-filtered at
 the emitter, riding reserved capacity. Adding a live consumer is an amendment to this
-spec, not a subscription.
+spec, not a subscription — and that is closed at **both** layers: the boot assertion
+above catches a fifth binder at startup, and **the live topic is sealed** — no
+principal holds `topic.create_subscription`/`subscribe` on it (an IAM policy fact +
+a FANOUT sealed-topic amendment, §16), so the runtime-open subscription surface FANOUT
+normally offers does not exist here. Boot-closed *and* runtime-closed.
+
+**The detection substrate is a stage of this pipeline, not a consumer of it.** The
+HANDOFF detection substrate (per-session, resident in the session's colocation unit —
+the accepted placement) is pipeline machinery, exactly like the roll-up engine: it
+consumes its session's live streams *in-plane* — filtered to `HostObserved`
+provenance only (the MO2 law: detection reads authority streams; the `provenance`
+series dimension in §2 is what makes this filterable after roll-up) — computes its
+detector statistics, and **emits enriched incidents back into the plane**, which
+reach the Scribe through the Scribe's own live binding (one of the four). Detection
+therefore never appears in the consumer roster: the four consume the plane's
+*outputs* (incidents included); the substrate is part of what produces them. This is
+the reconciliation of HANDOFF §4 ("distinct from the score service, not pod RAM, not
+Scribe memory") with the closed four — neither list changes.
 
 **Query class — the stored plane, off the ingest path**:
 
@@ -560,7 +616,11 @@ trait ObservabilityQuery {
   node(s); rolled-up ranges execute at the region's merged shards; a range spanning
   both fans to at most `nodes(scope)` sub-queries (bounded by node count) and merges
   via §5 (exact) — partial sub-query failures surface as typed per-tier gaps, never
-  silently absent (AbsenceIs).
+  silently absent (AbsenceIs). A merged regional read carries **per-node freshness**:
+  each `(node, series)` absolute contributes `(value, freshness)` (HEALTH H7 —
+  staleness is data the consumer judges), so a dead node's frozen entries are visibly
+  stale in the merge from the moment its uplink lapses, not first at the liveness
+  verdict that retires them.
 - **Structurally off ingest** (CL7): the `QueryService` is a separate task class with
   its own budget; no query path touches an ingest queue (architecture test) — an
   investigation storm cannot degrade the telemetry it investigates.
@@ -568,7 +628,10 @@ trait ObservabilityQuery {
 ## 10. Claims-work capture + the join (D3+)
 
 **Capture** — an ordinary cursor consumer of the ledger's delta stream (`LEDGER` §8;
-"the log is the outbox"), one per session:
+"the log is the outbox"), one per session. Its **home is the session's colocation
+unit** (beside the detection substrate — a SESSIONS §2 service-list amendment, §16),
+its standing is IAM's existing `claim_plane.subscribe_deltas` action at the ledger
+serving edge, and its durable state rides the colocation node's `own_log`:
 
 ```rust
 impl ClaimsCapture {
@@ -606,7 +669,12 @@ impl ClaimsCapture {
 ```
 BOOT ──read LAST CaptureCheckpoint from own_log──▶ REPLAY(subscribe delta stream
    (none ⇒ cursor = stream start, applied = ∅)      at checkpoint.cursor)
-        │
+        │                                                │
+        │             typed RESYNC (cursor below the stream's retention — the
+        │             projector contract's mandatory path): reset applied = ∅,
+        │             re-derive from the stream's re-seed point; the re-derived
+        │             series REPLACE the capture-owned series wholesale (one
+        │             writer, §10's ownership rule — never merged)
         ▼ caught up to the live edge
    STREAMING ──batch arrives──▶ DERIVING (the loop above) ──append checkpoint──▶ STREAMING
         │
@@ -659,7 +727,8 @@ impl ObservabilityQuery for QueryService {
 |---|---|---|---|
 | A source ring overflows | oldest unpersisted telemetry | `drops[RingOverrun]` + in-band gap records | nothing — lossy class; gaps surface in assembled traces (§8) |
 | A collector shard task | hot tail since last hot write | `drops[ShardRestart]` | shard restarts; registry rebuilt from hot's live series; series re-admit |
-| The node collector | hot store + registry + dirty set | `drops[NodeCollectorLoss]` | op_log (durable classes) intact; own_log replays capture cursors/watermarks (§10 ⇒ exactly-once holds across the crash); series re-admit; overflow membership may differ (§6, stated) |
+| The node collector (restart) | hot store + registry + dirty set | `drops[NodeCollectorLoss]` | op_log (durable classes) intact; own_log replays capture cursors/watermarks (§10 ⇒ exactly-once holds across the crash); series re-admit; overflow membership may differ (§6, stated) |
+| The node PERMANENTLY (own_log gone) | additionally: the capture checkpoints | `drops[NodeCollectorLoss]` | the re-summoned capture task has no checkpoint ⇒ full re-derivation from the delta stream (or its RESYNC re-seed point) — correct by the same replay purity, priced as recovery time, never as wrong counts |
 | The uplink / an interval | one interval's latency | absorbed (dirty bits persist until ack, §7) | the next interval re-ships current absolutes; replace-apply makes any re-delivery safe; sustained ⇒ region AbsenceIs staleness |
 | An assembler | its open windows | `SealReason::AssemblerLost` rows | HRW re-routes exactly its share; survivors seal partial rows incomplete |
 | The region collector | merged hot + open windows | `drops[RegionLoss]` | node tiers unaffected (autonomy); region re-merges from next intervals; cold blocks + op_log intact |
@@ -714,8 +783,11 @@ An Engineer services claim `C47` (scope `Session(s9)`); its VFS mount is slow.
    the regional value merges across nodes via §5, exact at the region's scale.
 5. **Assembly** (§8): the trace's spans HRW-route to assembler `A3`; the window
    closes; `TraceRow{complete: true}` seals to hot.
-6. **Detection** (HANDOFF): the region's Tier-1 envelope for `vfs.mount` trips its
-   residual-CUSUM; the fully-enriched deterministic alert reaches the Scribe.
+6. **Detection** (HANDOFF): session s9's detection substrate — in its colocation
+   unit, reading its own session's live `HostObserved` streams in-plane (§9's
+   stage-not-consumer rule) — trips the `vfs.mount` residual-CUSUM; the
+   fully-enriched deterministic incident enters the plane and reaches the Scribe
+   through the Scribe's live binding.
 7. **Investigation** (§10): the Scribe runs `join_work(C47)` under its own
    capabilities: skeleton (posted 14:01, testament 14:09, `trace_refs=[T]`), trace `T`
    (the 5.8 s `vfs.mount` span), the exemplared series. Answer: *the claim was slow
@@ -733,12 +805,53 @@ modes anywhere (CL12).
 
 ## 16. Amendments landing with acceptance (one coordinated sweep)
 
-`IAM.md` §11 — "two streams" → two scope-classes of the one log. `LEDGER_CORE.md` §2 +
-`LEDGER.md` §2 — `trace_refs` in the system-written lifecycle record. `PLATFORM.md` §7
-— the Logs home points here. `GAPS.md` — Branch 39 → SPEC-WRITTEN (+ header count).
-`TRACING.md` §6 — assembler cross-reference. `SCHEDULER.md`/`AUTOSCALING.md` —
-decision logs bind to the operational log. (The MONITORING/TRACING per-subsystem span
-sweep stays gated on those specs' acceptance.)
+**Substrate registrations** (the reconciliation found the first draft amended none of
+the five primitives it composes from — the CACHE/QUEUE/FANOUT-acceptance precedent
+requires all of these):
+
+- `QUEUE.md` — a `close_partition` verb (seal a partition at session
+  archive-finalize; reclaim rides the existing ack-floor watermark). The three op-log
+  lanes themselves need **no** model change (per-instance declared properties, §4).
+- `FANOUT.md` — the **sealed topic**: a topic may declare closed membership at
+  registration; `create_subscription`/`subscribe` on it are unrepresentable (not
+  merely IAM-denied). The live-consumer topic declares it.
+- `WAL.md` §3/§6 — the `capture_checkpoint` record kind + the collector capture task
+  as a registered logical-log client; the writer boot-classifies (chokepoint law).
+- `OBJECT_TIER.md` §1 — a `telemetry` storage class (cold interval blocks, sealed
+  trace rows, cooled System partitions); its GC liveness root = **op-log-referenced
+  sealed refs** (the exact parallel of QUEUE §7's partition-log-referenced bodies
+  root). Without both, cold writes fail boot (OT11) and surviving blocks get swept.
+- `PROTOCOL.md` §3 — `UplinkInterval` registered under the `supersession` archetype,
+  class-1 carriage (§7); the boot classifier gains the kind.
+
+**Planes**:
+
+- `MONITORING.md` §5 — the hot-ring role reconciled: the emission ring is the
+  *source buffer* (bounded, doorbell-drained); the collector's shard structures own
+  Gorilla-class storage, retention, and federation (which §5's "the collector
+  consumes this plane" already anticipated — the wording moves, the machinery
+  doesn't fork).
+- `IAM.md` §4 — the `observability` capability row: actions become
+  `read_series`/`read_events`/`read_trace`/`join_work` (+ `read_health` unchanged),
+  PEP = the collector query serving edge; the capture task's standing named under
+  `claim_plane.subscribe_deltas`. §11 — "two streams" → two scope-classes of the one
+  log.
+- `SESSIONS.md` §2 — the colocation-unit service list gains the **capture task** and
+  names the **detection substrate** (already placed there by MONITORING/HANDOFF but
+  absent from the closed list).
+- `LEDGER_CORE.md` **§1** (the `ClaimSlot`/`ClaimLifecycle` definition site — not §2)
+  + `LEDGER.md` §2 — `trace_refs` in the system-written lifecycle record; plus the
+  **skeleton read** (`claim lifecycle-metadata read`) named on the serving-edge read
+  surface, and released-visibility confirmed in the delta vocabulary (capture's
+  `is_terminal_released()` needs it observable).
+- `TRACING.md` §6 — assembler cross-reference; §1 — the singular "carries the
+  `trace_id`" sentence updated for the plural lifecycle-resident `trace_refs`.
+- `PLATFORM.md` §7 — the Logs home points here. `GAPS.md` — Branch 39 →
+  SPEC-WRITTEN (+ header count). `SCHEDULER.md`/`AUTOSCALING.md` — decision logs
+  bind to the operational log.
+
+(The MONITORING/TRACING per-subsystem span sweep stays gated on those specs'
+acceptance, unchanged.)
 
 ## 17. Acceptance criteria
 

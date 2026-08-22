@@ -8403,3 +8403,49 @@ watermark w/ stamped-mail/exemplar/seal/cursor/HRW-lottery/PEP); ruler analogy a
 coat-check analogy at §6 (no coat turned away; retrieval-by-ticket degrades, not data).
 STILL OWED before acceptance: a full conflict-and-coherence recon pass (the
 LEDGER_SUBSTRATE precedent) against QUEUE/CACHE/FANOUT/IAM/HEALTH/SESSIONS.
+
+**COLLECTOR RECON (two lanes) + FIX PASS LANDED (2026-08-22):** Lane A (substrate:
+QUEUE/CACHE/FANOUT/WAL/OBJECT_TIER/PROTOCOL/STORE) + Lane B (planes: HEALTH/MONITORING/
+TRACING/HANDOFF/IAM/LEDGER/SESSIONS/PLATFORM), quotes+line-cites both sides; I
+spot-verified the load-bearing claims by grep before fixing. TOTALS: 2 CONFLICT,
+~10 GAP, 4 STALE-REF; META-FINDING: §16 amended NONE of the five primitives the spec
+composes from (the CACHE/QUEUE/FANOUT-acceptance precedent demands registrations).
+RESOLUTIONS (all landed in the spec; conflicts resolved TOWARD accepted texts):
+• B1 (the big one) HANDOFF-"primary live consumer" vs closed-four vs colocation
+  placement -> **STAGE-NOT-CONSUMER rule**: the detection substrate is pipeline
+  machinery (like the roll-up engine), per-session in its colocation unit (accepted
+  HANDOFF placement), consuming its session's live HostObserved streams IN-PLANE,
+  emitting incidents that reach the Scribe via the Scribe's own binding. The closed
+  four unchanged; worked-example step 6 + §1a analogy corrected (region->substation).
+• B2 MO2-provenance-erasure -> `provenance` added as a SeriesKey DIMENSION (the
+  authority/enrichment split survives roll-up; detection filters HostObserved-only).
+• A1 QUEUE-has-no-delivery-classes (CONFIRMED by grep: zero shed/reserved vocabulary)
+  -> **three class-lane QUEUE instances** ({op-critical, op-standard, op-telemetry}),
+  each a per-instance DECLARED property = QUEUE's existing model, ZERO QUEUE model
+  change; never-shed = transport-admission (PROTOCOL §7.4) + separate-instance
+  capacity; D1's one-LOGICAL-log preserved (lanes invisible at the API — read_events
+  already takes class; no cross-class ordering ever promised). Also kills A9
+  (group-commit-vs-fsync fake tier — one WAL policy).
+• A2 OBJECT_TIER -> `telemetry` storage class + op-log-referenced GC liveness root
+  (the QUEUE §7 parallel) listed; cooling ownership = QUEUE §7's own tier (no second
+  cooling authority). • A3 WAL -> capture_checkpoint record kind + client + writer
+  boot-class listed. • A4 FANOUT -> SEALED TOPIC amendment (closed membership
+  unrepresentable, not merely IAM-denied) + boot assert = closed at both layers.
+  • A5 PROTOCOL -> UplinkInterval = supersession archetype (absolute-replace IS
+  supersession's contract), class-1. • A6 retention -> archive-finalize ack-through +
+  small close_partition verb. • A7 omega stale-ref fixed (QUEUE §4 env-derived
+  durability, WAL §4 always-full). • A8 "verbatim" -> the -w/ln(u) form is DEFINED
+  here as the corpus canonical formula (pattern-by-canonical-example); A10 wheel =
+  shared runtime component, not a CACHE export.
+• B4 IAM §4 row (action names + PEP) + subscribe_deltas standing -> §16. • B5 capture
+  home = session colocation unit (+ detection substrate named in SESSIONS' closed
+  list) -> §16; own_log PERMANENT-node-loss row added to §11 (full re-derivation,
+  priced as recovery time never wrong counts). • B6 RESYNC path added to the capture
+  state machine (typed, reset+re-derive, replace-wholesale); skeleton-read + released-
+  visible-delta named in the ledger amendment. • B7 LEDGER_CORE §2->§1 + TRACING §1
+  singular-sentence added to the sweep. • B-1.2 merged reads carry per-node
+  (value, freshness) — dead-node absolutes visibly stale from uplink lapse (H7).
+  • B-1.1 EventKind/BoundedFields defined as closed-registry/bounded types.
+§16 REWRITTEN as the full two-part sweep (substrate registrations + planes).
+STATUS: COLLECTOR.md now recon-clean against both lanes; presented for acceptance.
+On branch worktree-collector-rigor (user merges).
