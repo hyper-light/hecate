@@ -8859,3 +8859,37 @@ colocation += archive services; STORE §16 row; AGENTS/CONTEXT same-commit;
 LEDGER §8 pointer; OBJECT_TIER archive-class confirm; GAPS); AR1-AR12 + 10-row SIM
 matrix; research receipts inline (per-entity practice, Steiner/LC-CUSUM,
 ANTIDOTE/boiling-frog/Kloft-Laskov/Cretu, NIST AI 100-2).
+
+**ARCHIVE.md v2 — STANDALONE-IMPLEMENTABLE REWRITE (2026-08-22, user rigor
+challenge: "so vague no one could reasonably implement it standalone"):** every
+named substrate now INSTANTIATED in-place. §2b THE SUBSTRATE MAP — consensus named
+per piece: Raft appears EXACTLY TWICE (the ingest lane's session-group logs; the
+index shard); document BYTES are never consensus-replicated (content-addressed
+COPYSETS, R = the env derivation, scrub, hash-verified — the Tectonic-shaped
+durable plane's design); reads/cache = the node blob/serving plane (the EdenFS
+role) — the content-addressed cache needs NO invalidation ever, so no
+archive-specific cache exists. §4 the exact ingest pipeline + THE ORDERING LAW
+(bytes-before-index: dangling refs UNREPRESENTABLE; crash-between = orphan, swept
+by the index-referenced-roots GC rule) + the durability chain stated once. §5 the
+store concretely (writing daemon/copysets/R; CDC for MB-class FinalFlush;
+Tectonic=OBJECT_TIER + EdenFS=serving-plane INTEGRATION NAMED: one storage class +
+one GC rule added, nothing else). §6 THE INDEX CONCRETELY: composite fixed-width
+key layout (kind||subject||discriminant||time||seq; 5 key families incl LEDGER §8's
+proofs); per-query algorithms (latest_curve = 1-row descending-version scan;
+cursored range scans; prefix range-watch); SIZING DERIVATION (64B rows; heavy
+session 90d ≈ 1.5GB ⇒ one shard; split = STORE's bound — a derivation not an
+assumption). §7 THE EXAMPLE CURVE with real numbers (ENGINEER/REFACTOR, 5
+difficulty buckets, median/MAD/n per bucket, ≈4KB/20 signals) + the exact HANDOFF
+join (σ=1.4826×MAD; k=Δ/2; bucket-n confidence gate). §8 THE DETECTOR RESOLUTION
+PATH D1-D4 (birth lookup -> serving fetch -> prefix watch -> atomic swap;
+RefCurveRef = (pair, version, hash) bound by amendment). §9 the ArchiveQuery trait.
+§10 F1-F12 FAILURE WALKS (lane crash pre/post ack; applier mid-step; index
+leader/quorum; copy corruption; whole-colocation-node death; fitter; Archivalist;
+seed import; poisoning; LAPTOP POWER LOSS at R=1 = WAL's acked-⇒-durable at one
+fsync) + the invariant (no archive component holds unreplayable state). §13 THE
+LAPTOP CASE FORMALLY (every §2b column derived to N=1; teardown-gate latency =
+the local fsync anchors stated; footprint derivation ≈1GB+50MB). AR13-AR16 added
+(bytes-before-index; golden curves; the durability chain per F-row; query/watch
+exactness) + test rows. Presented for acceptance. NOTE: user merged main to the
+branch tip; work continues on worktree-collector-rigor — ff-merge again to pull
+this.
