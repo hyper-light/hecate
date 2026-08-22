@@ -8341,3 +8341,33 @@ retire at terminal-and-released; ONE atomic persist {cursor', watermark-deltas} 
 crash-replay => `continue`, exactly-once, no 2PC) + join_work impl (caller-threaded
 capability per plane, "deny never widen" — the query service holds no capability of
 its own). Presented in-message per standing rule.
+
+**COLLECTOR.md REWRITTEN TO CORPUS RIGOR (2026-08-22, user: "examine how detailed our
+specs are and stop lying"):** My "full depth" claim was FALSE — examined MATERIALIZER
+(the bar: unified §2 data model w/ ownership facts; §3 component+per-item state machines;
+step-by-step algorithm w/ derivations inline; §9 integration map; §10 worked example incl.
+a failure case). COLLECTOR had prose + 6 code islands: no unified data model (a dozen
+types referenced never defined; "collector's own state" NAMED, never specified), no
+component lifecycle, no ingest-tick walk, no federation record/cadence, no recovery
+section, drop taxonomy claimed-closed-never-enumerated, no derived-constants table, no
+worked example. REWRITE (19 sections): §2 full data model (OpRecord/Scope/OpClass/OpBody,
+SeriesKey, NodeCollector w/ own_log = the collector's OWN WAL logical log for capture
+checkpoints, CollectorShard single-owner, RegionCollector, TraceRow/SealReason incl NEW
+AssemblerLost, ClaimSkeleton, WorkExecutionView); §3 BOOT->BIND->RUN->DRAINING lifecycle
++ the 5-step ingest tick (durable-before-hot for never-shed; admit-before-record laws);
+§4 OpClass->QUEUE-machinery mapping TABLE (delivery/durability/retention per class;
+retention executes BY SCOPE — session partitions retire with the session archive, system
+cools to OBJECT_TIER); §7 federation mechanics (SeriesDelta sparse (index,count) pairs;
+T_up = dirty-bytes/uplink-budget clamped by declared freshness; cumulative-since-ack =
+loss costs latency never correctness); §11 FAILURE/RECOVERY MATRIX (7 rows: what dies /
+what's lost / counted where / recovers from where; registry re-admit semantics stated
+honestly — overflow membership may differ across node death); §12 the drop taxonomy
+ENUMERATED (11 categories, CI-walked); §13 derived-constants table (10 rows, formula +
+anchors each); §14 worked example C47 end-to-end (8 steps incl the AssemblerLost failure
+variant); +CL13 recovery-matrix criterion + recovery kill-fuzz test row.
+PROCESS NOTE: the bg-session worktree guard armed mid-session -> work now lands on
+branch `worktree-collector-main`... correction: branch `worktree-collector-rigor`
+(worktree .claude/worktrees/collector-rigor), fast-forwarded onto main tip a25f1f4 via
+rebase (the guard's initial worktree was cut from a stale origin base). MERGING TO MAIN
+IS THE USER'S CALL (bg sessions never merge): `git merge worktree-collector-rigor` from
+the main checkout.
