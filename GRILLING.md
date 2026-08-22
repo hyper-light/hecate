@@ -8245,3 +8245,37 @@ D6 INTERNAL REPRESENTATION — row (OTLP-shape) vs columnar (OTAP/Arrow-shape) i
    NEW question the OTAP research informs.
 ALSO PENDING: STORE.md + TRACING.md await user acceptance (per-subsystem span-clause
 sweep + GAPS bookkeeping land on TRACING acceptance).
+
+**COLLECTOR RESEARCH LANDED (2026-08-22, clean re-run, on-brief):** four gaps closed.
+(1) OTAP dataflow engine (Rust, otel-arrow): thread-per-core shared-nothing IS implemented
+(pinned cores, one single-threaded tokio LocalRuntime per core, each core runs a FULL
+pipeline copy, data never crosses cores — control+telemetry only; all channels bounded;
+Ack/Nack completion; deterministic-sim tested). Numbers: OTAP columnar ~2x over OTLP+zstd
+(x1.6-x8 by signal); Rust engine 2.47M logs/s/core vs 121K OTLP-path (~20x), 14.6x on 16
+cores; transform 6.5% CPU vs Go collector 92.5%. MATURITY: incubation, "not recommended"
+for production, no crates.io, breaking changes monthly — SHAPE RECEIPT ONLY (corpus law),
+validates our hecate-rt sharded single-owner model exactly.
+(2) Trace-routing hash: HRW disruption provably OPTIMAL (exactly K/N, zero routing table,
+O(N) lookup — fine at small regional-collector N; balance CV->0 with many keys); ring needs
+~1000 vnodes for +/-3% balance (OTel LB exporter = Karger ring, CRC32, 131071 positions,
+200 vnodes default); jump hash DISQUALIFIED (sequential buckets only — arbitrary node death
+needs indirection); Maglev = balance-first, ~2x ring's disruption. REC: weighted HRW —
+the corpus's EXISTING CACHE placement mechanism, reused (one mechanism, no new machinery).
+(3) Roll-up sketches: EXPONENTIAL-BUCKET HISTOGRAMS (OTel/Prom native) win — DDSketch-family
+hard relative-error guarantee PLUS "perfect subsetting" (exact cross-scale merge: downscale
+to min(scale) + integer addition — the one thing fixed-gamma DDSketch lacks); t-digest
+DISQUALIFIED (no proven bound; Cormode et al. adversarially unbounded; order-dependent
+merge); HDR exact but ~311KB vs ~12KB at 1%-error ns->day. Default 160 buckets = 17% error
+at ns->day span — our bucket count must DERIVE from the span+error anchors (~1.5-3K).
+Aligns with the already-accepted OTel GenAI vocabulary.
+(4) Cardinality enforcement, three dispositions: Prometheus atomic-whole-scrape-reject
+(up=0, loud, loses good data); OTel aggregate-into-overflow (otel.metric.overflow=true,
+totals EXACT, attribution lost, quiet unless watched); Mimir/VM drop-new-series (silent
+vanishing new pods — violates our loud-failure doctrine). Monarch: NO cardinality cap at
+all — bounded by schema + 36:1 collection-aggregation. REC: Hecate primary = bounded-by-
+construction (H8 closed label tuples, the Monarch position) + backstop limiter =
+aggregate-into-overflow WITH counted+alarmed overflow (drops counted, nothing silent);
+HLL (~12KB/scope, <1% err) as the cheap detector, exact admitted-set registry at the
+chokepoint for enforcement.
+D4/D5/D6 RECOMMENDATIONS FORMED (above); D1 (stream model) = the opening exchange,
+presented to the user in-session. D2/D3 queued behind it.
