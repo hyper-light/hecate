@@ -8501,3 +8501,39 @@ nothing telemetry-grade rides a retransmitting lane; ZERO new guest-visible surf
 exact touchpoint (incl. the two placement answers: node collector structural-per-node;
 region rosters = CAS-first placement-map versions of the region meta group — no new
 epoch kind). Spec now ~1100 lines. Presented for acceptance.
+
+**COLLECTOR — THE END-TO-END WALK (2026-08-22, user: "consider the full system end to
+end and stop taking shortcuts"):** Process failure owned: five reactive patch rounds
+instead of the systems walk. The walk itself, done before touching the file, found ONE
+GENUINE DESIGN HOLE + nine unspecified subsystems, all landed in one pass:
+**THE HOLE — NO TIME DIMENSION**: SeriesState was one lifetime aggregate; TimeRange
+queries were unanswerable outside the hot horizon. FIX (§2 + NEW §5b): WindowedSeries —
+time-bucketed windows, per-tier derived widths (W_raw/W_region/older), windows close on
+HLC boundaries (all nodes cut the same instants — cross-node window merge aligns free);
+closed windows IMMUTABLE (=> §7 per-window replace stays idempotent, re-ships
+byte-identical); downsampling-over-time = the SAME §5 merge over adjacent windows (one
+merge: cross-scale, cross-node, cross-time); counters = meter readings (cumulative at
+close) + restart_epoch => resets DETECTABLE structurally (the Prometheus lesson);
+late data -> current window + drops[LateArrival], never reopen (would break idempotence);
+schema evolution = registry-versioned windows, cross-version merge via downscale-to-min.
+NEW §5c tier-ownership invariant: every window owned by exactly ONE tier at query time
+(in-transit windows = node's until region ack watermark) — no double count.
+**THE NINE**: §3c boot order (WAL->lanes->collector; rings buffer pre-BIND; observation
+never load-bearing for boot) + dynamic sources (vocabularies at BIND, pod rings
+attach/detach at runtime) + SELF-OBSERVATION (own chokepoints emit into own shards,
+recursion depth exactly one — roll-up is the terminal form) + THE RESOURCE ENVELOPE
+(derived overhead ceiling anchored on Dapper/Canopy-class measurement; scheduler
+admission accounts the collector share; self-limits at ceiling); §10b LIFECYCLES
+(metric = REGISTRY documents, publication->watch->admit, dereg retires; session
+observability = capture in the colocation GANG ADMISSION, close->drain->final
+checkpoint->close_partition at archive-finalize, ZERO resident residue; node join/
+drain/crash; region machinery = scheduler-placed + epoch-fenced, NO state handoff
+anywhere by design); §11b THREAT POSTURE (compromised node collector lies as itself
+about itself, holds no capabilities, cross-view catches it; compromised region shard
+reaches queries only — detection is colocation-side by the stage rule; query service
+deny-never-widen; trust root = the existing node harness identity chain, no new roots);
+Incident = first-class never-shed OpClass on op-critical; §9a planner covers
+events/traces + the §5c invariant; +5 derived constants; CL16 (windowed-time exact vs
+serial oracle) / CL17 (self-observation bounded + envelope held) / CL18 (lifecycle
+completeness, zero-residue scan) + 3 test rows; LateArrival in the taxonomy.
+STATUS: the document now reflects an actual end-to-end pass. Presented for acceptance.

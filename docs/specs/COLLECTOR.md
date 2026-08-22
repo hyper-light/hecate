@@ -99,7 +99,10 @@ struct OpRecord {
 }
 enum Scope   { Session(SessionUid), System(DomainRef) }   // Session dies/archives with
                                                           //   its session; System = fleet
-enum OpClass { Verdict, Lifecycle, Audit,                 // never-shed, durable
+enum OpClass { Verdict, Lifecycle, Audit, Incident,       // never-shed, durable
+                                                          //   (Incident = the detection
+                                                          //   substrate's enriched alerts
+                                                          //   — evidence-grade, §9)
                ClaimMetric,                               // durable, sheddable-late
                Telemetry, Span }                          // lossy-tolerant, sheddable
 enum OpBody {                                             // one variant per class family
@@ -133,7 +136,21 @@ struct ExpHistogram {           // §5 — full impl there
     count: u64, sum: f64, min: f64, max: f64,
     exemplars: RingBuf<ClaimUid, N_EX>,   // N_EX derived; latest-wins, bounded
 }
-enum SeriesState { Counter(u64), Gauge(f64), Histo(ExpHistogram) }
+// ---- the TIME dimension: a series is windows, not one lifetime aggregate ----
+struct WindowedSeries {
+    windows: RingBuf<(WindowStart, Aggregate)>, // time-bucketed; per-tier window width
+                                                //   W_res derived (§5b); ring length =
+                                                //   tier retention ÷ W_res — bounded
+    current: Aggregate,                         // the open window, filling
+    restart_epoch: u32,                         // bumps on collector restart — cumulative
+                                                //   counter resets are DETECTABLE, never
+                                                //   silently read as negative rates
+}
+enum Aggregate { Counter(u64),                  // cumulative total AT WINDOW CLOSE (the
+                                                //   meter reading); rate = diff across
+                                                //   windows, reset-aware via epoch
+                 Gauge{ last: f64, min: f64, max: f64 },
+                 Histo(ExpHistogram) }          // the WINDOW's value distribution
 
 // ---- the node collector (one per node; owns every per-node shard) ----
 struct NodeCollector {
@@ -338,6 +355,45 @@ everywhere on the firehose — loss is absorbed or honestly marked, never queued
 against work), and **everything crossing the guest boundary uses the channels the
 pod anatomy already defines** — this spec adds zero guest-visible surface.
 
+## 3c. Boot order, dynamic sources, self-observation, and the resource envelope
+
+**Boot order (no circular dependency).** Node boot: WAL → the three QUEUE lanes →
+node collector BOOT/BIND → sources begin registering. Emissions *before* the
+collector binds are not lost-by-design: every source is a **bounded ring that
+buffers** (oldest-overwritten, counted) — the collector drains late and the gap is
+an ordinary `RingOverrun` count, never a special boot mode. The collector depends
+only on WAL+QUEUE below it; nothing below it depends on the collector (observation
+is never load-bearing for boot — a node boots dark-but-working if the collector
+fails, and the *node health plane* reports that, per HEALTH's independent liveness).
+
+**Sources attach dynamically.** BIND validates *registries* (metric ids, classes,
+the span roster) — the closed vocabularies. The *source set* is runtime-dynamic:
+a pod summon registers its rings with the node collector (a lifecycle event on the
+control channel), teardown detaches them; host services register at their own boot.
+Attach/detach are counted lifecycle events; an unregistered *vocabulary* fails
+boot, an attaching *source* is ordinary runtime.
+
+**Self-observation (bounded by construction).** The collector's own operations —
+the ingest tick, uplink, query execution, reseed — are chokepoints like any other:
+they emit measures/spans **into their own node's shards** under `System` scope. The
+recursion terminates structurally: a measurement about a measurement lands in a
+roll-up bucket (the terminal form) and generates no further emission — depth is
+exactly one. Its own drop counters (§12) are the observability *of* the
+observability plane; a collector that cannot report its own drops is what CL10's
+CI walk exists to prevent.
+
+**The resource envelope (the collector pays rent like everyone else).** The node
+collector's total budget — Σ shard series state + event rings + hot CACHE + uplink
+buffers + assembler slots (region nodes) — is a **derived fraction of node
+resources**, anchored on a measured overhead ceiling (the receipts: Dapper's
+daemon <0.3% of a core, Canopy's backend <0.1% of the datacenter — our ceiling is
+derived from the same class of measurement, not copied). Two enforcement edges:
+the **scheduler accounts the collector's share in node admission** (pods are
+admitted against the remainder — the collector cannot be squeezed into OOM by
+admission), and the collector **self-limits at its ceiling** (refuse-first §10 —
+over budget it sheds sheddable classes, counted, and never grows past the
+envelope). The budget formulas live in §13 with the rest.
+
 ## 4. The scoped operational log (D1)
 
 **One logical log, realized as three class-lane QUEUE instances.** QUEUE's
@@ -349,7 +405,7 @@ QUEUE's model:
 
 | Lane (QUEUE instance) | OpClass families | Declared property | Durability | Retention | Why |
 |---|---|---|---|---|---|
-| `op-critical` | Verdict, Lifecycle, Audit | default (at-least-once), admission-reserved carriage | the environment-derived default — the strongest the failure-domain tree affords (QUEUE §4); WAL's one always-full ack policy | Session: with the session → archive. System: fleet → cold | a flood must not starve a hard-block; audit is evidence |
+| `op-critical` | Verdict, Lifecycle, Audit, Incident | default (at-least-once), admission-reserved carriage | the environment-derived default — the strongest the failure-domain tree affords (QUEUE §4); WAL's one always-full ack policy | Session: with the session → archive. System: fleet → cold | a flood must not starve a hard-block; audit and incidents are evidence |
 | `op-standard` | ClaimMetric | default (at-least-once) | same single WAL policy (naturally batched — there is no separate "group-commit" tier, WAL §4) | derived (dashboards horizon) | derived work metrics; late shed counted |
 | `op-telemetry` | Telemetry, Span | **declared lossy** (QUEUE §10's opt-in: reconstructible/loss-tolerant) | self-ack; loss priced Degraded, never silent | hot horizon → §7 interval blocks → cold | pure telemetry is re-derivable signal, never proof |
 
@@ -474,6 +530,48 @@ Fixed-γ DDSketch has the guarantee but not cross-resolution merge; exponential
 histograms are the same guarantee family *plus* perfect subsetting, and they are the
 OTel/Prometheus interchange form our vocabulary already targets.
 
+## 5b. The time dimension — a series is windows (the part a lifetime aggregate can't do)
+
+A `TimeRange` query is unanswerable against one lifetime aggregate; the store of
+record for a series is **time-bucketed windows** (`WindowedSeries`, §2 — the
+Gorilla/Monarch model):
+
+- **Window width `W_res` is per-tier and derived**: node tier at raw resolution
+  (`W_raw` from the hot-horizon budget ÷ per-window cost); each federation tier may
+  widen (`W_region ≥ W_raw`), and older ranges widen further (multi-resolution
+  retention). **Downsampling over time = the §5 merge over adjacent windows** —
+  histograms merge exactly (perfect subsetting applies over time exactly as over
+  scale), counters take the last cumulative reading, gauges merge (last, min, max).
+  One merge, three uses: cross-scale, cross-node, cross-time.
+- **Windows close on HLC boundaries** (`window_start = at − (at mod W_res)`), so
+  every node cuts the same instants and cross-node window merge aligns without
+  negotiation. A closed window is **immutable** — which is what makes the §7
+  per-window replace idempotent and re-ships byte-identical.
+- **Counters are meter readings**: the window stores the cumulative total at close;
+  a rate over `[t1, t2)` is the difference of readings, and `restart_epoch` makes a
+  collector restart's reset **detectable** — a reading from a newer epoch never
+  differences against an older one (the Prometheus counter-reset lesson, made
+  structural instead of heuristic).
+- **Late data** (a measurement arriving after its window closed — clock skew, a
+  slow drain): lands in the **current** window and increments
+  `drops[LateArrival]` — never reopens an immutable window (reopening would break
+  the replace idempotence and the region's merge stability). The counted rate is
+  the skew alarm.
+- **Schema evolution**: a metric's registered `(span, α)` change bumps the series'
+  registry version; old windows keep their scale, new windows take the new one, and
+  any query merging across the boundary downscales to the common scale — exact, by
+  the same subsetting property. No migration, no dual-write.
+
+## 5c. The tier-ownership invariant (no window counted twice)
+
+A window interval is **owned by exactly one tier at query time**: the planner splits
+every `TimeRange` at the derived hot-horizon boundary and the cold boundary — windows
+younger than the horizon resolve at the owning **nodes** (raw), older-than-horizon at
+the **region shards**, colder-than-retention in **sealed blocks** — and a window
+never satisfies a query from two tiers (CL16). The boundaries are derived instants,
+not races: a window in transit (closed at the node, not yet acked regional) is served
+by the node until the region's ack watermark covers it.
+
 ## 6. The cardinality limiter (D4b)
 
 **Primary defense — bounded by construction**: `SeriesKey` is closed (§2); per-object
@@ -538,10 +636,14 @@ and not a delta protocol:
 struct UplinkInterval {
     node: NodeId, roster_epoch: Epoch,       // fenced (§2b)
     seq: u64,                                // monotone per node; gaps legal
-    series: Vec<(SeriesKey, SeriesSnap)>,    // ABSOLUTE state of each dirty series:
-                                             //   Counter(total) | Gauge(v) |
-                                             //   Histo(downscaled sparse (idx,count)+
-                                             //   count/sum/min/max/zero)
+    series: Vec<(SeriesKey, WindowSnap)>,    // ABSOLUTE state per dirty series, PER
+                                             //   WINDOW: every CLOSED window since the
+                                             //   receiver's last-known, plus the open
+                                             //   window marked partial. Replace-apply
+                                             //   keys on (node, series, window_start) —
+                                             //   idempotent per window; a re-shipped
+                                             //   closed window is byte-identical
+                                             //   (closed = immutable)
     sealed_refs: Vec<ContentHash>,           // event/span blocks sealed this interval
 }
 ```
@@ -710,13 +812,20 @@ pruned 99.5% at zone level; disabling it cost 10×) and Scuba's aggregation tree
 result** — "Only 94.6% of all samples were processed"). Both imported, with one
 upgrade our closed vocabulary buys: the index is *exact*, not probabilistic.
 
-**1. Plan.** `read_series(scope, sel, range, res)` splits by tier ownership:
+**1. Plan.** `read_series(scope, sel, range, res)` splits by tier ownership — the
+§5c invariant: every window interval in `range` is assigned to **exactly one** tier
+(no window counted twice; in-transit windows resolve to the node until the region's
+ack watermark covers them):
 
 ```
-range ∩ hot-horizon(scope)   → NODE sub-queries (raw, at the owning nodes)
-range ∩ rolled(scope)        → REGION-SHARD sub-queries (merged absolutes)
+range ∩ hot-horizon(scope)   → NODE sub-queries (raw windows, at the owning nodes)
+range ∩ rolled(scope)        → REGION-SHARD sub-queries (merged windows)
 range ∩ cold(scope)          → COLD sub-queries (sealed blocks by ref, OBJECT_TIER)
 ```
+
+The same three-way split plans `read_events` (event rings → durable-lane cursors →
+sealed event blocks) and `read_trace` (assembler hot rows → sealed trace rows) —
+one planner, three result shapes.
 
 **2. Prune (the fanout killer).** The selector is resolved against the
 `SeriesIndex` — exact inverted postings per closed dimension (`metric`, `principal`,
@@ -900,6 +1009,39 @@ impl ObservabilityQuery for QueryService {
 }       // deny, never widen — it holds no capability of its own (CL9).
 ```
 
+## 10b. Lifecycles — how collector machinery is born, lives, and dies
+
+**A metric** (the vocabulary lifecycle): a subsystem's bundle declares its metrics
+(`MetricId`, op vocabulary, dims, `(span, α)` anchors, keep-class for its trace
+roots) as **REGISTRY documents**; publication flows through the registry's ordinary
+watch — node collectors observe the new entry, shards accept `admit()` for it from
+then on. **Deregistration** stops admission, retires the series at the tier
+retention horizons, and the registry version stamps every window (schema evolution,
+§5b). No metric exists outside the registry — the §3 boot validation is a read of
+this same source.
+
+**A session's observability** (born and dies with the session): the session-create
+gang admission (SCHEDULER's colocation-unit transaction) includes the **capture
+task** — it is home machinery like the ledger core, not an afterthought summon.
+Live: §10's loop. Session close: the capture drains its stream to the close point,
+appends its final checkpoint, and the archive-exfiltration consumer's ack-through +
+`close_partition` retire the session's op-log partitions at archive-finalize (§4).
+The session's series and windows age out at their horizons; its sealed blocks
+follow the archive's lifecycle. **A session leaves nothing resident.**
+
+**A node** (join/leave): join — the node collector boots with the node (§3c order),
+sources attach, the uplink registers with its region shards (first intervals seed
+its `(node, series)` entries). Drain — `DRAINING` (§3): stop intake, flush the
+uplink, seal hot, final capture checkpoints, close logs; the region's entries for
+the node go stale-visible (H7) and retire on the liveness verdict. Crash — §11's
+matrix; the region's frozen entries are the crash's visible shadow until liveness
+retires them.
+
+**Region machinery** (shards/assemblers/executors): placed and re-placed by the
+scheduler as ordinary work; every placement bumps the fenced roster epoch (§9b/§8);
+reseed and HRW re-routing are the only migration mechanics — there is no state
+handoff anywhere in this spec, by design (all region state is projection).
+
 ## 11. Failure & recovery matrix
 
 | What dies | What is lost | Counted where | What recovers, from where |
@@ -913,15 +1055,48 @@ impl ObservabilityQuery for QueryService {
 | A region shard | its merged absolutes + index | `drops[RegionLoss]` | node tiers unaffected (autonomy); epoch bumps ⇒ nodes mark its series dirty ⇒ the ordinary uplink reseeds it (§9b — no handoff, no replica); queries meanwhile carry the gap in `Completeness`, never a silent hole |
 | The QUEUE log's node | per QUEUE's own spec | — | QUEUE durability (environment-derived replication); not this spec's mechanism |
 
-The invariant across every row: **proof-grade classes (Verdict/Lifecycle/Audit,
-capture checkpoints) live on durable logs and survive; telemetry-grade loss is
-bounded, counted, and visible** — never silent, never blocking work.
+The invariant across every row: **proof-grade classes (Verdict/Lifecycle/Audit/
+Incident, capture checkpoints) live on durable logs and survive; telemetry-grade
+loss is bounded, counted, and visible** — never silent, never blocking work.
+
+## 11b. Threat posture — when the collector itself is the compromised thing
+
+The plane observes everything, so its own compromise must be priced (the
+MONITORING §9 discipline applied to this spec's components):
+
+- **A compromised node collector** lies **as its node, about its node** — it holds
+  the node's harness identity and per-node envelope keys, so it cannot forge
+  another node's uplink or speak for another node's series (the region keys
+  entries by authenticated node identity). It holds **no IAM capabilities** — it
+  cannot read the ledger, cannot query other scopes, cannot widen anything. Its
+  blast radius is one node's telemetry being wrong — which cross-view validation
+  is built to catch: its guest-vs-host divergence signals go quiet or incoherent,
+  and the *other* host-observed surfaces about that node (VMM counters at the
+  region, liveness fabric, scheduler telemetry) don't pass through it.
+- **A compromised region shard** can serve wrong merges and wrong completeness for
+  its series range — to **queries only**: detection does not read the region tier
+  (the stage runs in each session's colocation unit on its own live streams, §9),
+  the score service reads its ordered outcome stream, and nothing on any work or
+  authority path consumes regional merges. Blast radius: dashboards and
+  investigations over one shard range, bounded and re-seedable (kill it and the
+  nodes rebuild the truth).
+- **A compromised query service** can **deny, never widen** (§10's join argument,
+  generalized): it holds no capability of its own; every read it performs is under
+  the caller's checked capabilities per plane. Worst case: refused or garbled
+  query results — visible, never an authority leak.
+- **The trust root** for `HostObserved` provenance is the node harness identity
+  chain — the same root the warden and the wire already stand on; this spec adds
+  no new root and no new key custody beyond the per-node uplink identity.
+
+Bar A / Bar B carry through from MONITORING §9 unchanged: everything guest-emitted
+is `GuestReported` by construction (§2's provenance dimension) and nothing
+authority-grade ever depends on it.
 
 ## 12. The drop taxonomy (closed — an uncategorized drop is a bug)
 
 `Malformed | RingOverrun | ShardRestart | NodeCollectorLoss | RegionLoss |
-UplinkShed | QueueShed(class) | CardinalityFolded | RangeClamped | TraceEvicted |
-AssemblerLost | QueryPartial(tier)` — one counter each, all scope-tagged, all queryable as ordinary
+UplinkShed | QueueShed(class) | CardinalityFolded | RangeClamped | LateArrival |
+TraceEvicted | AssemblerLost | QueryPartial(tier)` — one counter each, all scope-tagged, all queryable as ordinary
 series. CI walks every shed/loss code path and asserts it lands in exactly one
 category (CL10); a new loss path without a category fails the build.
 
@@ -944,6 +1119,10 @@ category (CL10); a new loss path without a category fails the build.
 | Leaf timeout | derived from the tier's measured response distribution | per-tier response p99 |
 | Query budgets | per-principal concurrent-cost admission at the serving edge | executor capacity, principal class |
 | Reseed convergence | every live node's post-epoch interval applied (per-node seq) | node census, `T_up` |
+| Window widths `W_raw`/`W_region`/older | hot budget ÷ per-window cost; widened per tier by retention ÷ ring length | hot budget, per-window bytes, tier retentions |
+| Hot-horizon boundary | node hot budget ÷ ingest rate, aligned to `W_raw` | node memory share, measured rate |
+| Collector overhead ceiling | derived from measured per-signal cost × emission census (the Dapper/Canopy overhead-class measurement) | measured collector cost, node capacity |
+| Collector node share | overhead ceiling + derived headroom; accounted by scheduler admission | the ceiling, admission model |
 
 No literal constant exists in this spec's implementation; each formula's inputs are
 measured anchors, recomputed as they drift (CL12).
@@ -1107,6 +1286,9 @@ acceptance, unchanged.)
 | CL13 | **Recovery matrix holds**: kill-fuzz each §11 row ⇒ the stated loss (counted, in-category) and the stated recovery, nothing more lost, nothing silent | undocumented loss; recovery drift |
 | CL14 | **Query honesty + pruning**: every result carries `Completeness` (a partial that doesn't say so is the named failure); a query touches only index-named shards/nodes (measured fanout ≤ index resolution); an unbounded selector is a typed refusal; results stream chunked under a derived memory bound; sampled-source results marked `estimated` with `1/keep_rate` compensation | silent partials; broadcast fanout; the LIST memory blowup; unmarked estimates |
 | CL15 | **Reseed correctness**: kill/re-place a region shard at any point ⇒ nodes re-ship via the ordinary uplink on the epoch bump; the shard converges to byte-identical merged state vs an oracle; queries during reseed carry the gap in `Completeness` | a reseed protocol fork; silent post-recovery holes |
+| CL16 | **Windowed time is exact**: any `TimeRange` at any resolution ≡ a serial oracle over the raw stream (window merges exact; counter rates reset-aware via `restart_epoch`; no window satisfied from two tiers — §5c; late arrivals counted, never reopening a closed window) | unanswerable/ wrong range queries; double-counted windows; silent counter resets |
+| CL17 | **Self-observation bounded + envelope held**: the collector's own chokepoints emit (coverage walk includes them); recursion depth is exactly one; total resource use never exceeds the derived envelope under any load (self-limits shed counted); scheduler admission accounts the collector share | an unobservable observer; recursive blowup; the collector squeezing pods (or vice versa) |
+| CL18 | **Lifecycle completeness**: metric register/deregister round-trips through REGISTRY (admission follows the watch; retirement at horizons); session create/close summons and drains the capture with its partitions closed at archive-finalize; a closed session leaves zero resident collector state (scan) | orphaned series; a session leaking observability residue; out-of-registry metrics |
 
 ## 18. Test matrix (SIM)
 
@@ -1124,6 +1306,9 @@ acceptance, unchanged.)
 | Recovery kill-fuzz | CL13 (each §11 row, at every step boundary) |
 | Query suite | CL14 (completeness on induced leaf timeouts/losses; fanout ≤ index resolution; unbounded-selector refusal; chunked-stream memory ratchet; keep-rate compensation vs oracle) |
 | Reseed fuzz | CL15 (kill/re-place at every reseed point; converged-state differential; completeness during the gap) |
+| Time differential | CL16 (random ranges × resolutions × tier boundaries × restarts vs the serial oracle; late-arrival and in-transit-window fuzz) |
+| Envelope stress | CL17 (emission storms at every mix ⇒ envelope held, sheds counted; the coverage walk includes the collector's own chokepoints) |
+| Lifecycle sweep | CL18 (metric register/deregister; session create→close→archive scan for residue) |
 | Laptop parity | CL12 |
 
 ## 19. References (load-bearing few)
