@@ -8737,3 +8737,19 @@ law + host-attribution point) + §6 (flow_identity workload dimension + Scribe-f
 rows), FAULTS §1, IAM §1 (two principals per pod) + §6 (per-workload residual
 distribution), PODS §1, MONITORING §9/§18 (rider closed). REMAINING §18 riders:
 R1-OQ1 pre-stage, R2-OQ-a/b/c, R4-OQ-a/b/c, ADR-0004's two — smaller, groupable.
+
+**R1-OQ1 SETTLED = b' (2026-08-22, user):** PRE-CREATE at pool-fill, START at
+assignment. The reshaping fact: pools are PER ROLE CLASS => the role image is known
+at pool-fill; only identity binds at assignment. The constraint that killed naive
+pre-start: residuals are per-instance identity-bearing and the install-before-run
+law holds — resolved by the OCI create/start split: the law binds START (when code
+runs), not create. Pool-fill = both containers created (role rootfs lowerdirs,
+empty uppers, cgroup skeletons) + ring/cursor/doorbell minted (generic — instance-id
+stamps at writer start). Assignment = reseed -> mint root + 4 workload keys ->
+residuals installed+pinned -> identity bound -> START scribe-first. T7 extends to
+container FS by content-hash genericity; snapshots capture created-unstarted,
+covered by reseed-before-start. (c) hybrid dominated (primary image equally known);
+(a) pays mount latency per summon for zero correctness. LANDED: PODS §4 ×2 +
+MONITORING §6. §18 riders remaining: R2-OQ-a (provider pool home), R2-OQ-b
+(scaling-class enum owner), R2-OQ-c + R4-OQ-a/b/c (the artifact-homes cluster —
+NEXT exchange), ADR-0004's two.

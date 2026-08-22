@@ -258,6 +258,12 @@ I5 SUPERVISE  reap; report lifecycle on the control channel; execute
                    last flushed window
 ```
 
+**The pool-fill split (b′, accepted 2026-08-22)**: container *creation* (rootfs
+mounts, cgroup skeletons) and the channel *mint* are identity-free and may run at
+pool-fill (PODS §4); I2's reseed, I3's key derivation + residual install, and
+I4's *starts* always run at assignment — the ordering law binds **start**, the
+moment code runs, which is exactly what makes pre-creation legal.
+
 Every step is idempotent; kill-fuzz at each boundary is T20–T24's job (§17).
 
 ## 7. Telemetry pipeline (role, post-COLLECTOR)

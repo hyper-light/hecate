@@ -101,7 +101,12 @@ Preference order, tier choice and sizes derived per node from measured anchors:
 1. **Warm live pool** — booted, *generic* (unassigned) VMs per role class. Pool size
    derives from observed summon arrival rates (Little's-law style, decayed); on a
    laptop the formula correctly yields ~zero and tier 2 dominates — same formula,
-   both extremes.
+   both extremes. **Containers are PRE-CREATED at pool-fill, started at assignment
+   (b′, accepted 2026-08-22)**: both containers' role-class rootfs lowerdirs
+   mounted, empty tmpfs uppers, cgroup skeletons staged, and the ring/cursor/
+   doorbell minted — all identity-free (the role image is known per-role-class
+   pool; the ring's instance-id stamps at writer *start*). The slow filesystem
+   work leaves the assignment path entirely.
 2. **Snapshot-resume** — post-boot, **pre-assignment** snapshots; resume is
    ms-class. Resumed VMs map the snapshot memory file **copy-on-write**, so N clones
    share every clean page of one snapshot — the density mechanism at fleet scale,
@@ -111,9 +116,16 @@ Preference order, tier choice and sizes derived per node from measured anchors:
    assigned (work-bearing) pod's guest memory is never persisted to host storage by
    any mechanism — in-progress work cannot reach disk through the warm tiers.**
 3. **Cold boot** — the floor (~100–200ms class), never the steady-state path.
-- **Assignment binds identity**: keys, pod uid, volumes, bundle, fencing identity
-  attach at assignment; pooled/snapshotted state is provably generic (a pooled VM's
-  filesystem and memory contain no session, no key, no uid — tested, T7).
+- **Assignment binds identity — and STARTS the containers**: reseed (I2, before
+  anything runs) → the pod mint root + the four per-workload keys → the compiled
+  residuals installed and pinned → uid/volumes/bundle-instance bound → **start,
+  Scribe first**. Enforcement exists before any workload instruction executes:
+  *start*, not create, is when code runs — the install-before-run law holds
+  structurally. Pooled/snapshotted state is provably generic (a pooled VM's
+  filesystem and memory contain no session, no key, no uid — tested, T7; **T7's
+  scan extends to the pre-created container filesystems**: manifest projections of
+  the role image + empty uppers, generic by content-hash comparison; snapshots
+  capture created-but-unstarted containers, covered by reseed-before-start).
 - **Boot storms get the parking discipline**: singleflight per cold target, bounded
   parking with counted shed, one per-flight budget, `budget_exhausted` as a counted
   outcome — a stampede produces backpressure, never a herd of cold boots.
