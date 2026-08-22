@@ -272,6 +272,72 @@ verdict is on the log before anything can observe it — a crash between 3 and 4
 only the hot copy, re-derived on read), and **admit-before-record** (no measurement
 ever touches series state except through the §6 chokepoint).
 
+## 3a. The ingest architecture, end to end (what runs where, what connects them)
+
+```
+GUEST (one microVM per pod)                HOST (per node)
+┌────────────────────────────┐
+│ primary container          │
+│   runtime emitters ─────── memfd history ring ──▶ drained on the Scribe flow
+│   (turn/tool/claim events, │  (MONITORING §3: one-way, enrichment-class)
+│    interior spans)         │
+│ Scribe container ───────── vsock Scribe flow ───▶ │
+│ sensor (guest kernel eBPF)─ vsock sensor chan ──▶ │ warden (host-side, per pod)
+└────────────────────────────┘                      │   verdicts ──▶ host rings
+  VMM device counters (fork) ───────────────────────▶ host rings   (HostObserved)
+  host-truth (/proc, cgroups, steal-time) ──────────▶ host rings
+  gateway · scheduler · autoscaler · serving ·      ▶ host rings
+  store · queue · consensus chokepoints (host procs)
+                                                    │ doorbells (no polling)
+                                                    ▼
+                     NODE COLLECTOR — a per-node harness service (structural,
+                     like the warden; not scheduled work). Shards by
+                     hash(SeriesKey); runs the §3 tick:
+                       ├─ op-log lanes (3 × QUEUE) ──▶ WAL logical logs
+                       ├─ hot (CACHE) + event rings (recent horizon)
+                       ├─ kept spans ──▶ assembler route (§2b HRW)
+                       └─ uplink (absolute snapshots, §7)
+                                                    │
+     REGION TIER (per region; placed by the scheduler, fenced by the region
+     meta group's rosters)                          ▼
+       region shards × R (hash-aligned, §9b) ◀── UplinkInterval (class-1)
+       assemblers (trace-id HRW, §8)         ◀── kept spans (class-1)
+       query executors (stateless, §9a)      ◀── ObservabilityQuery (reliable)
+       sealed blocks ──▶ OBJECT_TIER (content-addressed cold)
+
+     COLOCATION UNIT (per session, on its colocation node): the capture task
+     (§10) + the detection substrate (§9, a stage) — session-scoped machinery
+     beside the ledger core, reading the plane in-place.
+```
+
+The tier boundaries carry the research directly: aggregate-at-the-edge before
+anything crosses a wire (Monarch's 36:1), regional autonomy with no global write
+fan-in (Monarch zones), hot-in-RAM → durable log → cold blocks (Gorilla's tiering),
+and out-of-band collection — no arrow above sits on any work path (Dapper).
+
+## 3b. The networking, hop by hop
+
+Every hop names its transport, PROTOCOL plane/class, and security posture — no
+arrow in §3a is unspecified:
+
+| Hop | Transport | Plane / class / archetype | Security & admission |
+|---|---|---|---|
+| runtime → history ring | memfd ring + eventfd doorbell (intra-VM) | not a network hop (MONITORING §3) | kernel fd custody; enrichment-class by law |
+| Scribe flow, sensor → host | **vsock** (guest↔host only — the PODS channel inventory; never claims/tools) | framed PROTOCOL, observability streams | per-workload flow keys (WIRE_SECURITY — a compromised primary cannot forge its Scribe); health-plane reserved slots |
+| host chokepoints → node collector | in-process bounded channels (same node, no wire) | — | bounded queues + counted shed (the runtime law) |
+| node → region: `UplinkInterval` | UDP datagrams (the claims-plane dual stack) | control plane, **class-1 Observation (sheddable)**, `supersession` archetype (§7) | envelope keys + node identity; MTU-derived budget; loss absorbed by design |
+| node → assembler: kept spans | UDP datagrams | class-1 Observation, sheddable | same; loss ⇒ counted gap records ⇒ `incomplete` rows (§8) — never retransmitted |
+| live FANOUT → the four | FANOUT's own delivery (reliable durable push, its spec) | FANOUT reliable-push; never-shed carriage for incident/verdict classes | the sealed topic (§9); scope filters stamped at bind |
+| queries ↔ executors | **hecate-quic** sessions (reliable, credit-governed streams) | session plane, StreamData class | Noise session identity + the IAM PEP at the serving edge; per-principal budgets (§9a) |
+| capture ← ledger deltas | the ledger's delta-stream subscription (hecate-quic ordered stream) | ordered-log archetype (the existing delta-stream lane) | `claim_plane.subscribe_deltas`; cursor + credit |
+| sealed blocks → OBJECT_TIER | the durable-plane write path (bulk via TRANSFER) | bulk class (Lane-A passthrough) | content-addressed; OBJECT_TIER admission, `telemetry` class (§16) |
+
+Two properties fall out of the table rather than being asserted: **nothing
+telemetry-grade rides a reliable/retransmitting lane** (class-1 + supersession
+everywhere on the firehose — loss is absorbed or honestly marked, never queued
+against work), and **everything crossing the guest boundary uses the channels the
+pod anatomy already defines** — this spec adds zero guest-visible surface.
+
 ## 4. The scoped operational log (D1)
 
 **One logical log, realized as three class-lane QUEUE instances.** QUEUE's
@@ -924,6 +990,53 @@ An Engineer services claim `C47` (scope `Session(s9)`); its VFS mount is slow.
 `N=1`: the node tier is the region tier (loopback uplink, same code); one assembler;
 one shard set; the same formulas produce laptop numbers from laptop anchors. Zero
 modes anywhere (CL12).
+
+## 15a. Integration (every companion touchpoint, enumerated)
+
+- **MONITORING** — the emission rings (§3a's sources) are its plane; the hot-ring
+  role amendment (§16) makes the ring the source buffer and this spec the store.
+  Provenance classing (§2's dimension) is its §8 law carried into series identity.
+- **TRACING** — spans arrive in its §3 shape; the keep flag (§5) decides assembler
+  forwarding; §8 is the assembly TRACING §6 defers; TR8's incomplete-marking is CL6.
+- **HANDOFF** — the detection substrate is a stage of this pipeline (§9), reading
+  `HostObserved` streams in-plane; its incidents reach the Scribe via the Scribe's
+  live binding. Its detector-state checkpointing is its own spec's concern.
+- **WAL** — the op-log lanes are QUEUE-over-WAL; `own_log` is a registered
+  logical-log client with the `capture_checkpoint` record kind (§16); checkpoint
+  cadence/format are client-owned per WAL's floor contract.
+- **QUEUE** — three declared-property lane instances (§4); `close_partition` at
+  archive-finalize (§16); the cold tier is QUEUE §7's own.
+- **CACHE** — the hot store (its spec names "the collector hot-ring" as a client);
+  the timing wheel and weighted-HRW are shared runtime mechanisms, with the
+  canonical HRW formula defined at §2b.
+- **FANOUT** — live delivery on a sealed topic (§16); incident/verdict classes ride
+  never-shed carriage.
+- **OBJECT_TIER** — the `telemetry` storage class + op-log-referenced GC liveness
+  root (§16); sealed blocks are ordinary content-addressed durable-plane objects.
+- **PROTOCOL / WIRE_SECURITY** — §3b's hop table: class-1 Observation carriage,
+  the `UplinkInterval` supersession-archetype registration (§16), per-workload flow
+  keys at the guest boundary, reserved slots for the health/observability plane.
+- **IAM** — the `observability` capability gates every query at the serving-edge
+  PEP (§9); per-principal query budgets; the capture task stands under
+  `claim_plane.subscribe_deltas`; the §4-row amendment (§16).
+- **LEDGER / LEDGER_CORE** — the capture is an ordinary delta-stream cursor
+  consumer ("the log is the outbox"); `trace_refs` lands in the system-written
+  lifecycle record; the skeleton read rides the serving edge's metadata split; zero
+  ledger writes, no second authority (§10).
+- **SESSIONS** — session-scoped retention keys off archive-finalize (§4); the
+  capture task and detection substrate live in the colocation unit (§16 list
+  amendment); a session's telemetry dies with its session, like everything else.
+- **SCHEDULER** — region shards, assemblers, and query executors are scheduled
+  tasks (placement via the ordinary admission path); the node collector is a
+  structural per-node harness service (like the warden), not scheduled work.
+- **CONSENSUS** — the region-shard and assembler rosters are fenced placement-map
+  versions owned by the region meta group (CAS-first, §6's existing class — no new
+  epoch kind); every §2b route checks its roster epoch.
+- **HEALTH** — H6 bounds fan-in by node count; H7's `(value, freshness)` rides every
+  merged read; H8's type-walk covers every record and span type; AbsenceIs marks
+  uplink lapse and query partials.
+- **RUNTIME** — every task here is bounded and tracked (no untracked goroutines' Rust
+  equivalent); shard state is single-owner; hashing/tiebreak via the seeded driver.
 
 ## 16. Amendments landing with acceptance (one coordinated sweep)
 

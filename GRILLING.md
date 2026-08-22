@@ -8480,3 +8480,24 @@ RIPPLES: data model (RegionShard/SeriesIndex/Completeness/QueryService), §11 re
 -> reseed, §13 +5 derived constants (R/F/leaf-timeout/budgets/convergence), §14 worked
 example gains the query walk (3/3 leaves, Completeness shown), CL14 (query honesty +
 pruning) + CL15 (reseed correctness) + two test rows. Presented for acceptance.
+
+**COLLECTOR §3a/§3b/§15a ADDED (2026-08-22, user: "show the observation ingest
+architecture, the networking required, how it works with our other systems"):**
+§3a END-TO-END ARCHITECTURE MAP (ASCII): guest (runtime emitters -> memfd history ring;
+Scribe/sensor vsock flows) -> host (warden verdicts, VMM fork counters, host-truth,
+every host chokepoint -> host rings) -> the node collector (per-node STRUCTURAL harness
+service, like the warden — not scheduled) -> lanes/hot/spans/uplink -> region tier
+(shards/assemblers/executors, scheduler-placed, meta-group-fenced) -> OBJECT_TIER; the
+colocation unit hosts capture + detection. Research carried at the boundaries
+(Monarch 36:1 aggregate-at-edge, zone autonomy, Gorilla tiering, Dapper out-of-band).
+§3b THE NETWORKING HOP TABLE — all 9 hops x {transport, plane/class/archetype,
+security+admission}: memfd intra-VM; vsock guest-boundary flows w/ per-workload keys;
+in-process bounded channels; UplinkInterval + kept spans = UDP class-1 Observation
+sheddable (supersession); FANOUT reliable-push on the sealed topic (incidents/verdicts
+never-shed); queries = hecate-quic + Noise + IAM PEP + budgets; capture = the existing
+ordered-log delta lane; cold = bulk/TRANSFER Lane-A. Two structural fallouts stated:
+nothing telemetry-grade rides a retransmitting lane; ZERO new guest-visible surface.
+§15a INTEGRATION (MATERIALIZER-§9-style): all 16 companions enumerated with their
+exact touchpoint (incl. the two placement answers: node collector structural-per-node;
+region rosters = CAS-first placement-map versions of the region meta group — no new
+epoch kind). Spec now ~1100 lines. Presented for acceptance.
