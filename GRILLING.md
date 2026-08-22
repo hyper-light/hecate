@@ -8279,3 +8279,11 @@ HLL (~12KB/scope, <1% err) as the cheap detector, exact admitted-set registry at
 chokepoint for enforcement.
 D4/D5/D6 RECOMMENDATIONS FORMED (above); D1 (stream model) = the opening exchange,
 presented to the user in-session. D2/D3 queued behind it.
+
+**D1 SETTLED (2026-08-22, user): ONE scope-tagged operational log.** Every durable
+telemetry event carries (scope, failure-domain, provenance); scope is the routing/
+retention/authz key; isolation = delivery classes (system-critical events ride a
+never-shed class with reserved capacity — the PROTOCOL reserved-slot law), never a
+second substrate. IAM §11's "two streams" reads as two scope-classes on the one log
+(clarifying amendment owed at spec write). NEXT: D2 (consumer model) + D3 (claims-work
+capture) presented as one exchange, two separated questions.
