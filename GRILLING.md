@@ -8598,3 +8598,42 @@ laptop (§15); 14-companion integration enum (§15a); per-instance profile table
 ST1-ST15 (new: ST12 failover ratchet, ST13 refusal walk, ST14 boot order) + 12-row SIM
 matrix. Presented for acceptance. NEXT: TRACING.md to the bar, then MONITORING, then
 HANDOFF. (Sibyl research agent runs in the background meanwhile — banked on landing.)
+
+**TRACING.md REWRITTEN TO THE BAR (v2, ~430 lines) (2026-08-22):** end-to-end walk
+first; FIVE new settlements flagged: (1) PARK/RESUME/HANDOFF = separate traces linked
+via the claim's trace_refs (WHY the field is plural; a week-long park never holds an
+assembler window; predecessor Aborted/incomplete + successor fresh — history survives
+as the claim's reference list, never a synthetic mega-trace); (2) DROP-GUARD closure —
+SpanGuard RAII stamps Aborted on unwind; a dying op never leaks an open span; process
+DEATH needs no cooperation (host lifecycle event = authoritative end, window seals
+incomplete); (3) ID LAW — 128-bit random trace ids (birthday bound derived: <1e-13 at
+1e12 traces), 64-bit span ids, seeded-driver in SIM (replay-deterministic); (4)
+KEEP-RATE ADAPTATION — region measures kept-volume vs budget, publishes derived rates
+as REGISTRY updates (the metric lifecycle reused); stale-registry nodes degrade to
+last-known rates (safe: mistunes volume never correctness, counted); local decision
+O(1) deterministic (seeded hash of trace_id vs rate); (5) SPAWN INHERITANCE — child
+tasks inherit ctx; detached background work roots fresh (no untraced execution, no
+daemon adoption). Also: CLOCK HONESTY settled — node-local monotonic for duration
+ONLY; cross-node order from parent EDGES never timestamp comparison (TR10 + skew
+injection); the chokepoint registry IS the span roster (ChokepointEntry documents:
+id/subsystem/keep-policy/provenance-fixed-by-placement). Structure: package-tracking
+analogy (§1a — carries head-at-the-counter, scans-not-custody, park=new-leg); reading
+guide; full data model (TraceCtx/SpanRecord/SpanStatus{Ok,Err,Aborted,Parked}/
+ChokepointEntry/TaskTraceState/SpanGuard); the instrumented() pattern; §5 propagation
+lifecycle incl. all hard edges; §6 keep mechanics; §7 flow table (zero new channels);
+§8 provenance/Bar-B; 7-row failure matrix; 6-row constants; §11 worked example (the
+summon C81 traced across 6 nodes + the ring-overrun gap variant); §12 acceptance sweep
+(the per-subsystem clause sweep, 15 specs, gated jointly w/ MONITORING); TR1-TR12
+(new: TR9 hard-edge linkage, TR10 clock honesty, TR11 id soundness) + 9-row SIM
+matrix; 13-companion integration. Presented for acceptance.
+SIBYL RESEARCH BANKED (landed mid-pass, clean): Monarch root tier (config = the ONLY
+globally-durable state, in Spanner; root FHI = cache rebuilt in minutes; zone pruning
+at soft deadline w/ pruned-zones REPORTED in results; 95% of standing queries never
+reach the root), Spanner placement (universe tier = a console + a minutes-cadence
+background mover; directories/movedir; location proxies), Taiji (5-min epochs, 0.04
+onloading guard, last-known-good fallback, social hashing 75% locality/17% backend
+reduction, edge autonomous proportional fallback), Thanos/Mimir (global tier owns
+ZERO durable state; partial-response warn-and-annotate vs Mimir complete-or-error).
+Cross-cutting: THE GLOBAL TIER OWNS ALMOST NO DURABLE STATE — soft, rebuilt-from-
+regions, minutes-cadence, advisory; config flows down via stale-tolerant mirrors.
+QUEUE: MONITORING.md then HANDOFF.md to the bar; then the sibyl branch.
