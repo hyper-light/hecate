@@ -8761,3 +8761,28 @@ recovery = replay) — already the accepted shape for the detection substrate
 (one sentence landed in FOREST). R4-OQ-a/R2-OQ-c (curves+priors home) and R4-OQ-c
 (teardown flush rung) re-presented in plain language at the user's request —
 verdicts pending.
+
+**BASELINE-STORE EXCHANGE IN FLIGHT (2026-08-22) — two user corrections folded:**
+(1) REGISTRY REJECTED as the curves/priors home (it holds capability descriptors,
+not learned data) + the POISONING argument: cross-session/cross-user shared
+baselines = isolation breach + attack surface (a hostile session skews shared
+baselines to mask itself or false-alarm others). REWORK: curves are
+SESSION-SCOPED; inheritance ONLY down the LINEAGE TREE (single-owner by
+construction — forked/successor sessions seed from the lineage ancestor's archived
+curves via the archive channel); brand-new lineage = SHIPPED STATIC DEFAULTS
+(versioned with the release, learned from nobody). Nothing learned crosses a
+user/session fence except lineage-down — structural, not policy.
+(2) AGENT-VS-INFRASTRUCTURE: final notes/curves go to INFRASTRUCTURE THE
+ARCHIVALIST MANAGES, never to the agent (the Sibyl's judgment-vs-machinery split
+applied): the ARCHIVE INGEST SERVICE (durable landing; issues the teardown-gating
+ack — an agent on that path would couple pod teardown to LLM availability), the
+ARCHIVE STORE+INDEX (content-addressed, session durable scope; indexed
+scope/agent/domain/lineage/time per LEDGER §8), the FITTING SERVICE (deterministic
+curve computation, paced/budgeted). The Archivalist = judgment only: admit/prune
+trajectories, trigger refits, approve the lineage-seed export at archive-finalize;
+consumers (detection substrate) read the STORE directly, never the agent. R4-OQ-c's
+mechanical answer survives (teardown gates on the INGEST SERVICE's durable ack);
+its purpose corrected (trajectories feed the session/lineage curve store, never a
+global corpus). RESEARCH DISPATCHED (per-tenant baseline practice; cold-start:
+inheritance/pooled-priors/defaults; poisoning literature incl. ANTIDOTE/
+boiling-frog). Design lands as one piece on research + verdict.
