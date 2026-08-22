@@ -218,7 +218,10 @@ agent's testament.
   with the host ⇒ full re-derivation — priced, zero knowledge lost. Session
   migration ships the checkpoint with the colocation move or re-derives,
   whichever the move machinery finds cheaper. Derived state — **never in the
-  truth plane**: no consensus, no replication. **Agent handoff is not this
+  truth plane**: no consensus, no replication. **The field checkpoint uses the
+  client-owned own-log pattern** (a WAL logical log; checkpoint = one record,
+  recovery = replay — the same shape as the detection substrate's and the
+  collector capture's; accepted 2026-08-22, R4-OQ-b). **Agent handoff is not this
   spec's**: HEALTH owns plumbing, `MONITORING.md`/`HANDOFF.md` own detection
   (accepted 2026-08-22 — supersedes "Branch 14"); the field
   contributes nothing to handoff decisions. LLM spend is consolidation/

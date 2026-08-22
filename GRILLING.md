@@ -8753,3 +8753,11 @@ covered by reseed-before-start. (c) hybrid dominated (primary image equally know
 MONITORING §6. §18 riders remaining: R2-OQ-a (provider pool home), R2-OQ-b
 (scaling-class enum owner), R2-OQ-c + R4-OQ-a/b/c (the artifact-homes cluster —
 NEXT exchange), ADR-0004's two.
+
+**R4-OQ-b SETTLED (2026-08-22, user "accepted"):** re-derivable service checkpoints
+= the client-owned own-log pattern (WAL logical log; checkpoint = one record;
+recovery = replay) — already the accepted shape for the detection substrate
+(HANDOFF v2) and the collector capture; EXTENDED to the FOREST field checkpoint
+(one sentence landed in FOREST). R4-OQ-a/R2-OQ-c (curves+priors home) and R4-OQ-c
+(teardown flush rung) re-presented in plain language at the user's request —
+verdicts pending.
