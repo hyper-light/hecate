@@ -8172,3 +8172,46 @@ NOT the region's cluster-state data; data range-shards across many per-region da
 the merge proposer); the directory = a CAS-first placement-map version (no new epoch class).
 STATUS: presented for user acceptance. REMAINING TREE: response-authority (parked),
 COLLECTOR, sibyl-federation, summoning-mechanics; + GAPS/header-count bookkeeping (+1 spec).
+
+**TRACING BRANCH — foundational, WRITTEN (2026-08-21):** Origin: collector dig -> I
+claimed traces unneeded (claims graph covers it) -> USER CORRECTED twice: (1) distributed
+tracing REQUIRED (execution story != work story; the claims graph cannot localize an 8s
+summon), (2) tracing for EVERYTHING — all DBs, queues, collector, systems. RE-SEQUENCED
+(user ratified): TRACING = foundational spec FIRST; collector consumes it.
+FOUNDATION SETTLED 1-5: (1) request_id vs trace DISTINCT (transport vs observability;
+coexist in the envelope, never merge); (2) TraceCtx {trace_id 16B, span_id 8B, flags 1B},
+W3C-shape exemplar, ordinary #[derive(Wire)] struct, rides the ENCRYPTED envelope (not
+key-finding -> never the cleartext prologue; authenticated + warden-readable); TOTAL
+propagation — codec rejects absence; out-of-operation messages ROOT fresh traces (no
+untraced class; sampling, not exemption, keeps background cheap); (3) span = content-free
+H8 (closed chokepoint registry, typed status, bounded tags), async-emitted to the EXISTING
+rings (no new channel; Dapper receipts ~200ns/span, 426B, <0.3% core price emission-always);
+(4) chokepoint-span pattern — the chokepoint roster IS the span roster, boot-validated
+(unregistered emitter fails startup); (5) SAMPLING CORRECTED BY RESEARCH: my tail-sampling
+attribution to Dapper/Canopy was WRONG — grep-confirmed BOTH head-sample (Dapper 1/1024
+adaptive-to-target-rate, 0.01% floor; Canopy token-bucket at request entry, 1.3B traces/day);
+tail = collector-era, stateful, NO hyperscale precedent -> CLASS-AWARE HEAD SAMPLING
+(100%-kept bounded-rate critical classes: summon/teardown, handoff, materialization/landing,
+merge-gate, Guardian escalations, cross-region, turn-ops; derived-baseline for micro-op
+classes from kept-volume budget / measured volume; errors DETECTED by metrics, LOCALIZED by
+traces; tail = future declared-class opt-in only).
+ID-MODEL SETTLED: three ids, three planes, disjoint BY LAW — request_id (transport) /
+trace_id+span_id (execution) / caused_by (work). A durable trace graph keyed on caused_by
+= a second claims ledger = banned (LEDGER §9.8 no-second-authority; PLATFORM three-homes;
+complete-vs-sampled lifecycle). Cross-link by OPAQUE REFERENCE only (span carries claim UID
+as bounded exemplar; a claim's dispatch record carries its posting operation's trace_id).
+RUNAWAY RESEARCH AGENT: the hyperscale lane kept self-continuing (research -> a full
+COLLECTOR design -> self-grilling), 5+ notifications, 350K+ tokens, died on its own session
+limit. Output BANKED as collector-branch input, NOT adopted (agent-proposed, not
+user-ratified): single scope-tagged operational log (vs two streams); collector as a ledger
+delta-stream cursor consumer (claim UID as opaque exemplar); Archivalist = query-only
+consumer (never on the ingest path); it independently confirmed head-sampling +
+composition-over-new-primitives.
+WRITTEN: docs/specs/TRACING.md (presented for acceptance; TR1-TR10 + SIM matrix).
+AMENDED same-commit: PROTOCOL §1.1 envelope += trace_ctx + the propagation/distinctness
+law; MONITORING §5 spans-ride-the-plane (no new channel); HEALTH §1 content-free law covers
+span types; CONTEXT.md glossary += Trace / Span / Trace context. DEFERRED TO ACCEPTANCE
+(one coordinated sweep, update-all-sites): per-subsystem "chokepoints emit spans per
+TRACING §4" clauses + GAPS row + header count.
+CONTEXT: user resumed via a fresh session "sylk-c5" in the sylk repo relaying/monitoring
+this bg session; handoff sent (I work in hecate, not sylk); milestone pings agreed.

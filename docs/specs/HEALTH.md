@@ -51,7 +51,10 @@ volume and the pinned configuration; every derivation lives at its definition si
   bytes, no multi-media of any form**. References may point at such objects;
   their content never rides the health plane. Structurally: no signal type
   contains an unbounded string or bytes field — the type walk is the test
-  (H8). Narrative belongs to Scribes, inside their session.
+  (H8). Execution spans (`TRACING.md` §3) are signal types under this law —
+  chokepoint names are a closed registry, statuses a typed taxonomy, and the
+  H8 type-walk covers span types identically. Narrative belongs to Scribes,
+  inside their session.
 
 ## 2. The node health service
 

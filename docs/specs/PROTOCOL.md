@@ -47,7 +47,7 @@ crypto:
                     counted in every build (no assertion path — the no-panic law).
   ciphertext + 16-byte tag  (AES-256-GCM), containing the FULL envelope —
     kind, class, flags(must-be-zero), hlc, cluster_id, epoch, sender_term,
-    src_pod, dst_pod, request_id, schema_hash — followed by the
+    src_pod, dst_pod, request_id, trace_ctx, schema_hash — followed by the
     hecate-wire payload. Encrypted AND authenticated, not merely
     authenticated: the former AAD-cleartext posture was a fossil of the
     deleted on-path-policing assumption (policing is at endpoints, which
@@ -58,6 +58,18 @@ crypto:
 Payload budget derived at the datagram layer from **per-path MTU**
 (loopback/jumbo included — the 1500 anchor is a floor derivation input,
 never a hard-code); the builder rejects oversize before send.
+
+**`trace_ctx` (TRACING.md §2)**: the execution-tracing context —
+`{trace_id: 16B, span_id: 8B, flags: 1B}` — mandatory on every message
+(codec-rejected absence). It is not key-finding data, so it never rides
+the cleartext prologue; inside the envelope it is authenticated and
+warden-readable. **Distinct from `request_id`**: `request_id` pairs a
+response with its request (transport); `trace_ctx` threads one
+operation's execution across hops (observability) — the two never merge.
+A message sent while servicing a traced operation carries that trace's
+id + the sender's current span; a message minted outside any traced
+operation roots a fresh trace (there is no untraced message class —
+sampling, not exemption, is what keeps background classes cheap).
 
 **Minting authorities (A1, per CONSENSUS §1/§6)**: `cluster_id` =
 deployment-wide, root-group-minted at creation. `epoch` = the sender's

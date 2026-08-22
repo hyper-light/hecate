@@ -90,7 +90,10 @@ only**; federate upward only where an upward tier exists (`N=1` = the same
 pipeline, no fan-in). Per-loop resource envelopes read from the per-container
 cgroup files. `HEALTH.md`'s **content-free law + AbsenceIs semantics** carry
 through unchanged (a signal type carrying a raw key/body/channel fails the H8
-type-walk at CI). The collector consumes this plane (`HANDOFF.md`, and the
+type-walk at CI). **Execution spans ride this same plane** (`TRACING.md`): host-side
+chokepoints emit spans async to the hot ring; guest-interior spans are
+runtime-emitted to the history ring and drain via the existing channels — no
+tracing-specific channel exists. The collector consumes this plane (`HANDOFF.md`, and the
 COLLECTOR spec to follow).
 
 ## 6. The score service

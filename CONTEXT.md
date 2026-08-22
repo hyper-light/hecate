@@ -64,6 +64,16 @@ A Guardian check that may deny within bounded, declared rules or request more ev
 **Warden**:
 The Guardian's per-pod enforcement daemon — host-side and deterministic — deciding every boundary crossing pre-effect from compiled local policy (the SafetyPolicy ceiling, the role profile as the authority plane's per-pod residual, bundle capability atoms, active claim scopes). What policy cannot answer is held and escalated; verdicts compile back with provenance. Fail-closed: a dead warden is a frozen pod.
 
+**Trace**:
+The execution story of one operation across subsystems — the tree of spans sharing one trace id, from the root that minted it through every chokepoint it crossed. Operational signal, sampled-for-keep; distinct from the claims graph (work proof) and from request/response pairing (transport).
+_Avoid_: conflating with `caused_by` or the claims graph
+
+**Span**:
+One chokepoint's timed slice of a trace — its ids, a chokepoint name from a closed registry, timing, a typed status, bounded tags. Content-free; emitted async, never blocking the operation it measures.
+
+**Trace context**:
+The tag every wire message carries — trace id, the sender's span id, and the keep flag decided at the trace root. Rides the encrypted envelope; a message minted outside any traced operation roots a fresh trace.
+
 **Sensor**:
 The guest-kernel telemetry probe inside each pod, streaming early behavioral signals to the warden. Tighten-only: its signals can narrow a pod's world, never widen it. Silence fails closed.
 
