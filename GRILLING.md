@@ -8215,3 +8215,33 @@ span types; CONTEXT.md glossary += Trace / Span / Trace context. DEFERRED TO ACC
 TRACING §4" clauses + GAPS row + header count.
 CONTEXT: user resumed via a fresh session "sylk-c5" in the sylk repo relaying/monitoring
 this bg session; handoff sent (I work in hecate, not sylk); milestone pings agreed.
+
+**COLLECTOR BRANCH OPENED (2026-08-21, user-directed via relay):** research RE-DISPATCHED,
+scoped to the four gaps (OTAP Rust dataflow engine deep-dive; trace-id consistent-hash
+routing algorithms [ring vs HRW vs jump vs Maglev]; mergeable quantile sketches
+[DDSketch/t-digest/HDR/exponential-bucket]; cardinality-cap enforcement mechanics
+[sample_limit / overflow-attribute-set / HLL]) — NOT re-fetching the banked receipts;
+explicitly research-only, no self-continuation (the prior runaway's failure mode).
+DECISION TREE (open, order by weight):
+D1 STREAM MODEL — single scope-tagged operational log vs two streams (session/operational).
+   Agent-argued single (scope IS the routing/retention/authz key; isolation = priority-class
+   + reserved slots, not a substrate fork; IAM §11 "two streams" reads as two scope-classes).
+   NOT user-ratified — first exchange when the user engages.
+D2 CONSUMER MODEL — live consumers (PLATFORM §5 closed four) vs IAM-gated query consumers;
+   Archivalist = query-only, off the ingest path (agent-proposed; needs ratification +
+   its wiring belongs in AGENTS, not the collector spec).
+D3 CLAIMS-WORK CAPTURE — collector as an ordinary cursor consumer of the ledger delta
+   stream, deriving content-free claim-work metrics (post rate, time-to-testament,
+   validation pass-rate, claim-coherence), claim UID as opaque exemplar (LEDGER §8-blessed
+   mechanism; agent-proposed).
+D4 PIPELINE SHAPE — composition over the primitives (QUEUE buffer/shed, CACHE aggregate
+   state, FANOUT sinks) + the two genuinely-new parts: the ROLL-UP layer (mergeable
+   sketches — research pending) and the CARDINALITY LIMITER (enforcement — research
+   pending). My earlier analysis, user heard, not yet settled.
+D5 TIERING — node-local first, federate node->region up the failure-domain tree, fan-in
+   bounded by node count (HEALTH H6); trace assembly at the regional tier keyed by
+   trace_id (TRACING §6 seam; hash algorithm = research pending).
+D6 INTERNAL REPRESENTATION — row (OTLP-shape) vs columnar (OTAP/Arrow-shape) internally;
+   NEW question the OTAP research informs.
+ALSO PENDING: STORE.md + TRACING.md await user acceptance (per-subsystem span-clause
+sweep + GAPS bookkeeping land on TRACING acceptance).
