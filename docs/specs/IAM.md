@@ -174,7 +174,7 @@ access to every object must be checked for authority").
 | `registry` | `publish(kind)`, `stage_approve`, `install`, `provision(recipe)` | Guardian staging + provisioner |
 | `skill_tool` | `invoke(capability_bits)`, `load(bundle)` | warden atoms + Guardian skill gate |
 | `egress` | `connect(destination_class)`, `resolve(name_class)` | provider gateway + Guardian hard-block |
-| `observability` | `read_stream(class)`, `read_health`, `trace(target)` | health-plane serving edge |
+| `observability` | `read_series(sel)`, `read_events(class)`, `read_trace(target)`, `join_work(claim)`, `read_health` | the collector query serving edge (`COLLECTOR.md` §9) + the health-plane edge — row amended 2026-08-22 (COLLECTOR acceptance); `join_work` additionally requires the caller's ledger-read capability per plane (no bridge) |
 | `knowledge` | `query(forest)`, `contribute(class)`, `read_index`, `import_corpus` | field/index serving edge — `contribute` targets only knowledge-graph/documents organs, NEVER the Forest field (no emission path exists) |
 | `queue` | `create`, `enqueue`, `lease`, `ack`, `nack`, `purge`, `dead_letter_read`, `snapshot_read` | queue service serving edge (partition sequencer) — scope-fenced to the session/dedup line |
 | `topic` | `publish`, `create_subscription`, `subscribe`, `set_filter_policy`, `delete_subscription`, `redrive` | topic router serving edge — scope-fenced to the session/dedup line |
@@ -447,7 +447,7 @@ actions, the cannot-fold trio staying agentic.
 | Policy text, compiled artifacts, schema docs | CAS (BLAKE3), pinned by live IAM records (GC roots) | content-addressed; OBJECT_TIER §7 root list amended |
 | Residual artifacts | PEP-local RAM, backed by CAS | content-addressed cache; epoch-invalidated |
 | Reachability index | in-RAM, derived-budget, scope-partitioned | Leopard; discard-and-re-derive |
-| Audit — decisions | Branch-39 substrate: session stream (workload) / operational stream (system) | epoch-stamped facts `{principal, action, resource, verdict, determining-policies, epoch}`, valueless, fail-closed (OPA decision-log shape) |
+| Audit — decisions | the one scope-tagged operational log, `op-critical` lane (`COLLECTOR.md` §4 — "session/operational stream" are the two scope-classes of the one log; amended 2026-08-22, COLLECTOR acceptance) | epoch-stamped facts `{principal, action, resource, verdict, determining-policies, epoch}`, valueless, fail-closed (OPA decision-log shape) |
 | Audit — mutations | the IAM log itself | free (Zanzibar changelog-in-the-txn) |
 
 Decision facts may ride the ledger/operational log (the secrets precedent); authority

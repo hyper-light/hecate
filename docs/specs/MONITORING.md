@@ -93,8 +93,12 @@ through unchanged (a signal type carrying a raw key/body/channel fails the H8
 type-walk at CI). **Execution spans ride this same plane** (`TRACING.md`): host-side
 chokepoints emit spans async to the hot ring; guest-interior spans are
 runtime-emitted to the history ring and drain via the existing channels — no
-tracing-specific channel exists. The collector consumes this plane (`HANDOFF.md`, and the
-COLLECTOR spec to follow).
+tracing-specific channel exists. The collector consumes this plane — **role
+amendment (2026-08-22, COLLECTOR acceptance): the emission hot ring is the
+bounded, doorbell-drained *source buffer*; Gorilla-class storage, retention, and
+federation are owned by the collector's shard structures (`COLLECTOR.md` §§3–7).
+The sentence above predates the collector spec; the machinery does not fork**
+(`HANDOFF.md`, `COLLECTOR.md`).
 
 ## 6. The score service
 

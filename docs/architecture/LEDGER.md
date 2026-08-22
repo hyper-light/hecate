@@ -80,6 +80,13 @@ type; the ledger canonicalizes to UIDs at post time. `caused_by` parentage is st
 where the turn is minted (the principal carries it), so an unparented claim is
 unrepresentable — Sylk's forgot-to-attach-caused_by bug family closes structurally.
 
+**Amended 2026-08-22 (COLLECTOR acceptance):** the system-written lifecycle record
+additionally carries **`trace_refs`** — the bounded set of execution-trace ids
+(`TRACING.md` §1) of the operations that posted and serviced the claim.
+Runtime-stamped like every lifecycle field, never agent-authored; it enables the
+claim ↔ trace pivot by opaque reference (`COLLECTOR.md` §10) and stays firmly on
+the metadata side of the split — no telemetry content enters the ledger.
+
 **Participants** — anything that can issue, receive, or evaluate: `agent`, `service`
 (deterministic), `system` (runtime), `external` (user, CI). Wire format, lifecycle, and
 every downstream consumer are participant-agnostic — nothing branches on category.
@@ -425,7 +432,12 @@ The Sylk claims invariants Hecate adopts as law, restated in Hecate terms:
    residual. The default within-session posture stays broad (the coordination substrate
    is preserved); read-restriction is an optional tightening for sensitive claim
    classes. Deltas remain self-sufficient and single-streamed; the edge decides
-   delivery, it does not redact a delta's bytes.
+   delivery, it does not redact a delta's bytes. **The serving edge also offers
+   the `skeleton` read (amended 2026-08-22, COLLECTOR acceptance): a claim's
+   lifecycle metadata only — status timeline, timestamps, `trace_refs` — under
+   the caller's ledger capability, metadata-side by the split above, zero
+   content. Terminal-and-released is observable in the delta vocabulary (release
+   fires a delta), which the collector's capture consumes (`COLLECTOR.md` §10).**
 10. **Advisors never author.** Policy and advisory systems contribute via provenance;
     the issuer owns every validation set.
 11. **Expected tool calls are instructions, never authority bypasses.**

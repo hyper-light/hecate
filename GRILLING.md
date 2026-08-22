@@ -8537,3 +8537,27 @@ events/traces + the §5c invariant; +5 derived constants; CL16 (windowed-time ex
 serial oracle) / CL17 (self-observation bounded + envelope held) / CL18 (lifecycle
 completeness, zero-residue scan) + 3 test rows; LateArrival in the taxonomy.
 STATUS: the document now reflects an actual end-to-end pass. Presented for acceptance.
+
+**COLLECTOR.md ACCEPTED (2026-08-22, user) + THE §16 SWEEP LANDED (one commit, 15
+sites):** Status -> ACCEPTED. Amendments landed: QUEUE close_partition (floor-at-head
+guard, typed NotDrained, reclaim via existing floor watermark); FANOUT sealed topics
+(closed membership UNREPRESENTABLE at the registry, CAS-only changes; the live topic
+sealed); WAL §3 capture_checkpoint record kind + §6 the capture task as a registered
+client (boot-classified writer); OBJECT_TIER telemetry storage class (OT11) +
+op-log-referenced telemetry blocks as a GC liveness root; PROTOCOL UplinkInterval =
+supersession archetype, class-1; MONITORING §5 hot-ring role amendment (source buffer
+vs collector-owned storage/retention/federation — machinery does not fork); IAM §4
+observability row (read_series/read_events/read_trace/join_work + the two-capability
+join note, PEP = collector query edge) + §11 audit -> op-critical lane of the one
+scope-tagged log; SESSIONS §2 colocation list += capture task + detection substrate
+(same gang admission); LEDGER §2 trace_refs (system-written, metadata-side) + the
+serving-edge skeleton read + released-visible-delta note; LEDGER_CORE §1 lifecycle
+field comment; TRACING §1 plural trace_refs + §6 assembler cross-ref; PLATFORM §7
+Logs-home pointer; GAPS Branch 39 CLOSED; AUTOSCALING decision logs -> op-standard
+lane. SCOPE NOTE (deliberate, not a skip): SCHEDULER's "evaluation log" is internal
+replay state, NOT an operational log — the §16 SCHEDULER/AUTOSCALING line binds
+AUTOSCALING only; scheduler telemetry rides its chokepoint emissions (COLLECTOR §3a).
+STILL GATED: the MONITORING/TRACING per-subsystem span-clause sweep (on those specs'
+acceptance — STORE.md + TRACING.md + MONITORING.md/HANDOFF.md remain presented, not
+accepted). TREE: collector branch CLOSED; remaining: response-authority (parked),
+sibyl-federation, summoning-mechanics.

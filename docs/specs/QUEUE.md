@@ -74,6 +74,15 @@ fn ack(&mut self, o: Offset, epoch: u64) -> Result<(), StaleAck> {
     while self.dispatched_absent(self.floor) && self.floor < self.head { self.floor += 1; }
     self.log.advance_floor(self.floor); Ok(())
 }
+/// Amended 2026-08-22 (COLLECTOR acceptance): seal a partition at a lifecycle
+/// boundary (e.g. a session's archive-finalize — COLLECTOR §4). Legal only with
+/// the floor at head (every record acked: the draining consumer has taken it
+/// all); a closed partition refuses enqueue with a typed error, and its storage
+/// reclaims via the existing floor watermark — no new reclaim machinery.
+fn close_partition(&mut self) -> Result<(), NotDrained> {
+    if self.floor < self.head { return Err(NotDrained); }
+    self.closed = true; Ok(())
+}
 fn sweep(&mut self) {                                          // tracked, derived cadence
     for l in self.dispatched.expired(Driver::now()) {
         if l.receive_count >= self.max_receive { self.to_dlq(l.offset); } // queue-to-queue move

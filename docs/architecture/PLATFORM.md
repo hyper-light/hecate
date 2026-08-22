@@ -109,7 +109,7 @@ Three homes, no blending:
   Versioned; changes are config history.
 - **Logs**: operational events — failovers, admissions, gate decisions' telemetry,
   resource pressure, protocol health. Structured, queryable, and *not* a second work
-  authority.
+  authority. The Logs home's machinery is `COLLECTOR.md` (accepted 2026-08-22).
 
 The UI renders from ledger deltas for work and from logs for operations; it never infers
 work completion from anything but lifecycle deltas.

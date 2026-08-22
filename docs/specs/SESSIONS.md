@@ -33,7 +33,10 @@ FIFO-sequencer, per CONSENSUS §6).
   arrive atomically with creation.
 - **A session spans nodes** (clarified 2026-08-18): pods place on any machines
   the scheduler chooses; the colocation unit is the session's HOME SERVICES
-  only (ledger core, merge proposer, frontier, field service, and any
+  only (ledger core, merge proposer, frontier, field service, **the
+  claims-capture task and the detection substrate** (`COLLECTOR.md` §10,
+  `HANDOFF.md` §4 — session-scoped observability machinery, summoned in the
+  same gang admission; added 2026-08-22, COLLECTOR acceptance), and any
   session-scoped durable-writer primitive (the queue core and the topic
   FIFO-sequencer, per `CONSENSUS.md` §6) — one node, logs replicated across
   the session group); the sequencer/log/writer stays this one colocation node,

@@ -36,8 +36,9 @@ infra-ops *within* one claim's servicing (one claim's execution is dozens of sto
 reads, cache hits, one provider call).
 
 **Cross-linked by opaque reference, never fused (TR1):** a span may carry a claim UID
-as a bounded opaque tag; a claim's dispatch record carries the `trace_id` of the
-operation that posted it. An investigator pivots slow-op → claim (an authorized ledger
+as a bounded opaque tag; a claim's system-written lifecycle record carries
+**`trace_refs`** — the trace ids of the operations that posted and serviced it
+(landed with COLLECTOR acceptance, 2026-08-22; LEDGER §2). An investigator pivots slow-op → claim (an authorized ledger
 read) or claim → trace (an authorized operational read). Reference, not identity.
 
 ## 2. The trace context on the wire
@@ -151,9 +152,10 @@ what lets most traces never leave the host — the first fan-in bound.
 
 Kept spans flow with telemetry up the existing pipeline (node ring → federation), and
 a kept trace's spans converge for assembly keyed by `trace_id` at the regional tier —
-**assembly mechanics, storage tiers, and retention are the COLLECTOR spec's** (this
-spec owns emission, propagation, and the keep decision; the seam is: every kept span
-carries `trace_id` such that convergent assembly is possible). A stored trace is one
+**assembly mechanics, storage tiers, and retention are `COLLECTOR.md` §8's** — the
+weighted-HRW assembler, accepted 2026-08-22 (this spec owns emission, propagation,
+and the keep decision; the seam is: every kept span carries `trace_id` such that
+convergent assembly is possible). A stored trace is one
 row keyed by trace id (the Dapper shape), in the operational plane — never the
 ledger. Consumers read via IAM's `observability` capability (`trace(target)`):
 the detection stack and the SRE-Scribe (localizing a flagged degradation), the

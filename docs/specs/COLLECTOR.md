@@ -1,7 +1,9 @@
 # SPEC: COLLECTOR — the observability pipeline (ingest → roll up → store → serve)
 
-Status: presented for acceptance 2026-08-22 (rewritten to corpus rigor after the
-first presentation was rejected for missing implementation depth). Settles Branch 39
+Status: ACCEPTED 2026-08-22 (grilling; the two-lane conflict-and-coherence recon,
+its fix pass, and the end-to-end systems pass on file in GRILLING.md; the §16
+amendment sweep landed the same day across QUEUE/FANOUT/WAL/OBJECT_TIER/PROTOCOL/
+MONITORING/IAM/SESSIONS/LEDGER/LEDGER_CORE/TRACING/PLATFORM/GAPS/AUTOSCALING). Settles Branch 39
 (D1–D6 worked in-session, GRILLING.md): D1 one scope-tagged operational log (user), D2
 two-class consumer model (user), D3 query-layer ledger integration "D3+" (user), D4
 exponential-bucket roll-ups + overflow cardinality backstop (research), D5

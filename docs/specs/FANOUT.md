@@ -131,6 +131,14 @@ REGISTRY (§2b, `set_ref_if` = CAS-first); the `topic.*` IAM actions
 the existing `DATAGRAM_SUPERSEDE` frame class (WIRE_SECURITY) — no new frame
 class, only new flow identities.
 
+**Sealed topics (amended 2026-08-22, COLLECTOR acceptance):** a topic MAY declare
+`sealed: true` at registration, carrying its closed member list in the descriptor.
+On a sealed topic, `create_subscription`/`subscribe` are **unrepresentable** —
+refused at the topic registry itself, not merely IAM-denied — and membership
+changes only by re-registering the descriptor (CAS-first, an auditable
+publication). The collector's live-consumer topic (`COLLECTOR.md` §9) is sealed:
+its four members bind at boot and nothing can join at runtime.
+
 ## 9. Laptop / N=1
 
 In-process routing; ephemeral subscriptions are direct arena fan-out; durable

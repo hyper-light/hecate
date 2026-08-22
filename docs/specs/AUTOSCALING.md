@@ -96,7 +96,9 @@ queueing models inform *targets*, not the loop.
 ## 4. Boundaries
 
 - Decisions, inputs, clamps, and outcomes are **operational logs** (full
-  input-vector per decision — signal, target, desired, clamp applied, action).
+  input-vector per decision — signal, target, desired, clamp applied, action) —
+  landing on the scope-tagged operational log's `op-standard` lane
+  (`COLLECTOR.md` §4; amended 2026-08-22, COLLECTOR acceptance).
 - The **ledger** carries only what is its to carry: the summon/teardown claims the
   actuation issues.
 - Targets and derivations are **config** (registry descriptors), versioned.

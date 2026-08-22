@@ -51,7 +51,10 @@ second authority. Class transitions ride existing lifecycle boundaries only
 (§6). Registered classes include the durable content classes and **`queue`**
 (`QUEUE.md` — queue-payload bodies above the inline budget, placed in the
 origin role per the queue's durability tier); an undeclared class fails boot
-(OT11).
+(OT11). The **`telemetry`** class registered 2026-08-22 (COLLECTOR acceptance):
+the collector's cold blocks — sealed interval event/span blocks, sealed trace
+rows, cooled System partitions — content-addressed, GC-rooted by op-log
+reference (§7).
 
 ## 2. The substrate: pack volumes (one on-node engine, three roles)
 
@@ -248,7 +251,10 @@ Content crosses planes only at events the architecture already owns:
   ledger-referenced seal manifests + generation pointers + **live IAM
   records** (`IAM.md` §3/§11 — an IAM record pins the policy text, compiled
   artifacts, and sorted-run chunks it references; the IAM-root/checkpoint
-  is a root like any generation pointer). **Mark-and-sweep
+  is a root like any generation pointer) + **op-log-referenced telemetry
+  blocks** (a sealed interval's `sealed_refs` on the operational log pin its
+  blocks until the referencing log records retire — `COLLECTOR.md` §7/§16;
+  amended 2026-08-22, COLLECTOR acceptance). **Mark-and-sweep
   from roots** — never cross-node refcounts (mutable distributed state;
   mark-from-roots is derivable and restartable over immutable manifests).
   Sweep granularity = pack-volume copy-forward compaction (§2).

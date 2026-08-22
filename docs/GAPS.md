@@ -333,7 +333,8 @@ no spec anywhere) · 18 continuity/conversation · 23 document DB ·
 28 secrets · 30 fleet fault detection/recovery · 31 replica handling ·
 35 git-compatible code hosting · 36 attachment lifecycle mechanics ·
 37 volume provisioning (both planes) ·
-39 observability plane + mesh/pod telemetry integration ·
+39 observability plane + mesh/pod telemetry integration — CLOSED: `COLLECTOR.md`
+ACCEPTED 2026-08-22 with its §16 substrate/plane amendments landed same-day ·
 41 vault rotation-under-replication · 42 vault
 credential types (AWS-SM parity) · 43 vault cert issuance (ACM analogue) ·
 32-WIDENED node provisioning + abstraction expansion · 38 the laptop

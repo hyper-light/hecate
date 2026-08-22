@@ -138,7 +138,11 @@ can never be starved, its idle-borrow never priority over control).
 (supersession / idempotent-fenced-control / ordered-log /
 directed-request-response / **quorum-critical transfer** / bulk /
 **ephemeral-at-most-once**); the archetype — never the subsystem —
-determines carriage and lane. **Ephemeral-at-most-once** (CACHE's
+determines carriage and lane. **`UplinkInterval` (`COLLECTOR.md` §7) registers
+under `supersession`, class-1 carriage** — a newer absolute for the same
+`(node, series, window)` supersedes an older one and nothing is ever
+retransmitted, exactly supersession's contract (amended 2026-08-22, COLLECTOR
+acceptance). **Ephemeral-at-most-once** (CACHE's
 at-most-once pub-sub, FANOUT's ephemeral topic delivery — delivery
 class 7) REUSES supersession's no-retransmit datagram for carriage, but
 its drops are counted as their own category: a counted ephemeral drop is

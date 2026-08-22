@@ -58,7 +58,10 @@ mechanics are `LEDGER_SUBSTRATE.md`.**
 struct ClaimSlot {
     content: WireBytes,          // issuer-authored, hecate-wire canonical — immutable
     content_hash: Cell<Option<Hash>>, // derived on demand, memoized
-    lifecycle: ClaimLifecycle,   // system-written: status, history, timestamps
+    lifecycle: ClaimLifecycle,   // system-written: status, history, timestamps,
+                                 //   trace_refs (bounded TraceId array — the posting/
+                                 //   servicing operations' traces, runtime-stamped;
+                                 //   LEDGER §2 amendment 2026-08-22, COLLECTOR §10)
 }
 ```
 

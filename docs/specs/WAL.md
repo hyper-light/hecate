@@ -87,7 +87,9 @@ never split across streams within an epoch (recovery locality; migration §6).
   kinds are never renumbered** (the §1 raft set — `entry`, `hard_state`, vote —
   included). Queue/topic clients add `queue_item` (an enqueued message body),
   `consumer_state` (the consumer-state delta: an ack/floor advance), and `topic`
-  (the fan-out topic record).
+  (the fan-out topic record); the collector capture adds `capture_checkpoint`
+  (a delta-stream cursor + the bounded per-claim watermark map — `COLLECTOR.md`
+  §10; amended 2026-08-22, COLLECTOR acceptance).
 - **Recovery** per stream: sequential scan, verify chain, with etcd's
   torn-vs-corrupt discrimination and **dispositions conforming to
   `FAULTS.md` §2** (amended 2026-08-17 — the universal-refusal path is
@@ -138,7 +140,9 @@ shortcut exists.
   core per `LEDGER_CORE.md`'s replay discipline; consensus groups per
   `CONSENSUS.md` §5's checkpoint-retention invariant (applied-state
   checkpoints and log prefixes retire together; no prefix drops while any
-  recovery path needs it); **queue partitions** (`QUEUE.md` §2) and **fan-out
+  recovery path needs it); **queue partitions** (`QUEUE.md` §2), **the collector capture task**
+  (`COLLECTOR.md` §10 — a client-owned checkpoint log, boot-classified like every
+  durable writer; amended 2026-08-22), and **fan-out
   durable-subscriber logs** (`FANOUT.md` §7 — durable subscriptions *are* queue
   partitions), each owning its floor as the **contiguous-acked prefix**: an ack
   advances the floor, while leased-but-unacked records are retained for
