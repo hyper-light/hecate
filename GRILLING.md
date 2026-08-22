@@ -8893,3 +8893,22 @@ the local fsync anchors stated; footprint derivation ≈1GB+50MB). AR13-AR16 add
 exactness) + test rows. Presented for acceptance. NOTE: user merged main to the
 branch tip; work continues on worktree-collector-rigor — ff-merge again to pull
 this.
+
+**ARCHIVE.md v2 RESTORATION PASS (2026-08-22, user: "you removed test cases and
+references — why?"):** REAL DEFECT owned: the v2 rewrite compressed sections to
+"as v1" pointers (AR1-AR12, most of the test matrix, the references, the worked
+example, part of the reading guide) — but v2 REPLACED v1 in the tree, so the
+pointers dangled at a document existing only in git history: the exact
+standalone-implementability failure the rewrite was fixing. LESSON (standing):
+NEVER compress-by-reference to a superseded version — the living document carries
+everything inline. RESTORED: §1b full term definitions; §7 the full collect/fit
+algorithm blocks (steps 1-4 each, the gate verbatim + §4-pipeline publish); §14
+the full 5-step worked example w/ the v2 joins woven in (D1-D4 path, mark#7,
+frozen-v1 gate, SeedManifest pin); §15 the full 9-item amendment list; §16
+AR1-AR16 complete table; §17 the full 13-row test matrix; §18 full references
+(practice/cold-start/poisoning/substrate-lineage, all named). Also queued from
+the same exchange (VERDICTS PENDING): (a) the Scuba-shaped typed query language
+compiling to COLLECTOR §9a (scope ambient-not-syntactic); (b) archive-as-records
++ the Archivalist PROMOTION flow into the knowledge plane (Sylk's pattern kept as
+a FLOW, stores distinct); (c) the knowledge document DB = open D-6 properly
+(Glean stacked-DB arc — not improvised). ARCHIVE v2 presented for acceptance.
