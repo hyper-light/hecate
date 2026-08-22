@@ -559,3 +559,11 @@ PODS §2/AC-4: WHP/HVF DAX is in-scope fork work, tracked.
    OT16–OT19 green per the practical gate), Branch 25 — before agents run
    against real providers with real content →
 6. Everything else per the branch tree; this ledger re-audits at each rung.
+
+**2026-08-22 (STORE/TRACING/MONITORING/HANDOFF acceptance):** the §11a–e
+pending-amendments tracker CLOSES (interior denial export, exporter placement,
+fork-flip list, conduct family, VMM stats — all landed in MONITORING/HANDOFF);
+the D-5 monitoring/handoff row closes on write+acceptance; ADR-0006 written;
+the per-subsystem span-clause sweep landed (15 specs). Remaining from that
+cluster: the MONITORING §18 open riders (the R3 five-site flow-key cluster
+foremost) — user exchanges, tracked there.

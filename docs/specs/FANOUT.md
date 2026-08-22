@@ -179,3 +179,8 @@ drop counted.
 9. Durable subscriptions are already-classified queue partitions (not
    double-classified); ephemeral subscriptions introduce no roster entry.
 10. Cross-region fan-out is async; no synchronous WAN on the publish path.
+
+**Amendment (2026-08-22, TRACING/MONITORING acceptance):** this subsystem's
+chokepoints emit execution spans per `TRACING.md` §3; its chokepoint registry
+entries are the span roster (boot-validated; an unregistered emitter fails
+startup).

@@ -1,6 +1,6 @@
 # SPEC: STORE — the settled-state store (pluggable engine, sharded, watchable)
 
-Status: presented for acceptance 2026-08-22 (rewritten to the COLLECTOR bar — the
+Status: ACCEPTED 2026-08-22 (rewritten to the COLLECTOR bar — the
 corpus spec standard: full data model, state machines, architecture map, networking,
 lifecycles, failure matrix, worked example, integration enumeration). The design
 decisions were settled piecemeal in-session (GRILLING.md): the pluggable-backend
@@ -650,3 +650,8 @@ Spanner OSDI'12 (directories/movedir — the split/placement shape). Companions:
 `WAL.md`, `CONSENSUS.md`, `MATERIALIZER.md`, `LEDGER_SUBSTRATE.md`,
 `OBJECT_TIER.md`, `TRANSFER.md`, `SESSIONS.md`, `SCHEDULER.md`, `IAM.md`,
 `REGISTRY.md`, `TRACING.md`, `COLLECTOR.md`, `HEALTH.md`, `FAULTS.md`.
+
+**Amendment (2026-08-22, TRACING/MONITORING acceptance):** this subsystem's
+chokepoints emit execution spans per `TRACING.md` §3; its chokepoint registry
+entries are the span roster (boot-validated; an unregistered emitter fails
+startup).

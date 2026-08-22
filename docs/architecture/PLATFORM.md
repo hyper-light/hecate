@@ -61,9 +61,11 @@ The replacement of an agent instance, preserving its work.
 
 - **Context handoff**: the primary hit its context threshold (derived from the model's
   real window). Scribe-initiated, unilateral.
-- **Performance handoff**: degradation or drift from user intent, evidenced by health
-  signals. The Scribe requests; the Guardian approves and may request more evidence at
-  most once; it cannot outright block.
+- **Performance handoff**: degradation or drift from user intent, detected by the
+  detection substrate and SPRT-confirmed. The Scribe requests; the Guardian
+  adjudicates with the fresh-context probe as its single evidence request — and
+  **may deny** (fresh-also-fails ⇒ task-hard ⇒ the corrective targets the claims;
+  `HANDOFF.md` §8; amended 2026-08-22 — supersedes "cannot outright block").
 - Continuity: the successor keeps the predecessor's UID chain; the Scribe supplies the
   narrative digest; claims, parked turns, and validations survive because they are
   ledger state. Identity is re-resolved at access time, never captured into cloned
@@ -80,7 +82,9 @@ context fit against the real window, claim coherence (is the agent's ledger acti
 consistent with its assignment), liveness, and resource pressure from the pod boundary.
 
 Consumers: each agent's **Scribe** (handoff judgment, narration), the **performance
-score service** (§6), the **Guardian** (conduct analysis, resource response), and the
+score service** (§6), the **Guardian** (adjudication of detected conduct and
+performance — the detection substrate detects, the Scribe judges; resource
+response), and the
 **Guide** (orchestration visibility). Health is continuous scoring feeding judgment —
 never a string-matched phase roll-up, and never itself an authority: agents and the
 Guardian act on it.
@@ -94,7 +98,10 @@ its per-agent signal source.
 
 - Modulates rank **bindingness only** (`AGENTS.md` §2.2): demotes a poorly-performing
   agent's feedback from binding to advisory; never inverts rank order.
-- Harness state, derived on demand. Not ledger state, not user-visible ranking.
+- Harness state, computed by the pushed single-writer score service — a pure fold
+  over its logged input stream, snapshots entering the ledger as logged core
+  inputs (`MONITORING.md` §8; amended 2026-08-22 — supersedes "derived on
+  demand"). Not ledger state, not user-visible ranking.
 - The Scribe feeds signals but does not compute scores — it initiates handoffs on the
   same data, and holding both powers would let it manufacture evidence for its own
   trigger.

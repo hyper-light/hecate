@@ -1,6 +1,7 @@
 # SPEC: TRACING — execution tracing across every subsystem
 
-Status: presented for acceptance 2026-08-22 (rewritten to the COLLECTOR bar). The
+Status: ACCEPTED 2026-08-22 (rewritten to the COLLECTOR bar; the §12 span-clause
+sweep landed the same day). The
 foundation was settled in-session (GRILLING.md): the three-id law, the envelope
 context, the chokepoint-span pattern, and class-aware head sampling (the
 research-corrected model — Dapper/Canopy head-sample; tail has no hyperscale

@@ -14,7 +14,9 @@ admission-before-task-creation, S2/Polar Signals leak reports as the anti-checkl
 
 ## 1. Shape
 
-- **N shards**, N derived from available cores (config-clampable). One pinned OS
+- **N shards**, N **bundle-declared with its derivation** (a two-process guest
+  derives per process: the primary N-from-cores, its Scribe clamped to 1 — census
+  N+1, never 2N; `MONITORING.md` §1; amended 2026-08-22). One pinned OS
   thread per shard, each running a single-threaded executor: FIFO ready queue,
   hierarchical timer wheel, per-shard driver handle.
 - **Tasks are `!Send`-capable and never migrate.** Spawn targets a shard; placement is

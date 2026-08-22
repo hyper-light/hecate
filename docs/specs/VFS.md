@@ -209,3 +209,16 @@ arena-exhaustion telemetry path above covers them.
 8. Budgets, chunk parameters, cache validities: derived, with derivations at
    definition sites; ratcheted perf floors (serve latency p99, chunking throughput)
    from first CI baseline.
+
+**Amendment (2026-08-22, TRACING/MONITORING acceptance):** this subsystem's
+chokepoints emit execution spans per `TRACING.md` §3; its chokepoint registry
+entries are the span roster (boot-validated; an unregistered emitter fails
+startup).
+
+**Amended 2026-08-22 (MONITORING acceptance — the two-container interior):** a pod
+mounts TWO container rootfs subtrees as RO manifest lowerdirs (primary + Scribe
+bundles); each container's upper is guest tmpfs (never on virtio-fs) — per
+container, not per guest; **work volumes mount into the PRIMARY container only**
+(the Scribe is attachment-free by law — it holds no volume, no work bytes). Test
+V12: intra-pod isolation — no path exists from the Scribe's mount namespace to a
+work volume or the primary's upper (structural walk + probe).

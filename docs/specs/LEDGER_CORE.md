@@ -174,7 +174,9 @@ apply to arenas, assign sequence → build deltas (deterministic order) → emit
 - Deltas are **derived from committed records at emission, deterministically
   ordered** — the replayed stream is byte-identical to the live stream.
 - **There is no outbox table.** Projectors (UI bridge, Archivalist mirror,
-  frontier service) are ordinary **cursor consumers of the delta stream**: durable
+  frontier service, **each primary's Scribe** — its authority-input delta lane,
+  never the history ring (MONITORING §5b) — and the collector's claims capture,
+  COLLECTOR §10) are ordinary **cursor consumers of the delta stream**: durable
   watermarks, resumable, typed RESYNC below retention — the machinery the protocol
   already ships. At-least-once projection = cursor + replay; per-projector
   terminal-failure surfacing = a stuck-cursor alarm in the health plane. One

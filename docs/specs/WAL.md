@@ -204,3 +204,8 @@ silently absent.
    before any group commits through this WAL (W9 permanent).
 9. Recovery dispositions are FAULTS §2-conformant; no universal-refusal path
    remains in the tree (W10).
+
+**Amendment (2026-08-22, TRACING/MONITORING acceptance):** this subsystem's
+chokepoints emit execution spans per `TRACING.md` §3; its chokepoint registry
+entries are the span roster (boot-validated; an unregistered emitter fails
+startup).

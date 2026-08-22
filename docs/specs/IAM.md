@@ -600,3 +600,8 @@ authority in IAM, index keeps projections — when SECRETS.md is written); REGIS
 (governed scope-lift + emission-surface registration + item provenance stamps). The
 splittable-keyspace/cross-region-reparent rider is genuine new consensus machinery,
 flagged and deferred to its own exchange (GAPS.md).
+
+**Amendment (2026-08-22, TRACING/MONITORING acceptance):** this subsystem's
+chokepoints emit execution spans per `TRACING.md` §3; its chokepoint registry
+entries are the span roster (boot-validated; an unregistered emitter fails
+startup).

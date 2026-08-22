@@ -26,3 +26,13 @@ libkrun-as-library is what makes the single-binary product shape (ADR-0004) real
 Windows WHP backend is the risk cell; we co-maintain it and budget for the
 QEMU-WHPX-class bug terrain. macOS is Apple-Silicon-only (arm64 guests); guest images
 ship dual-arch.
+
+**Amended 2026-08-22 (MONITORING acceptance — same fork decision, grown scope):**
+`hecate-init` replaces libkrun's init via the 2.0 seam and embeds the two-container
+spawner (ADR-0006); the guest kernel config is **fork-owned** (the tracked flip
+list, MONITORING §9); the VMM grows a **first-party stats surface** (device
+counters + KVM stats-fd — upstream exports zero). The earlier "OS sandboxes kept
+only as an explicitly labeled degraded mode" is scoped to the **world-facing
+boundary**: interior compartmentalization (seccomp/cgroup/namespaces between the
+two containers) is the default at Bar A, not a degraded mode. The stale
+"virtio-fs workspace" phrasing reads as "volumes" per the volume model.

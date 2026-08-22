@@ -1,6 +1,6 @@
 # SPEC: HANDOFF — detection, adjudication, and agent replacement
 
-Status: presented for acceptance 2026-08-22 (rewritten to the COLLECTOR bar). The
+Status: ACCEPTED 2026-08-22 (rewritten to the COLLECTOR bar). The
 DESIGN was accepted 2026-08-19 (the accepted-design statement §7 + arc lane C's
 conduct math, on file in GRILLING.md), corrected in-session (the `drained`
 retraction — handoff is adoption, never force-close) and integrated since (the

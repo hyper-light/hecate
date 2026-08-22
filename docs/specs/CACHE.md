@@ -283,3 +283,8 @@ Every drop is counted; an unknown drop is a bug.
    only); SIM is bit-reproducible.
 10. Every size constant traces to a physical anchor; the cache introduces no
     CONSENSUS roster entry and boot confirms its writer-less cell.
+
+**Amendment (2026-08-22, TRACING/MONITORING acceptance):** this subsystem's
+chokepoints emit execution spans per `TRACING.md` §3; its chokepoint registry
+entries are the span roster (boot-validated; an unregistered emitter fails
+startup).

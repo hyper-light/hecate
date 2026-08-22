@@ -1,6 +1,7 @@
 # SPEC: MONITORING — the observability plane (Scribe, history channel, telemetry, score, interior warden/sensor, VMM truth)
 
-Status: presented for acceptance 2026-08-22 (rewritten to the COLLECTOR bar). The
+Status: ACCEPTED 2026-08-22 (rewritten to the COLLECTOR bar; the §17 R1–R5 sweep
+landed the same day; §18's riders remain the user's open exchanges). The
 DESIGN was accepted 2026-08-19 (the accepted-design statement + arc lanes A/B/C +
 reconcilers R1–R5, all on file in GRILLING.md); this rewrite adds the mechanics the
 transcription compressed — the ring protocol at byte level, the init state machine,

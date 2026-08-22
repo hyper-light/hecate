@@ -270,3 +270,8 @@ Calvin's declared sets (it gives the conflict edges directly).
 | Scale sweep | M4/M6 (1 core → many → many nodes), same-state assertion |
 | Hot-key nemesis | M8 (one claim every other depends on) |
 | Abort-storm | M3 (fraction of entries with undeclared conflicts; determinism + no corruption) |
+
+**Amendment (2026-08-22, TRACING/MONITORING acceptance):** this subsystem's
+chokepoints emit execution spans per `TRACING.md` §3; its chokepoint registry
+entries are the span roster (boot-validated; an unregistered emitter fails
+startup).

@@ -55,7 +55,10 @@ enforcement.
 
 - Per `(agent uid, domain)`, computed by a deterministic harness service from
   ledger-**observable** outcomes; the agent's Scribe is its per-agent signal source
-  (signal source, never score authority — it triggers handoffs on the same data).
+  (signal source, never score authority — the detection substrate detects, the
+  Scribe judges, the Guardian adjudicates; `HANDOFF.md`). Architecture: the score
+  service, `MONITORING.md` §8 (amended 2026-08-22 — supplies what this spec
+  deferred).
 - Inputs, weighted: **prevalence** (judgments that prevailed — challenges upheld,
   validations that stuck), **specificity** (artifact-backed findings vs bare
   assertion), **trust** (decayed track record — validation pass rates, corrective
@@ -67,8 +70,10 @@ enforcement.
   modulating nothing, until real-traffic distributions are seen — the same rollout
   discipline as new validators. Enabling modulation is an explicit, versioned
   config change.
-- Scores are harness state; demotion events are logged; **nothing touches the
-  ledger**.
+- Scores are harness state; demotion events are logged; **the service writes no
+  ledger OBJECTS — its sole ledger-directed output is the modulation snapshot
+  pushed as an ordinary logged core input** (MONITORING §8; amended 2026-08-22 —
+  the prior "nothing touches the ledger" predates the logged-inputs architecture).
 
 ## 5. Boundary participants
 
@@ -98,6 +103,7 @@ enforcement.
 2. The matrix and the domain enum generate from one source; drift is a build error.
 3. The score service cannot modulate until observe-mode gate is explicitly lifted
    (K5 structural); its formulas carry derivations at definition sites.
-4. Zero ledger writes originate from the score service; demotions are logged with
-   the inputs that produced them.
+4. The score service authors no ledger objects; its modulation snapshots enter
+   only as logged core inputs (MONITORING §8); demotions are logged with the
+   inputs that produced them.
 5. Clarification challenges are structurally exempt (K3 permanent).

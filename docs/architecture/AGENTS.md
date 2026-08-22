@@ -2,7 +2,7 @@
 
 Hecate's default distribution is **ten agents**; the roster is **open**. The harness defines **offices** — structural role
 contracts whose consequences are machinery (the merge-gate evaluator, the protection
-judge, the summoner, the sidecar narrator) — and the registry binds agents to them.
+judge, the summoner, the companion narrator) — and the registry binds agents to them.
 The ten agents in this document are the **default distribution**: reference
 officeholders and specialists, replaceable and extensible through staged, declarative
 registry entries (custom agents, with rank archetypes and custom domains, per
@@ -29,7 +29,7 @@ glossary disagree, the glossary wins.
 | Inspector | Adversarial reviewer of every agent except the Guardian | Claude Opus 5 (1M) | GPT 5.6 Pro Sol | xhigh |
 | Engineer | Sole implementer of code and tests | Claude Opus 5 (1M) | GPT 5.6 Pro Sol | high |
 | Archivalist | Ground truth: records, code knowledge, deep investigation | Claude Opus 5 (1M) | GPT 5.6 Pro Sol | xhigh |
-| Scribe | Sidecar narrator, history server, handoff initiator | Gemini 3.7 Flash | — | low, narrative-tuned |
+| Scribe | Companion narrator, history recorder/server, handoff judge (context: unilateral; performance: requests, Guardian adjudicates) | Gemini 3.7 Flash | — | low, narrative-tuned |
 | Designer | On-demand multimodal producer (never code) | Gemini 3.7 Flash | — | model default |
 
 Model rules (mechanics in `PLATFORM.md`):
@@ -83,7 +83,7 @@ source — modulates rank's **bindingness, never its order**:
   user-visible as a leaderboard.
 
 The Scribe is deliberately the signal source and **not** the score authority: it
-initiates handoffs on the same data, and holding both powers would let one sidecar
+judges handoff requests on the same data, and holding both powers would let one companion
 manufacture the evidence for its own trigger.
 
 ### 2.3 The rank matrix (FINAL — user-approved 2026-08-15)
@@ -308,7 +308,8 @@ own history.
 
 ### 3.8 Scribe
 
-A sidecar attached to **every other agent** — nine primaries, each with its Scribe.
+A companion attached to **every other agent** — nine primaries, each with its Scribe
+(sharing the primary's microVM as the second OCI container; MONITORING §1).
 
 - **Narrates**: a running, structured account of its primary's actions, successes,
   failures, and outputs, streamed to the Archivalist — and consumed by the Forest's
@@ -323,7 +324,9 @@ A sidecar attached to **every other agent** — nine primaries, each with its Sc
     unilateral, no arguing.
   - *Performance handoff*: the primary is degrading or acting against user intent. The
     Scribe submits the request to the Guardian, which may soft-block by requesting more
-    evidence exactly once — it cannot outright block a performance handoff.
+    evidence exactly once. **The Guardian CAN deny** (amended 2026-08-22): its
+    single evidence request is the fresh-context probe, and fresh-also-fails ⇒
+    task-hard ⇒ deny, with the corrective targeting the claims (HANDOFF §8).
 - Carries continuity across the swap: the successor inherits the predecessor's UID chain
   and a "previously, on this agent" narrative digest.
 - Writes to no system except its own narration stream and the Archivalist's intake.

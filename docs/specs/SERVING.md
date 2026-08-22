@@ -270,3 +270,13 @@ trait MappingEngine {
 9. Laptop first-light: N=1 bind-and-serve within derived budget (ties SES11).
 10. Wire additions (existence/fetch/repair verbs) enter via hecate-wire's
     append-only evolution rules; WIRE_FORMAT.md precedes codec implementation.
+
+**Amendment (2026-08-22, TRACING/MONITORING acceptance):** this subsystem's
+chokepoints emit execution spans per `TRACING.md` §3; its chokepoint registry
+entries are the span roster (boot-validated; an unregistered emitter fails
+startup).
+
+**Amended 2026-08-22 (MONITORING acceptance):** container-upper writes are guest
+tmpfs and never reach the machine's serving plane — strengthening AC-1's
+write-authority claim for the two-container interior (VFS amendment of the same
+date).

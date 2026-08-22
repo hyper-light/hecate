@@ -178,8 +178,9 @@ The fabric failed as a secondary system; the field cannot be one:
 3. **Rank inputs**: prevalence/specificity/trust are field aggregates — prevalence
    = outcome-weighted trail strength; specificity = evidence quality
    (artifact-backed vs narration-only provenance); trust = FSRS-style stability of
-   the agent's outcome history per domain. Pushed as snapshots to the score
-   service (`RANK.md` §4's machinery, delivered).
+   the agent's outcome history per domain. Pushed as **advisory** snapshots to the
+   score service — the score service alone computes reputation (`MONITORING.md`
+   §8); field aggregates advise, never author (amended 2026-08-22).
 4. **Promotions and invalidations are claims**: the field service (system
    participant) posts curation claims; curator agents (Archivalist-anchored
    consult façades) judge contradiction/bridge/promotion; the testament is the
@@ -218,7 +219,8 @@ agent's testament.
   migration ships the checkpoint with the colocation move or re-derives,
   whichever the move machinery finds cheaper. Derived state — **never in the
   truth plane**: no consensus, no replication. **Agent handoff is not this
-  spec's**: HEALTH owns plumbing, Branch 14 owns detection; the field
+  spec's**: HEALTH owns plumbing, `MONITORING.md`/`HANDOFF.md` own detection
+  (accepted 2026-08-22 — supersedes "Branch 14"); the field
   contributes nothing to handoff decisions. LLM spend is consolidation/
   curation only — paced-debt-budgeted (§3), Scribe-class models, scale-to-zero
   when idle.

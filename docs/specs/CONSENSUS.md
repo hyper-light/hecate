@@ -238,6 +238,9 @@ is needed.
   together, so no resurrection is possible. Lineage heads and registry
   publications have holders anywhere ⇒ root-group epochs, WAN-committed —
   acceptable because those are human-cadence CAS operations.
+- The score service (MONITORING §8) classifies as an **ordinary claims-plane
+  client** — it owns no fenced resource and needs no roster entry; the roster
+  covers resource-owning writers (amended 2026-08-22, MONITORING acceptance).
 - Boot validates the roster: every subsystem is classified CAS-first or
   lease+fence with its epoch scope — or, where it introduces no durable
   writer at all (the cache / pub-sub plane), registers positively as **"no
@@ -423,3 +426,8 @@ Named, permanent, seed-replayable in SIM; each cites its source:
     rate-derived with its derivation at the definition site (CN15).
 11. Meta-tree depth is derived from the failure-domain tree; no
     region/laptop mode flag exists anywhere (architecture test).
+
+**Amendment (2026-08-22, TRACING/MONITORING acceptance):** this subsystem's
+chokepoints emit execution spans per `TRACING.md` §3; its chokepoint registry
+entries are the span roster (boot-validated; an unregistered emitter fails
+startup).

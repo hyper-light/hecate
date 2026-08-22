@@ -212,3 +212,8 @@ at N=1. Every drop counted.
 9. The `queue` storage class and the partition lease+fence role both
    boot-validate or startup fails.
 10. Every derived constant carries its derivation; SIM is bit-reproducible.
+
+**Amendment (2026-08-22, TRACING/MONITORING acceptance):** this subsystem's
+chokepoints emit execution spans per `TRACING.md` §3; its chokepoint registry
+entries are the span roster (boot-validated; an unregistered emitter fails
+startup).

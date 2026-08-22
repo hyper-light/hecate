@@ -265,3 +265,8 @@ rejection clause, and vector.
    (measured).
 7. Crash injection at every state edge (TR1/TR8) green before ingest accepts
    its first real submission.
+
+**Amendment (2026-08-22, TRACING/MONITORING acceptance):** this subsystem's
+chokepoints emit execution spans per `TRACING.md` §3; its chokepoint registry
+entries are the span roster (boot-validated; an unregistered emitter fails
+startup).

@@ -313,3 +313,8 @@ tier/node] → binding → health_validating`, N-of-M sub-progress) → testamen
 10. Per-node exclusion has exactly one authority — architecture/grep gate: no
     repel/taint field exists outside class definitions and inventory-map
     states.
+
+**Amendment (2026-08-22, TRACING/MONITORING acceptance):** this subsystem's
+chokepoints emit execution spans per `TRACING.md` §3; its chokepoint registry
+entries are the span roster (boot-validated; an unregistered emitter fails
+startup).

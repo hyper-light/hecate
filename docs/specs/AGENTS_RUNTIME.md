@@ -2,9 +2,13 @@
 
 Status: presented for acceptance (grilling Branch 7; 7a/7b ratified; 7c ratified as
 warden + sensor, `PODS.md` §6). The agent runtime is the in-guest process every
-agent is: intake, turn engine, skill dispatch, context manager, Scribe feed —
-running on hecate-rt (single shard in-guest) with the blocking rustls provider pool
-as its only threads beyond the shard.
+agent is: intake, turn engine, skill dispatch, context manager, **history emitter**
+(runtime instrumentation below the model — never a "Scribe feed"; MONITORING §5c;
+amended 2026-08-22) — the PRIMARY of a **two-process guest** (its Scribe companion
+runs its own right-sized hecate-rt; MONITORING §1). Shard counts are
+bundle-declared with their derivations (primary N-from-cores, Scribe clamped to 1;
+census N+1) — running on hecate-rt with the blocking rustls provider pool
+as its only threads beyond the shards.
 
 ## 1. Intake
 
@@ -20,7 +24,9 @@ as its only threads beyond the shard.
 
 - **Exactly one live LLM turn per instance, ever.** One transcript, one coherent
   context, one prompt-cache lineage, one narratable sequence. Parallelism is
-  summoning more pods — never interleaving one pod's mind.
+  summoning more pods — never interleaving one agent loop's mind (a pod holds TWO
+  minds — the primary and its Scribe, each under this same one-turn discipline;
+  MONITORING §1; amended 2026-08-22).
 - A turn: stage resolution (the ModelConfig stage catalog is the **sole** effort
   authority — model, reasoning tier, budgets per stage; internal stages pinned
   cheap) → context assembly → streaming LLM loop → skill invocations → artifacts
@@ -90,10 +96,17 @@ Fast-forward idempotent steps, each self-checking:
    taking work.
 4. Successor receives the Scribe's narrative brief; open claims re-seed at the
    watermark; parked turns reconstruct; the transcript is **not** transferred.
-5. Predecessor receives the drain order via init: finish nothing new, flush
-   narration, terminal-abort barriers up.
+5. Predecessor receives the drain order via init: finish nothing new,
+   terminal-abort barriers up (the primary emits no narration — narration is the
+   Scribe's, and the SCRIBE's flush gates teardown; MONITORING §6; amended
+   2026-08-22).
 6. Keys and fencing rotate; the predecessor's frames die at both checks; UID chain
    continuity records successor lineage.
+7. Execution completes per `HANDOFF.md` §9 (amended 2026-08-22): ALL open claims
+   ADOPT under the chain (none force-closed, no status invented); volumes
+   re-attach under the bumped `key_epoch`; the parked turn resumes with the
+   suppressed testament flush (no duplicate testimony); the successor's detectors
+   FIR-seed; a performance handoff may escalate the ModelConfig tier.
 
 A crash at any step boundary resumes at the missing half — never a duplicate agent,
 never a lost claim.
@@ -124,6 +137,8 @@ never a lost claim.
    in the tree (R7 structural).
 4. Every context threshold and budget derives from the pinned ModelConfig; no
    window constant exists.
-5. Scribe feed emitted after every turn; narration flush is part of drain.
+5. History events are runtime-emitted below the model — zero token cost, capture
+   continues mid-inference; no per-turn feed exists; teardown gates on the
+   SCRIBE's flush (MONITORING §5c/§6; amended 2026-08-22).
 6. Ratcheted floors: non-LLM turn overhead (intake→prompt-ready) and dispatch
    latency from first CI baseline.

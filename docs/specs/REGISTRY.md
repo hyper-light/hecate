@@ -340,3 +340,8 @@ together from first light; page caps enforced; every retention/derivation consta
 carries its derivation; spec bytes are hecate-wire canonical for every kind
 (compiled types or `DocValue` — no third encoding ever); scope is a key
 component, never a filter; no resolution read path lacks a floor.
+
+**Amendment (2026-08-22, TRACING/MONITORING acceptance):** this subsystem's
+chokepoints emit execution spans per `TRACING.md` §3; its chokepoint registry
+entries are the span roster (boot-validated; an unregistered emitter fails
+startup).

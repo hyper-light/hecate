@@ -55,8 +55,26 @@ A claim requesting allocation of a workload — pods, VFS volumes, permissions, 
 _Avoid_: spawn, activate, mint
 
 **Pod**:
-The unit of agent placement — a microVM running one agent, with its volumes and network identity. The VM boundary is the isolation guarantee.
-_Avoid_: container, process, goroutine
+The unit of agent placement — a microVM running one primary agent and its Scribe companion, one OCI container per agent loop, with its volumes and network identity. The VM boundary is the isolation guarantee toward the world; the container boundary compartmentalizes the two loops within.
+_Avoid_: process, goroutine, "one agent per pod"
+
+**History channel**:
+The one inter-loop channel in a pod: the supervisor-minted, one-way, kernel-direction-enforced flight-recorder ring the primary's runtime writes and the Scribe reads. Enrichment class — never a detector, score, or audit input.
+
+**Runtime emitter**:
+The instrumentation below the model that writes history events at turn boundaries, tool dispatch, and claim posts — zero token cost, not prompt-injectable. The reason "the agent feeds its Scribe" is always wrong.
+
+**hecate-init**:
+PID 1 in every guest: mounts, reseeds, mints the history channel, installs the pinned interior residuals, spawns and supervises both containers, and executes flush-gated teardown. Mechanism, never authority.
+
+**Detection substrate**:
+The per-session deterministic stage that runs the detector statistics over authority streams and emits enriched incidents. It detects; the Scribe judges; the Guardian adjudicates.
+
+**Score service**:
+The per-session single-writer service computing outcome-grounded reputation as a pure fold over its logged input stream; its snapshots enter the ledger as ordinary logged inputs.
+
+**Provenance class**:
+Every signal's trust label — host-observed or guest-reported. Authority decisions read host-observed only; divergence between the two is itself a signal.
 
 **Soft gate**:
 A Guardian check that may deny within bounded, declared rules or request more evidence a bounded number of times, but cannot block indefinitely. Summons and performance-driven handoffs are soft-gated.
@@ -88,7 +106,7 @@ _Avoid_: failover, model swap
 A handoff triggered by hitting the context threshold. Scribe-initiated, unilateral, not subject to approval.
 
 **Performance handoff**:
-A handoff triggered by degraded performance. The Scribe requests it; the Guardian approves, and may soft-gate by requesting more evidence at most once.
+A handoff triggered by detected, confirmed degradation. The Scribe requests it; the Guardian adjudicates — approving, or denying when the fresh-context probe shows the task itself is hard (the corrective then targets the claims, not the agent).
 
 **Failover**:
 Switching an agent to its alternate model when its primary provider fails. An operational event driven by config — logged, not a handoff, not ledger state.
@@ -179,7 +197,8 @@ The sole implementer of code and tests. Submits testaments with artifacts — in
 The ground-truth agent: record keeper, code knowledge, and deep investigation (debuggers, profiling, tracing, log ingest). Read-only toward code. Absorbs Sylk's Librarian.
 
 **Scribe**:
-The sidecar attached to every other agent: narrates its primary's actions, serves localized history, monitors performance, and initiates handoffs.
+The companion agent attached to every primary: narrates its primary's actions, records and serves its history, and judges handoffs — initiating context handoffs unilaterally, requesting performance handoffs for the Guardian to adjudicate. It observes; it never feeds its primary, and its primary cannot feed it.
+_Avoid_: sidecar, "monitors performance" (the detection substrate detects; the Scribe judges)
 
 **Sibyl**:
 The user's workstream agent, above sessions: judges which sessions and experiments should exist — forking variants, stopping generation, arbitrating materialization, brokering cross-fence grants — and touches no work inside any session. Content-blind by default; instances partition judgment by lineage; all authority exercised as user-plane claims.

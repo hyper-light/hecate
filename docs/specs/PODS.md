@@ -14,7 +14,11 @@ measured anchors at both extremes.
 ## 1. The pod, physically
 
 A pod is one microVM (forked libkrun family: KVM / HVF / WHP backends, ADR-0001)
-running one agent. Its world:
+running **one primary agent and its Scribe companion — one OCI container per agent
+loop, two containers per pod** (ADR-0006; `MONITORING.md` §1; amended 2026-08-22,
+MONITORING acceptance — supersedes "running one agent"). Thread census N+1, never
+2N; exactly ONE inter-loop channel exists (the one-way history ring, MONITORING
+§3); no shared netns, no shared volumes. Its world:
 
 - **vCPU/memory**: fixed at summon, derived from role profile + host capacity;
   resized only via handoff (config reaches live work exclusively through handoff).
@@ -47,15 +51,23 @@ running one agent. Its world:
 
 PID 1 in every guest: a tiny static binary whose version is its image manifest hash.
 
-Contract (exhaustive — init does nothing else):
+Contract (exhaustive — init does nothing else; re-stated 2026-08-22 for the
+two-container interior, MONITORING §6's I1–I5 verbatim):
 1. Mount the declared mount set; verify against the bundle manifest.
 2. **Reseed on start and on every snapshot resume** (§5): VM-generation bump
    observed → reinject kernel entropy, resync clock, **verify the sensor channel is
    live (§6)**, only then proceed. A pod whose sensor won't come up fails summon
    validation loudly.
-3. Spawn the agent runtime process with its bundle; reap children.
-4. Report lifecycle events and resource telemetry on the control channel.
-5. Execute shutdown/abort orders (graceful drain, then hard stop).
+3. **Mint the history channel** (ring + cursor memfds, sealed; doorbell) **before
+   any spawn**; **install the warden-compiled kernel residuals, pinned**; spawn
+   the sensor-exporter process.
+4. **Spawn the Scribe first, then the primary** (each with its fd set and cgroup
+   bounds; Σ memory.max + init overhead ≤ guest RAM, admission-enforced); reap
+   children; supervise both independently (Scribe exit ⇒ respawn from the frozen
+   bundle, same fds; primary exit ⇒ hold for the Scribe's tail-drain).
+5. Report lifecycle events and resource telemetry on the control channel.
+6. Execute shutdown/abort orders — **teardown gated on the Scribe's flush**
+   (graceful drain, then hard stop).
 
 - **vsock carries the control + observability plane only** — guest↔host,
   `PROTOCOL.md` framing:
@@ -172,7 +184,11 @@ pod's device surface. The guest cannot reach it.
 - **Inline, pre-effect**: every boundary crossing — virtio-fs op, packet into the
   host network stack, vsock frame — is decided *before it executes*. In-guest
   actions are ungated as calls (the compile-edit-test inner loop runs at native
-  speed); every consequence meets a decision at the boundary it crosses.
+  speed); every consequence meets a decision at the boundary it crosses. **The
+  two-workload qualification (amended 2026-08-22)**: interior compartmentalization
+  between the two containers is enforced *in-kernel* by the pre-spawn pinned
+  residuals (zero round-trips — MONITORING §9); interior denials are counted and
+  exported per container (cgroup-id attribution), no longer silent.
 - **Compiled local policy**, µs decisions, no Guardian round-trip on the fast path.
   Policy compiles from: the **SafetyPolicy ceiling**, the **residual artifact** (the
   IAM plane's per-pod compiled policy — `IAM.md` §6: the role profile realized as a
@@ -224,7 +240,10 @@ pre-effect, tamper-proof) → **Scribe** (semantic narration) → **Guardian** (
   fencing die at rotation; init executes the drain order.
 - **Crash**: init death or VM fault surfaces as a typed lifecycle event on the
   control channel's host side; claims and parked turns survive on the ledger by
-  construction; the health plane and Scribe drive replacement.
+  construction. When the VM itself dies the Scribe dies with it — **the colocation
+  unit's checkpointed detection substrate + the health plane drive replacement**
+  (the successor's brief = the last flushed window; MONITORING §6; amended
+  2026-08-22 — "the Scribe drives replacement" holds only for primary-only death).
 
 ## 8. Test matrix (failure each catches)
 
@@ -247,12 +266,17 @@ pre-effect, tamper-proof) → **Scribe** (semantic narration) → **Guardian** (
 | T15 | Verdict compilation: an escalated-and-approved op class does not re-escalate; every compiled rule carries its authoring verdict's provenance | re-escalation storms; unauditable learned policy |
 | T16 | Tighten-only fuzz: arbitrary/hostile sensor input can hold and escalate but can never widen policy or approve anything | sensor as a privilege path |
 | T17 | Sensor silence: channel death or tamper indicator ⇒ warden escalates everything; sensor dead at boot ⇒ summon validation fails | tripwire silently removed |
+| T20 | Scribe respawn: kill the Scribe at every point ⇒ init re-creates from the frozen bundle with the SAME channel fds; resume from cursor exact; primary unaffected (amended 2026-08-22) | a lost or forked history stream |
+| T21 | Tail-drain hold: kill the primary at every point ⇒ the Scribe drains committed ring bytes, emits the death report; teardown blocked until the flush acks | teardown racing the black box |
+| T22 | Channel tamper: cross-write attempts on ring/cursor ⇒ kernel EACCES; seal violations unrepresentable; CID_LOCAL rejected | policy-only channel direction |
+| T23 | Interior residuals: drainer death ⇒ pinned enforcement still denies (probe); denials counted per container (cgroup-id) | enforcement dying with its drainer |
+| T24 | Census: thread count N+1 under load (ratchet); Scribe resident-idle ≈ 0 CPU; Σ memory.max + init ≤ guest RAM refused at admission when violated | 2N creep; guest-global OOM |
 
 ## 9. Acceptance criteria
 
 1. One guest image family, dual-arch, boots on all three backends; T1 gates every
    platform before agent work runs there (inherits VFS V6).
-2. Init's contract is exactly §3's five duties — an init that can do more fails
+2. Init's contract is exactly §3's six duties (re-stated 2026-08-22) — an init that can do more fails
    review; control-channel fuzz (T2) is a permanent CI gate.
 3. No block-image pipeline exists in the tree; guest images are manifests; image
    identity is a content hash end to end.
@@ -281,3 +305,8 @@ pre-effect, tamper-proof) → **Scribe** (semantic narration) → **Guardian** (
     of the SafetyPolicy blast radius (a SafetyPolicy change recompiles predictably).
 13. Sensor programs are fixed, preloaded, and image-hashed; tighten-only is
     structural (T16); no dynamic program loading exists.
+
+**Amendment (2026-08-22, TRACING/MONITORING acceptance):** this subsystem's
+chokepoints emit execution spans per `TRACING.md` §3; its chokepoint registry
+entries are the span roster (boot-validated; an unregistered emitter fails
+startup).

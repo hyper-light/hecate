@@ -289,7 +289,7 @@ with its governing settlements:
 
 ```
  agent pod P        host A            proposer (B)        session group      frontier→Arbiter
- 1. "submit" ─ring─► warden inspects (claim scope), then host-side:
+ 1. "submit" ─host channel─► warden inspects (claim scope), then host-side:
  2.                  SEAL: drain, compose net ops, chunk to A's store
  3.                  ── Increment ~100 B (claims lane, request_id) ──►
  4.                  ◄─ pull ops_doc + new blobs by name (bulk lane) ─  [dedup first]
@@ -429,3 +429,8 @@ with M12 restated for the two-pass shape: no IO inside either pure pass).
     latency); regression >10% fails CI.
 13. Tripwire metrics emitted from day one; thresholds derived at definition
     sites.
+
+**Amendment (2026-08-22, TRACING/MONITORING acceptance):** this subsystem's
+chokepoints emit execution spans per `TRACING.md` §3; its chokepoint registry
+entries are the span roster (boot-validated; an unregistered emitter fails
+startup).

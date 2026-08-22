@@ -8680,3 +8680,33 @@ ALL FOUR PENDING DOCS NOW AT THE BAR: STORE v3, TRACING v2, MONITORING v2, HANDO
 — presented for verdict. Acceptance consequences: MONITORING acceptance fires the §17
 R1-R5 sweep + (jointly w/ TRACING) the per-subsystem span clauses; §18's riders need
 user rulings (R3's five-site cluster first — load-bearing).
+
+**ALL FOUR ACCEPTED (2026-08-22, user "go ahead") + THE JOINT SWEEP LANDED (one
+commit):** STORE v3 / TRACING v2 / MONITORING v2 / HANDOFF v2 -> ACCEPTED (status
+flipped). THE R1-R5 SWEEP: PODS (§1 two-container pod def w/ ADR-0006; §3 contract
+RESTATED six duties [mint-then-spawn, scribe-first, tail-drain hold, flush-gated
+teardown]; §6 two-workload qualification [in-kernel residuals, counted denials]; §7
+crash bullet [colocation substrate drives replacement on VM death]; AC-2 six; T20-T24
+added); AGENTS_RUNTIME (header two-process/history-emitter/bundle-declared shards;
+one-pod's-mind -> two minds; drain step 5 no-primary-narration; NEW step 7 = HANDOFF
+§9 adoption; AC5 rewritten — the per-turn-feed line is DEAD); AGENTS+CONTEXT SAME
+COMMIT (sidecar->companion ×4; roster row handoff-judge; Guardian-CAN-deny at :326;
+CONTEXT Pod/Scribe/perf-handoff defs corrected + 6 NEW glossary entries [History
+channel, Runtime emitter, hecate-init, Detection substrate, Score service, Provenance
+class]); PLATFORM §4 deny / §5 adjudication wording / §6 pushed-single-writer; RANK §4
+pointer + detection-triad + AC-4 + "nothing touches the ledger" scoped to
+no-ledger-OBJECTS; MERGE arrow relabeled "host channel"; FOREST advisory-snapshots +
+Branch-14->MONITORING/HANDOFF; RUNTIME bundle-declared shard counts; LEDGER_CORE
+projector list += each primary's Scribe + the collector capture; CONSENSUS §6
+score-service = ordinary claims-plane client (no roster entry); VFS two-lowerdirs/
+upper-per-container/PRIMARY-only volumes/V12; SERVING AC-1 note; ADR-0001 amended
+(init seam, fork-owned kernel config, stats surface, degraded-mode scoping,
+stale-ref); ADR-0006 WRITTEN (two-container interior; Design B tombstoned w/ honest
+tradeoff; reversal-cost rationale). THE SPAN-CLAUSE SWEEP: 15 specs (STORE QUEUE
+CACHE FANOUT CONSENSUS MATERIALIZER PODS VFS SERVING MERGE IAM REGISTRY SCHEDULER
+TRANSFER WAL) gained the dated chokepoints-emit-spans clause via tee. GAPS: §11a-e
+tracker closed; riders tracked at MONITORING §18.
+**TREE NOW**: the observability/storage cluster is fully ACCEPTED at the COLLECTOR
+bar. OPEN: the MONITORING §18 riders (user exchanges — R3's five-site flow-key
+cluster FIRST, load-bearing); branches: sibyl-federation (research BANKED),
+summoning-mechanics, response-authority (parked).
