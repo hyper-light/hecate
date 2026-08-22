@@ -8303,3 +8303,22 @@ exception]; B: first-class trace refs on claims/testaments + unified query join;
 telemetry bytes in the work log — collides with the materializer ceiling, replay
 determinism, session scope). REC: A+B = "integration at the query layer, separation at the
 storage layer." Awaiting the user's naming of the concrete integration they want.
+
+**D3 SETTLED as D3+ (2026-08-22, user "sold") + COLLECTOR.md WRITTEN:** integration at
+the QUERY layer, separation at the STORAGE layer. The three existing touchpoints stand
+(delta-consumption out; opaque refs both ways; score/Scribe snapshots in as logged
+inputs = the sanctioned exception); NEW: (a) `trace_refs` stamped into the SYSTEM-WRITTEN
+portion of the claim lifecycle record (runtime-authored, bounded — LEDGER_CORE §2 +
+LEDGER §2 amendment at acceptance), (b) `join_work(claim_uid)` on the query surface —
+composes ledger-skeleton read + operational-plane read, BOTH capabilities checked per
+plane, no bridge. Raw telemetry NEVER rides the work log (the materializer-ceiling walk
+carried the argument). User also demanded D2/D3 at full spec rigor -> COLLECTOR.md
+written (presented for acceptance): §3 OpRecord/scoped-log + delivery-class isolation,
+§4 exp-histogram derivations (scale-from-(span,alpha), worked 1%/ns-day = scale 5 /
+~1482 buckets / ~12KB; t-digest ban rationale), §5 exact admitted-set registry +
+overflow-fold + HLL detector, §6 HRW assembler, §7 ObservabilityQuery trait + two-class
+mechanics, §8 cursor-consumer + (claim_uid, transition) exactly-once dedup + the join +
+worked example, §12 acceptance-sweep list, CL1-CL12 + SIM matrix. THREE SPECS now
+pending user verdict: STORE.md, TRACING.md, COLLECTOR.md (each with its acceptance-time
+amendment sweep). Branch tree remaining after collector: response-authority (parked),
+sibyl-federation, summoning-mechanics.
