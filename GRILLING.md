@@ -8561,3 +8561,40 @@ STILL GATED: the MONITORING/TRACING per-subsystem span-clause sweep (on those sp
 acceptance — STORE.md + TRACING.md + MONITORING.md/HANDOFF.md remain presented, not
 accepted). TREE: collector branch CLOSED; remaining: response-authority (parked),
 sibyl-federation, summoning-mechanics.
+
+**RULING (2026-08-22, user, STANDING): every spec is to be at COLLECTOR.md's depth and
+rigor** — the corpus bar: full data model w/ ownership facts, state machines for every
+stateful thing, step-by-step algorithms w/ implementations, architecture map + networking
+hop table, boot order + lifecycles + self-observation, failure/recovery matrix, closed
+refusal/loss taxonomy, derived-constants table, worked example incl. failure variants,
+plain-terms walkthrough + reading guide, integration enumeration, full ACs + SIM matrix,
+recon-clean. The four pending docs (STORE/TRACING/MONITORING/HANDOFF) rewrite to it
+BEFORE presentation.
+**STORE.md REWRITTEN TO THE BAR (v3, ~560 lines):** end-to-end walk first; FOUR new
+settlements flagged to the user: (1) ALL-REPLICAS-APPLY — every raft replica runs the
+full engine (window+backend+marks); fast failover = pre-materialized followers, one
+ReadIndex round; watch = leader-only, cursor re-attach; (2) the WINDOW's concrete
+structure — versioned hash index (key -> newest-first LSN chain), epoch-guarded
+reclamation, ONE apply-driver writer per replica (claims N-appliers = disjoint-by-DAG,
+atomic-max chain head), bounded by bytes AND LSN-horizon, TooOld below floor; (3)
+READ-REPAIR — checkpoint re-read -> targeted replay -> systemic self-demote+full
+recover; NEVER cross-replica byte copying (converge by replay only); (4) BOOT ORDER —
+system instances (registry/IAM stores) recover BEFORE the boot classifier reads them;
+registry profile seed-pinned in the boot image (the one compiled-in registration);
+failed registry shard = loud boot abort. Structure: bank-branch analogy (§1a: journal/
+drawer/vault/bound volumes/account alerts — carries one-fsync, all-replicas-apply,
+resolved-marks); reading guide (§1b); full data model (§2) + placement functions (§2b:
+one-log-is-the-WAL); replica lifecycle SM + 7-step apply tick (§3; apply-before-emit =
+read-your-watch, age-before-breach); architecture map (§3a); 7-hop networking table
+(§3b — all existing archetypes, ZERO protocol amendments needed); window design (§4);
+apply seam (§5); backend seam v2 verbatim + INTERNALS SCOPED OUT explicitly (§6);
+read path 6 steps + repair (§7); watch subscriber SM incl. SEEDING/CATCHUP/LIVE/
+failover/split edges (§8); split S1-S5 + merge M1-M5 crash-stepped w/ per-step crash
+dispositions (§9); backpressure (§10); 9-row failure matrix — invariant: durable truth
+= log + checkpoints, every window disposable, EVERY recovery IS replay (§11); closed
+refusal taxonomy 8 classes (§12); 10-row constants table (§13); worked example —
+placement record end-to-end + leader-death and split-mid-watch failure variants (§14);
+laptop (§15); 14-companion integration enum (§15a); per-instance profile table (§16);
+ST1-ST15 (new: ST12 failover ratchet, ST13 refusal walk, ST14 boot order) + 12-row SIM
+matrix. Presented for acceptance. NEXT: TRACING.md to the bar, then MONITORING, then
+HANDOFF. (Sibyl research agent runs in the background meanwhile — banked on landing.)
