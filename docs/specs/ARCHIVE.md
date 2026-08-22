@@ -270,6 +270,61 @@ range-splits by `kind‖subject` prefix through the standard directory machinery
 (nothing archive-specific). Stated so the one-shard default is a derivation,
 not an assumption.
 
+## 6b. Search — the archive is a searchable document plane (accepted 2026-08-22)
+
+The key-family index answers *who/when/what-kind*; investigation also needs
+*what was said* — the archive is a **document plane, searchable in itself**,
+not merely a record vault awaiting promotion. Two search projections, both
+**derived and rebuildable** (the content-addressed documents are the only
+truth; index loss = re-index, never data loss):
+
+- **Full-text**: one per-session FTS instance over the **declared text fields**
+  of each doc kind (narration body, summary text, flush annotations — the kind
+  registry declares which fields index; closed, like everything). Behind an
+  `ArchiveSearch` trait — the same pluggable-seam discipline as STORE's
+  backends — with **Tantivy as the exemplar-library engine** (Rust,
+  Lucene-lineage, immutable segment files — which fit the plane naturally: on
+  a derived cadence, sealed segments checkpoint to the durable plane as
+  archive-class objects, bounding rebuild to checkpoint + tail-reindex).
+  Recommendation flagged, not smuggled: the library-behind-a-seam posture is
+  Sylk's authorized-search-tech precedent (Bleve there, Tantivy here); an
+  owned engine remains a swap behind the same trait if the dependency ever
+  fails the corpus's bar.
+- **Semantic (opt-in per session profile)**: one per-session `VECTOR_INDEX.md`
+  instance (the accepted HNSW spec, instantiated) over embeddings of the same
+  declared fields. Embeddings are computed by a **paced, budget-bounded
+  service** through the provider gateway (an ordinary metered egress —
+  derived cadence, backlog-tolerant); a session that declines the profile
+  simply has text search only.
+
+**The indexing pipeline**: after §4's `INDEXED` step, the applier enqueues an
+async index task (paced; **indexing never blocks ingest or the ack** — AR19);
+the FTS add and the embedding job consume it. Crash/loss: rebuild by scanning
+the key families and re-indexing — a derived-state recovery, F13/F14.
+
+**Scope and content, stated plainly**: search is session-scope-ambient like
+every read here (AR18 — a cross-session hit is unrepresentable, not filtered).
+And a boundary people will trip on: **H8 does not apply to archive documents**
+— H8 is the *telemetry* plane's content-free law; the archive is the session's
+own content plane, IAM-fenced, where narrative *belongs*. The two planes'
+different laws are exactly why they are different planes.
+
+**The promotion flow, unchanged and now complemented**: the archive is
+directly investigable pre-promotion (search here); the Archivalist still
+*promotes* distilled material into the knowledge plane as a curation claim (a
+knowledge-capability contribution referencing the archive doc's hash) — the
+Sylk retirement-ingest pattern kept as a **flow between distinct planes**,
+never a merged store.
+
+```rust
+// ArchiveQuery gains (session-scope ambient, cursored, budgeted):
+fn search_text(&self, caller, query: TextQuery, kinds: &[DocKind],
+               range: TimeRange, cursor: Option<Cursor>) -> Result<HitPage>;
+fn search_semantic(&self, caller, text: &str, k: usize) -> Result<Vec<Hit>>;
+// Hit = { doc: ContentHash, kind, score, snippet }  — snippets are session
+// content served under the session's grant (not telemetry; see above).
+```
+
 ## 7. The fitter and the example curve
 
 **Collect** (cadence derived — comfortably inside the collector's retention
@@ -405,6 +460,8 @@ continue, ingest and teardown acks are untouched).
 | F10 | Seed import fails at create | the lineage prior | the ladder falls to ShippedDefault (counted `ImportFallback`); retry via TRANSFER; detection never blocked |
 | F11 | Poisoning (Bar-A agent skewing its signals) | nothing — the guards | vote-discard + drift-withhold + Archivalist prune (v1 §11's walked variant); worst case = this session's curves only |
 | F12 | Laptop power loss (R=1) | nothing acked (WAL always-full fsync); un-acked in-flight only | on boot: lane log tail replays; index recovers checkpoint + local tail; objects re-verify by hash; the loss window is exactly WAL's acked-⇒-durable contract at N=1 (CONSENSUS §8's named crash-injection gate) |
+| F13 | The FTS index is lost/corrupt | search availability only | derived-state rebuild: segment checkpoints + tail re-index from the key families; documents untouched (they are the truth) |
+| F14 | The embedding service backlogs or its egress budget exhausts | semantic-search freshness | search degrades to text-only for the lagging span, counted; the backlog drains at pace — never blocks ingest |
 
 **Durability, restated as the invariant**: every acked artifact is on a
 replicated (or N=1-fsynced) log or in R content-addressed copies; every
@@ -415,7 +472,8 @@ carry, instantiated here.
 ## 11. Refusal & loss taxonomy (closed)
 
 `ExcludedSpan | VoteDiscard | DriftWithheld | UnapprovedSeed | ImportFallback |
-LaneWait | OrphanSwept | UnknownDocKind | IndexUnavailable(typed)` — one
+LaneWait | OrphanSwept | UnknownDocKind | IndexUnavailable(typed) |
+SearchLag(counted freshness) | SemanticDegraded(text-only span)` — one
 counter each; CI walks every path into exactly one category.
 
 ## 12. Derived constants
@@ -430,6 +488,9 @@ counter each; CI walks every path into exactly one category.
 | Bucket-confidence minimum n | fit-variance target per bucket | measured signal variance |
 | Ack-wait alarm | lane availability distribution | QUEUE availability |
 | GC orphan-sweep cadence | orphan creation rate × space budget | measured abort rates |
+| Search freshness bound | index-task backlog target ÷ doc rate | measured doc rates, investigation-latency need |
+| FTS segment-checkpoint cadence | rebuild-time bound ÷ measured re-index rate | re-index throughput, RTO target |
+| Embedding pace/budget | per-session egress budget share ÷ per-doc embed cost | gateway metering, session budget |
 
 ## 13. The laptop case, formally
 
@@ -515,6 +576,13 @@ Session `s9`; pair `(engineer, refactor)`.
   this spec's store/index (the `ProofByScope` key family).
 - `RANK.md` / the score service — unchanged, stated (reputation ≠ baselines;
   different consumers, different state).
+- `VECTOR_INDEX.md` — the per-session archive instance named as an
+  instantiation (its spec is instance-ready; a one-line consumers note).
+- `REGISTRY.md` — the doc-kind registry's declared-text-fields attribute
+  (which fields of which kinds index; closed, boot-validated).
+- The knowledge plane (`FOREST.md` / the D-6 branch when it opens) — the
+  promotion flow's receiving side: a knowledge contribution referencing an
+  archive doc hash; nothing else crosses.
 - `GAPS.md` — the baseline-store exchange closes; MONITORING §18's R4-OQ-a/c
   and R2-OQ-c riders strike.
 
@@ -538,6 +606,9 @@ Session `s9`; pair `(engineer, refactor)`.
 | AR14 | **Golden curves**: the §7 example (and a conformance set) round-trips serialization byte-identically; the HANDOFF join (μ/σ/k derivation from BucketParams) matches the oracle | wire drift; a mis-derived risk adjustment |
 | AR15 | **The durability chain**: acked-⇒-replayable at every R including R=1 (crash injection per §10's F-rows, each row a named test); recovery is replay-or-repull only — no bespoke path | unreplayable state; a secret recovery mechanism |
 | AR16 | **Query exactness**: every §9 read is one bounded index range scan + hash fetches (measured; no scan-the-world path exists); watches fire exactly the affected prefix subscribers | O(session) queries; watch storms |
+| AR17 | **Search is a derived projection**: destroying either search index and rebuilding yields equivalent results (differential); no search structure is ever a truth source or a GC root beyond its own checkpoints | search state promoted to truth |
+| AR18 | **Search is scope-fenced**: session-ambient like every read; a cross-session hit is unrepresentable (authz fuzz across sessions and users) | the searchable plane leaking across fences |
+| AR19 | **Async indexing**: the index tasks never block ingest, the ack, or the applier (measured under indexing backlog); freshness lag is bounded, derived, and visible | search coupling the teardown gate |
 
 ## 17. Test matrix (SIM)
 
@@ -555,6 +626,9 @@ Session `s9`; pair `(engineer, refactor)`.
 | Golden-curve conformance | AR14 (serialization round-trip; the HANDOFF μ/σ/k join vs oracle) |
 | The F1–F12 walk | AR15 (each §10 row seeded and killed at its point; recovery = replay-or-repull only) |
 | Query/watch exactness | AR16 (fanout ≤ index resolution; prefix-exact watch firing) |
+| Search differential | AR17 (destroy-and-rebuild both indexes ⇒ equivalent results; F13/F14 rows) |
+| Search scope fuzz | AR18 (cross-session/cross-user search attempts unrepresentable) |
+| Indexing backlog | AR19 (ingest/ack latency flat under saturated index tasks; freshness lag visible + bounded) |
 | Laptop parity | AR12 (every §13 derivation asserted at N=1, incl. the R=1 crash-injection gate) |
 
 ## 18. References

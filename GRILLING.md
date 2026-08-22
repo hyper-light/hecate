@@ -8912,3 +8912,28 @@ compiling to COLLECTOR §9a (scope ambient-not-syntactic); (b) archive-as-record
 + the Archivalist PROMOTION flow into the knowledge plane (Sylk's pattern kept as
 a FLOW, stores distinct); (c) the knowledge document DB = open D-6 properly
 (Glean stacked-DB arc — not improvised). ARCHIVE v2 presented for acceptance.
+
+**THREE RULINGS LANDED (2026-08-22, user):**
+(a) THE QUERY LANGUAGE ACCEPTED -> COLLECTOR §9c appended (dated accepted
+amendment): full EBNF grammar (SELECT aggs/WHERE conjunctive+IN/GROUP BY closed
+dims/SINCE-UNTIL/RESOLUTION/LIMIT; p-quantiles from exp-histograms w/ attached
+α error bars; rate() reset-aware via restart_epoch); registry-typed compile
+(unknown identifier = typed compile error, never a scan); SCOPE AMBIENT-NOT-
+SYNTACTIC (unrepresentable, CL-Q3); compiles to the §9a plan verbatim (zero new
+storage/execution, CL-Q1); 3 examples incl C47-as-a-query; CL-Q1..Q5 + golden
+query corpus.
+(b) ARCHIVE = A SEARCHABLE DOCUMENT PLANE (user overruled records-only): NEW §6b —
+two DERIVED, REBUILDABLE projections (docs remain the only truth): per-session
+FTS behind an ArchiveSearch trait (TANTIVY as exemplar-library — the Sylk
+authorized-search-tech precedent [Bleve there]; swap-behind-the-seam preserved;
+sealed segments checkpoint to the durable plane bounding rebuild) + OPT-IN
+per-session VECTOR_INDEX instance (embeddings via a paced budget-bounded gateway
+service). Async indexing (never blocks ingest/ack — AR19); H8-boundary stated
+plainly (H8 = the TELEMETRY plane's law; the archive is the session's own content
+plane — different laws are why they're different planes); search scope-ambient
+(cross-session hit unrepresentable — AR18); promotion flow into knowledge
+unchanged (distinct planes, a claim-shaped flow). +F13/F14 rows, +AR17-19, +3
+constants, +4 test rows, +VECTOR_INDEX/REGISTRY/knowledge amendment touchpoints.
+(c) D-6 (the knowledge document DB / Glean stacked-DB arc) QUEUED behind
+finishing observability — remaining there: ARCHIVE's verdict + residual small
+riders (R2-OQ-a/b, ADR-0004's two).

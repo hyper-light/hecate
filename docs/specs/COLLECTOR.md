@@ -1328,3 +1328,67 @@ limits / Mimir drop-new-series — the rejected (a)/(c). Flajolet '07 — HLL 1.
 Companions: `MONITORING.md`, `TRACING.md`, `HEALTH.md`, `HANDOFF.md`, `IAM.md`,
 `CACHE.md`, `QUEUE.md`, `FANOUT.md`, `WAL.md`, `OBJECT_TIER.md`, `LEDGER.md`,
 `LEDGER_CORE.md`.
+
+## 9c. The query language (accepted 2026-08-22 — the Scuba-shaped face over §9a)
+
+Interactive slicing for investigation — the Archivalist, the user's operational
+views, dashboards. **A front-end only**: it compiles to the §9a plan and adds
+zero storage and zero execution machinery (CL-Q1). Scuba is the shape receipt
+(SQL-like slicing over wide events); ours is typed against the closed registry.
+
+**Grammar** (EBNF, complete):
+
+```
+query    := SELECT aggs ( WHERE preds )? ( GROUP BY dims )?
+            SINCE time ( UNTIL time )? ( RESOLUTION res )? ( LIMIT n )?
+aggs     := agg ( ',' agg )*
+agg      := 'count' '(' ')' | 'sum' '(' signal ')' | 'min' '(' signal ')'
+          | 'max' '(' signal ')' | 'avg' '(' signal ')'      // sum/count, exact
+          | 'p' INT '(' signal ')'                            // from exp-histograms
+          | 'rate' '(' signal ')'                             // counters; reset-aware
+                                                              //   via restart_epoch
+preds    := pred ( 'AND' pred )*                              // conjunctive v1; OR
+pred     := dim '=' value | dim 'IN' '(' value+ ')'           //   via IN
+dims     := dim ( ',' dim )*                                  // closed label dims only
+time     := RFC3339 | '-' DURATION                            // absolute or relative
+res      := 'raw' | DURATION                                  // window width ≥ W_res
+```
+
+**Typing (CL-Q2)**: every identifier — signal, dim, enum value — resolves
+against the metric registry at compile time; an unknown or free-text operand is
+a **typed compile error**, never a runtime scan. `pNN` carries the target
+histogram's α as an attached error bar (a `p999` on a coarse histogram answers
+honestly, with its bound — never with false precision).
+
+**Scope is ambient, not syntactic (CL-Q3)**: the caller's IAM grant binds the
+scope before planning; no token in the language expresses scope — querying
+outside your session is *unrepresentable*, not filtered.
+
+**Compilation**: parse → typecheck (registry) → the §9a plan verbatim (tier
+split by range under the §5c ownership invariant; index-prune selector →
+postings; tree fanout `F`; derived leaf timeouts) → exact merges → a result
+carrying `Completeness`, per-quantile α bounds, and `estimated` flags
+(keep-rate compensation). Limits are inherited (§9a #7): unbounded selectors
+refuse typed; results stream chunked and cursored; per-principal budgets
+admission-gate; `LIMIT` defaults to the derived bound.
+
+**Examples**:
+
+```
+SELECT p99(vfs.attach.duration), count()
+WHERE node = 'n4' AND agent_type = ENGINEER
+GROUP BY shard SINCE -1h RESOLUTION raw LIMIT 100
+
+SELECT rate(claim_posted_total) GROUP BY agent SINCE -24h RESOLUTION 5m
+
+-- the C47 investigation (§14 step 7), as a query:
+SELECT p95(claim_transition_duration) WHERE edge = progressed
+  AND agent = 'E7' SINCE -6h RESOLUTION raw
+```
+
+**Acceptance**: CL-Q1 compile-to-plan-only (no second execution path —
+architecture test); CL-Q2 no untyped identifier reaches planning (fuzzed
+compile corpus); CL-Q3 scope-unrepresentable (grammar audit + authz fuzz);
+CL-Q4 quantile α-honesty (answers vs oracle within the attached bound, never
+tighter-claimed); CL-Q5 a golden query corpus round-trips parse→plan→result
+deterministically. Tests join §18's matrix under these names.
