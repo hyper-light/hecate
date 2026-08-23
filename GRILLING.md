@@ -9812,3 +9812,45 @@ Borg":**
 EXPLICITLY DELEGATES LIFECYCLE SAFETY — i.e. the fencing we could not find in Twine
 may live there. Queued as optional for the running lane; if Shard Manager fences, that
 is the Meta-scale precedent for rung 5 and must be found before the design settles.
+
+**RESEARCH LANDED (second straggler recovered):
+/Users/adalundhe/.claude/jobs/6ac71cfa/tmp/notes-zk-chubby.md** — all six sub-questions
+essentially complete, verbatim quotes + URLs throughout. Flagged unverified in-file: no
+ZK source/JIRA read; two cwiki FAQ strings unconfirmed. Preserve those flags.
+
+**THE FINDING IS A PRECISE MIRROR OF OUR OWN DEFECT — cite it as the receipt.**
+ZooKeeper's recipes page claims: **"at any snapshot in time no two clients think they
+hold the same lock."** That claim is **FALSE under process pauses, and is stated with
+NO DISCLAIMER.** The correction exists only downstream in Curator ("consider any locks
+as dirty/unstable") — **and Curator's listeners CANNOT FIRE INSIDE A STOPPED PROCESS**,
+which is exactly the case that breaks it.
+**COMPARE, VERBATIM, WHAT SIBYL §1 SAYS TODAY: "a lineage's judgment serializes through
+exactly one Sibyl instance at a time" — backed by lease-expiry redelivery.** Same
+claim, same absent mechanism, same failure mode, same missing disclaimer. **The most
+widely-deployed coordination system in the industry shipped this exact error in its own
+documentation, and it took Kleppmann's public correction to dislodge it.** This is the
+strongest available receipt that the SIBYL defect is a well-trodden trap rather than a
+local slip — and that stating an exclusivity guarantee in prose, unbacked by a
+resource-side check, is how the trap is normally sprung.
+
+**THE THREE-WAY CATEGORIZATION, WHICH IS THE REUSABLE RESULT:**
+- **ZooKeeper ALONE = (c) accepted unsafe window.** It guarantees ordering of ITS OWN
+  state, never mutual exclusion of EXTERNAL side effects. => The lesson for us: a
+  consensus system's guarantees do NOT extend to effects outside it. Our ledger's
+  ordering guarantees say nothing about an agent's external side effects — which is
+  precisely why CONSENSUS §7's externalization-fencing law has to exist as a SEPARATE
+  law rather than falling out of the ledger.
+- **ZK + `czxid`/version token, OR Chubby sequencer + `CheckSequencer` = (a) fenced at
+  the commit point. BOTH VALIDATE AT THE RESOURCE.** Burrows, verbatim: locks **"need
+  sequencers to allow externals resources to be protected safely."** => Independent
+  confirmation of the placement we already adopted after the EdenFS catch: the check
+  lives at the resource, never at the (possibly stale) holder or issuer.
+- **Chubby lock-delay = KNOWINGLY UNSAFE BUT BOUNDED — cap 1 minute, and NOT A
+  DEFAULT. The paper itself calls it "IMPERFECT."** => IMPORTANT CORRECTION TO OUR OWN
+  CITATION: CONSENSUS §7's lease-shadow law cites Chubby's lock-delay as its precedent.
+  That citation is still legitimate — but the precedent is **explicitly self-described
+  as imperfect, capped, and opt-in**, so it CANNOT carry the safety argument alone.
+  Our lease-shadow is safe only because it is a BARRIER composed with a quorum
+  decision + a fresh epoch (timer-as-barrier), NOT because Chubby blessed the timer.
+  Anywhere the spec leans on lock-delay as if it were sufficient, that leaning is
+  unsupported. Verify this when writing rung 5.
