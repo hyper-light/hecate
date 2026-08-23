@@ -1,0 +1,604 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Life Beyond Distributed Transactions - ACM Queue</title>
+<meta name='description' value='This article explores and names some of the practical approaches used in the implementation of large-scale mission-critical applications in a world that rejects distributed transactions. Topics include the management of fine-grained pieces of application data that may be repartitioned over time as the application grows. Design patterns support sending messages between these repartitionable pieces of data.' />
+<meta name='keywords' value='Distributed Computing' />
+
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-P52H78L');</script>
+
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="shortcut icon" href="favicon.ico" />
+<script type="text/javascript" src="/js/jquery-1.2.6.min.js"></script>
+<script type="text/javascript" src="/js/jquery.validate.min.js"></script>
+<script type="text/javascript" src="/js/global.js"></script>
+<link rel="alternate" type="application/rss+xml" title="Latest Queue Content RSS 2.0" href="/rss/feeds/latestitems.xml" />
+<link rel="alternate" type="application/rss+xml" title="All Queue Content RSS 2.0" href="/rss/feeds/queuecontent.xml" />
+<link rel="alternate" type="application/rss+xml" title="Curmudgeon RSS 2.0" href="/rss/feeds/curmudgeon.xml" />
+<link rel="alternate" type="application/rss+xml" title="Opinion RSS 2.0" href="/rss/feeds/opinion.xml" />
+<link rel="alternate" type="application/rss+xml" title="Kode Vicious RSS 2.0" href="/rss/feeds/kodevicious.xml" />
+<link rel="alternate" type="application/rss+xml" title="ACM TechNews RSS" href="https://www.infoinc.com/acm/TechNews.rss" />
+<link rel="alternate" type="application/rss+xml" title="Washington Updates RSS" href="https://usacm.acm.org/weblog2/?feed=rss2" />
+<link rel="alternate" type="application/rss+xml" title="RISKS Forum RSS" href="/rss/feeds/risksforum.xml" />
+<link rel="alternate" type="application/rss+xml" title="AI RSS 2.0" href="/rss/feeds/ai.xml" />
+<link rel="alternate" type="application/rss+xml" title="API Design RSS 2.0" href="/rss/feeds/apidesign.xml" />
+<link rel="alternate" type="application/rss+xml" title="Bioscience RSS 2.0" href="/rss/feeds/bioscience.xml" />
+<link rel="alternate" type="application/rss+xml" title="Blockchain RSS 2.0" href="/rss/feeds/blockchain.xml" />
+<link rel="alternate" type="application/rss+xml" title="Business/Management RSS 2.0" href="/rss/feeds/business/management.xml" />
+<link rel="alternate" type="application/rss+xml" title="Compliance RSS 2.0" href="/rss/feeds/compliance.xml" />
+<link rel="alternate" type="application/rss+xml" title="Component Technologies RSS 2.0" href="/rss/feeds/componenttechnologies.xml" />
+<link rel="alternate" type="application/rss+xml" title="Computer Architecture RSS 2.0" href="/rss/feeds/computerarchitecture.xml" />
+<link rel="alternate" type="application/rss+xml" title="Concurrency RSS 2.0" href="/rss/feeds/concurrency.xml" />
+<link rel="alternate" type="application/rss+xml" title="Cryptocurrency RSS 2.0" href="/rss/feeds/cryptocurrency.xml" />
+<link rel="alternate" type="application/rss+xml" title="DSPs RSS 2.0" href="/rss/feeds/dsps.xml" />
+<link rel="alternate" type="application/rss+xml" title="Data RSS 2.0" href="/rss/feeds/data.xml" />
+<link rel="alternate" type="application/rss+xml" title="Databases RSS 2.0" href="/rss/feeds/databases.xml" />
+<link rel="alternate" type="application/rss+xml" title="Debugging RSS 2.0" href="/rss/feeds/debugging.xml" />
+<link rel="alternate" type="application/rss+xml" title="Development RSS 2.0" href="/rss/feeds/development.xml" />
+<link rel="alternate" type="application/rss+xml" title="Distributed Computing RSS 2.0" href="/rss/feeds/distributedcomputing.xml" />
+<link rel="alternate" type="application/rss+xml" title="Distributed Development RSS 2.0" href="/rss/feeds/distributeddevelopment.xml" />
+<link rel="alternate" type="application/rss+xml" title="Education RSS 2.0" href="/rss/feeds/education.xml" />
+<link rel="alternate" type="application/rss+xml" title="Email and IM RSS 2.0" href="/rss/feeds/emailandim.xml" />
+<link rel="alternate" type="application/rss+xml" title="Embedded Systems RSS 2.0" href="/rss/feeds/embeddedsystems.xml" />
+<link rel="alternate" type="application/rss+xml" title="Failure and Recovery RSS 2.0" href="/rss/feeds/failureandrecovery.xml" />
+<link rel="alternate" type="application/rss+xml" title="File Systems and Storage RSS 2.0" href="/rss/feeds/filesystemsandstorage.xml" />
+<link rel="alternate" type="application/rss+xml" title="Game Development RSS 2.0" href="/rss/feeds/gamedevelopment.xml" />
+<link rel="alternate" type="application/rss+xml" title="Graphics RSS 2.0" href="/rss/feeds/graphics.xml" />
+<link rel="alternate" type="application/rss+xml" title="HCI RSS 2.0" href="/rss/feeds/hci.xml" />
+<link rel="alternate" type="application/rss+xml" title="Managing Megaservices RSS 2.0" href="/rss/feeds/managingmegaservices.xml" />
+<link rel="alternate" type="application/rss+xml" title="Mobile Computing RSS 2.0" href="/rss/feeds/mobilecomputing.xml" />
+<link rel="alternate" type="application/rss+xml" title="Networks RSS 2.0" href="/rss/feeds/networks.xml" />
+<link rel="alternate" type="application/rss+xml" title="Object-Relational Mapping RSS 2.0" href="/rss/feeds/object-relationalmapping.xml" />
+<link rel="alternate" type="application/rss+xml" title="Open Source RSS 2.0" href="/rss/feeds/opensource.xml" />
+<link rel="alternate" type="application/rss+xml" title="Patching and Deployment RSS 2.0" href="/rss/feeds/patchinganddeployment.xml" />
+<link rel="alternate" type="application/rss+xml" title="Performance RSS 2.0" href="/rss/feeds/performance.xml" />
+<link rel="alternate" type="application/rss+xml" title="Power Management RSS 2.0" href="/rss/feeds/powermanagement.xml" />
+<link rel="alternate" type="application/rss+xml" title="Privacy and Rights RSS 2.0" href="/rss/feeds/privacyandrights.xml" />
+<link rel="alternate" type="application/rss+xml" title="Processors RSS 2.0" href="/rss/feeds/processors.xml" />
+<link rel="alternate" type="application/rss+xml" title="Programming Languages RSS 2.0" href="/rss/feeds/programminglanguages.xml" />
+<link rel="alternate" type="application/rss+xml" title="Purpose-built Systems RSS 2.0" href="/rss/feeds/purpose-builtsystems.xml" />
+<link rel="alternate" type="application/rss+xml" title="Quality Assurance RSS 2.0" href="/rss/feeds/qualityassurance.xml" />
+<link rel="alternate" type="application/rss+xml" title="RFID RSS 2.0" href="/rss/feeds/rfid.xml" />
+<link rel="alternate" type="application/rss+xml" title="SIP RSS 2.0" href="/rss/feeds/sip.xml" />
+<link rel="alternate" type="application/rss+xml" title="Search Engines RSS 2.0" href="/rss/feeds/searchengines.xml" />
+<link rel="alternate" type="application/rss+xml" title="Security RSS 2.0" href="/rss/feeds/security.xml" />
+<link rel="alternate" type="application/rss+xml" title="Semi-structured Data RSS 2.0" href="/rss/feeds/semi-structureddata.xml" />
+<link rel="alternate" type="application/rss+xml" title="Social Computing RSS 2.0" href="/rss/feeds/socialcomputing.xml" />
+<link rel="alternate" type="application/rss+xml" title="System Administration RSS 2.0" href="/rss/feeds/systemadministration.xml" />
+<link rel="alternate" type="application/rss+xml" title="System Evolution RSS 2.0" href="/rss/feeds/systemevolution.xml" />
+<link rel="alternate" type="application/rss+xml" title="Testing RSS 2.0" href="/rss/feeds/testing.xml" />
+<link rel="alternate" type="application/rss+xml" title="Virtual Machines RSS 2.0" href="/rss/feeds/virtualmachines.xml" />
+<link rel="alternate" type="application/rss+xml" title="Virtualization RSS 2.0" href="/rss/feeds/virtualization.xml" />
+<link rel="alternate" type="application/rss+xml" title="Visualization RSS 2.0" href="/rss/feeds/visualization.xml" />
+<link rel="alternate" type="application/rss+xml" title="VoIP RSS 2.0" href="/rss/feeds/voip.xml" />
+<link rel="alternate" type="application/rss+xml" title="Web Development RSS 2.0" href="/rss/feeds/webdevelopment.xml" />
+<link rel="alternate" type="application/rss+xml" title="Web Security RSS 2.0" href="/rss/feeds/websecurity.xml" />
+<link rel="alternate" type="application/rss+xml" title="Web Services RSS 2.0" href="/rss/feeds/webservices.xml" />
+<link rel="alternate" type="application/rss+xml" title="Workflow Systems RSS 2.0" href="/rss/feeds/workflowsystems.xml" />
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-6562869-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://' : 'http://') + 'stats.g.doubleclick.net/dc.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+<script type="text/javascript">
+function plusone_vote( obj ) {
+_gaq.push(['_trackEvent','plusone',obj.state]);
+}
+</script>
+<style>
+body {
+	font-family: jaf-bernino-sans, 'Lucida Grande', 'Lucida Sans Unicode', 'Lucida Sans', Geneva, Verdana, sans-serif;
+	color: #333;
+}
+div.container p {
+	line-height: 1.65em;
+}
+h1 {
+	font-size: 32px;
+}
+h3 {
+	font-size: 18px;
+}
+h4 {
+	font-size: 14px;
+}
+
+div.container {
+	margin-left: auto;
+	margin-right: auto;
+}
+
+div {
+	margin: 64px;
+	max-width: 640px;
+	position: relative;
+}
+img {
+    max-width: 100%;
+    height: auto;
+    width: auto\9; /* ie8 */
+}
+a {
+	color: #009;
+	text-decoration: none;
+}
+a:hover {
+	text-decoration: underline;
+}
+hr {
+	margin:64px;
+}
+label {
+	font-size: 0.8em;
+	color: #666;
+}
+input {
+	color: #999;
+}
+
+/* NAVBAR */
+.navbar {
+//	position: fixed;
+	background: #EEEEEE;
+	top: -64px;
+	z-index: 10000;
+	width: 100%;
+	clear: both;
+	padding: 0px;
+	margin: 0px;
+	padding-top: 10px;
+	padding-left: 10px;
+	padding-right: 10px;
+}
+
+/*  SECTIONS  */
+.section {
+	clear: both;
+	padding: 0px;
+	margin: 0px;
+}
+
+/*  COLUMN SETUP  */
+.col {
+	display: block;
+	float:left;
+	margin: 1% 0 1% 1.6%;
+}
+.col:first-child { margin-left: 0; }
+
+
+/*  GROUPING  */
+.group:before,
+.group:after {
+	content:"";
+	display:table;
+}
+.group:after {
+	clear:both;
+}
+.group {
+    zoom:1; /* For IE 6/7 */
+}
+
+/*  GRID OF THREE  */
+.span_3_of_3 {
+	width: 100%;
+}
+.span_2_of_3 {
+	width: 66.1%;
+}
+.span_1_of_3 {
+	width: 32.2%;
+}
+
+/*  GO FULL WIDTH AT LESS THAN 480 PIXELS */
+
+@media only screen and (max-width: 480px) {
+	.col {
+		margin: 1% 0 1% 0%;
+	}
+}
+
+@media only screen and (max-width: 480px) {
+	.span_3_of_3 {
+		width: 100%;
+	}
+	.span_2_of_3 {
+		width: 100%;
+	}
+	.span_1_of_3 {
+		width: 100%;
+	}
+}
+
+.span_2_of_2 {
+	width: 100%;
+}
+
+.span_1_of_2 {
+	width: 49.2%;
+}
+
+/*  GO FULL WIDTH AT LESS THAN 480 PIXELS */
+
+@media only screen and (max-width: 480px) {
+	.span_2_of_2 {
+		width: 100%;
+	}
+	.span_1_of_2 {
+		width: 100%;
+	}
+}
+</style>
+<style>
+#form-search > .st-default-search-input {
+	width: 170px;
+  display: inline-block;
+  height: 16px;
+  padding: 7px 11px 7px 28px;
+  border: 1px solid #bbb;
+  border: 1px solid rgba(0,0,0,0.25);
+  font-weight: 400;
+  color: #3B454F;
+  font-size: 14px;
+  line-height: 16px;
+  -webkit-box-sizing: content-box;
+  -moz-box-sizing: content-box;
+  box-sizing: content-box;
+  -webkit-border-radius: 0;
+  -moz-border-radius: 0;
+  border-radius: 0;
+  -webkit-box-shadow: none;
+  -moz-box-shadow: none;
+  box-shadow: none;
+  font-family: system, -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Lucida Grande", sans-serif;
+}
+
+
+blockquote
+{
+    color: #666;
+    font-size: 1.1em;
+    background: none;
+    border-left: .2rem solid #d3d3d3;
+
+    display: block;
+    padding: 20px 20px 10px 45px;
+    margin: 20px 0;
+    font-style: italic;
+
+    margin-block-start: 1em;
+    margin-block-end: 1em;
+    margin-inline-start: 40px;
+    margin-inline-end: 40px;
+
+	font-family: Georgia, Palatino, "Palatino Linotype", Times, "Times New Roman", serif;
+}
+
+.ldq {
+	display: block;
+    padding-left: 10px;
+    content: "\201C";
+    font-size: 60px;
+    position: relative;
+    left: -50px;
+    top: 0;
+    height: 0;
+    color: #7a7a7a;
+}
+code {
+	font-size:1.25em;
+}
+</style>
+</head>
+<body>
+
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-P52H78L"
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+
+<div class=container>
+<div class="navbar">
+<form id="form-search" name="searchform" onsubmit="return false;" style='float:right;'>
+<input type="text" class="st-default-search-input">
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+  (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+  e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install','UyYECD1kdsPnbHJtPyzG','2.0.0');
+</script>
+<br />
+<a href="issuedetail.cfm?issue=3434571" style='width:150px;font-size:0.7em;'>Current Issue</a> &nbsp; <a href="pastissues.cfm" style='width:150px;font-size:0.7em;'>Past Issues</a> &nbsp; <a href="topics.cfm" style='width:150px;font-size:0.7em;'>Topics</a>
+</form>
+<a href='/'><img src='https://queue.acm.org/img/acmqueue_logo.gif' /></a>
+</div>
+<p style='text-align:center;'>
+<a href='/app/' target='_new'><img src='/app/2020_09-10_lrg.png' with=90 height=120 style='float:right;width:90px;height:120px;' alt='September/October 2020 issue of acmqueue' /></a>
+<b><a href='/app/'>The September/October 2020 issue of acmqueue is out now</a></b>
+<br />
+<br />
+<a href='https://cdn.coverstand.com/3rd_pty/acm/login.html?&btx_i=680107'>Subscribers and ACM Professional members login here</a>
+<br clear=all />
+<hr style='display:block;color:red;margin:5px;' />
+</p>
+<br />
+<label>December 12, 2016<br /><b><a class="descriptor" href="issuedetail.cfm?issue=3012426">Volume 14, issue 5 </a></b></label>
+<p>
+
+&nbsp;
+<a href="https://dl.acm.org/ft_gateway.cfm?id=3025012&ftid=1821278&dwn=1">
+<img src="img/icon_pdf.png" alt="Download PDF version of this article" />
+PDF
+</a>
+</p>
+<h1 class="hidetitle">Life Beyond Distributed Transactions</h1>
+<h2>An apostate's opinion</h2>
+<br />
+<h3> Pat Helland </h3>
+<p><i>This is an updated and abbreviated version of a paper by the same name first published in CIDR (Conference on Innovative Database Research) 2007.</i></p>
+<p>Transactions are amazingly powerful mechanisms, and I've spent the majority of my almost 40-year career working on them. In 1982, I first worked to provide transactions on the Tandem NonStop System. This system had a mean time between failures measured in years<sup>4</sup> and included a geographically distributed two-phase commit offering excellent availability for strongly consistent transactions. </p>
+<p>New innovations, including Google's Spanner,<sup>2</sup> offer strongly consistent transactional environments at extremely large scale with excellent availability. Building distributed transactions to support highly available applications is a great challenge that has inspired excellent innovation and great technology. Unfortunately, this is not broadly available to application developers.</p>
+<p>In most distributed transaction systems, the failure of a single node causes transaction commit to stall. This in turn causes the application to get wedged. In such systems, the larger it gets, the more likely the system is going to be down. When flying an airplane that needs all of its engines to work, adding an engine reduces the availability of the airplane. Running a distributed transaction system over thousands of nodes is impractical without special mechanisms to tolerate outages. When application developers build systems using non-highly available distributed transactions, the solutions are brittle and must be discarded. Natural selection kicks in...</p>
+<p><i>Instead, applications are built using techniques that do not provide transactional guarantees but still meet the needs of their business.</i></p>
+<p>This article explores and names some of the practical approaches used in the implementation of large-scale mission-critical applications in a world that rejects distributed transactions. Topics include the management of fine-grained pieces of application data that may be repartitioned over time as the application grows. Design patterns support sending messages between these repartitionable pieces of data.</p>
+<p>The goal here is to reduce the challenges faced by people handcrafting very large scalable applications. Also, by observing these design patterns, the industry can perhaps work toward the creation of platforms to make it easier to develop scalable applications. Finally, while this article targets scalable homogeneous applications, these techniques are also very useful for supporting scalable heterogeneous applications such as support for mobile devices.</p>
+<h3>Goals</h3>
+<p>This article focuses on how an application developer can build a successful scalable enterprise application when he or she has only a local database or transaction system available. Availability is not addressed, merely scale and correctness. </p>
+<h4>Discuss Scalable Applications</h4>
+<p>Most designers of scalable applications understand the business requirements. The problem is that the issues, concepts, and abstractions for the interaction of transactions and scalable systems have no names and are not crisply understood. They are inconsistently applied and sometimes come back to bite the designers. One goal of this article is to launch a discussion that can increase awareness of these concepts, leading toward a common set of terms and an agreed-upon approach to scalable programs.</p>
+<h4>Think about Almost-Infinite Scaling of Applications</h4>
+<p>The article presents an informal thought experiment on the impact of almost-infinite scaling. Let's assume the number of customers, purchasable entities, orders, shipments, health-care patients, taxpayers, bank accounts, and all other business concepts manipulated by the app grows significantly over time. Typically, each individual thing doesn't get much larger; there are simply more and more of them. It really doesn't matter if CPU, DRAM, storage, or some other resource gets saturated first. At some point, the increase in demand leads to spreading what used to run on a single machine over a larger number of machines. This thought experiment makes us consider tens or hundreds of thousands of machines.</p>
+<p>Almost-infinite scaling is a loose, imprecise, and deliberately amorphous way of motivating the need to be very clear about when and where you can <i>know</i> something fits on one machine and what to do if you cannot ensure it fits on one machine. Furthermore, you want to scale almost linearly with the data and computation load. Of course, scaling at an N-log-N pace with a big log would be great.</p>
+<h4>Describe a Few Common Patterns for Scalable Apps</h4>
+<p>What are the impacts of almost-infinite scaling on the business logic? I am asserting that scaling implies using a new abstraction called an <i>entity</i> as you write your program. An entity lives on a single machine at a time, and the application can manipulate only one entity at a time. A consequence of almost-infinite scaling is that this programmatic abstraction must be exposed to the developer of the business logic.</p>
+<p>By naming and discussing this as-yet-unnamed concept, we can perhaps agree on a consistent programmatic approach and a consistent understanding of the issues involved in building scalable systems.</p>
+<p>Furthermore, the use of entities has implications on the messaging patterns used to connect them. This leads to the creation of state machines that cope with the message-delivery inconsistencies foisted upon innocent application developers attempting to build scalable solutions to business problems.</p>
+<h3>Some Assumptions</h3>
+<p>Consider the following three assumptions, which are asserted and not justified. Assume these are true based on experience. </p>
+<h4>Layers of the Application and Scale Agnosticism</h4>
+<p>Let's begin by presuming that each scalable application has at least two layers, as shown in figure 1. These layers differ in the perception of scaling. They may have other differences, but these are not relevant to this discussion.</p>
+<img src="https://dl.acm.org/cms/attachment/7392452e-870f-441a-8c95-72509df3ee17/helland1.png" alt="Life Beyond Distributed Transactions" />
+<p>The lower layer of the application understands that more computers get added to make the system scale. In addition to other work, it manages the mapping of the upper layer's code to the physical machines and their locations. The lower layer is <i>scale-aware</i> in that it understands this mapping. I presume that the lower layer provides a <i>scale-agnostic programming abstraction</i> to the upper layer. There are many examples of scale-agnostic programming abstractions, including MapReduce.<sup>3</sup></p>
+<p>Using this scale-agnostic programming abstraction, the upper layer of the application code is written without worrying about scaling issues. By sticking to the scale-agnostic programmatic abstraction, you can write application code that is not worried about the changes happening when it is deployed over an ever-increasing load.</p>
+<p>Over time, the lower layer of these applications may evolve to become a new platform or middleware that simplifies the creation of scale-agnostic APIs.</p>
+<h4>Transactional Scopes</h4>
+<p>Lots of academic work has been done on the notion of providing strongly consistent transactions over distributed systems. This includes 2PC (two-phase commit),<sup>1</sup> Paxos,<sup>5</sup> and recently Raft.<sup>6</sup> Classic 2PC will block when a machine fails unless the coordinator and participants in the transaction are fault tolerant in their own right such as the Tandem NonStop System. Paxos and Raft do not block with node failures but do extra work coordinating much like Tandem's system.</p>
+<p>These algorithms can be described as providing <i>strongly consistent transactions over distributed systems</i>. Their goal is to allow arbitrary atomic updates to data spread over many machines. Updates exist in a single transactional scope spanning many machines.</p>
+<p>Unfortunately, in many circumstances this is not an option for an application developer. Applications may need to span trust boundaries, different platforms, and different operational and deployment zones. What happens when you &quot;just say no&quot; to distributed transactions?</p>
+<p>Even today, 10 years after this paper was first written, real system developers rarely try to achieve strongly consistent transactions over more than just a few computers. Instead, they assume multiple separate transaction scopes. Each computer is a separate scope with local transactions inside.</p>
+<h4>Most Applications Use At-Least-Once Messaging</h4>
+<p>TCP/IP is great if you are a short-lived Unix-style process, but consider the dilemma faced by an application developer whose job is to process a message and modify some durable data represented in a database. The message is consumed and not yet acknowledged. The database is updated and then the message is acknowledged. In a failure, this is restarted and the message is processed again.</p>
+<p>The dilemma derives from the fact that the message delivery is not directly coupled to the update of the durable data other than through application action. While it is possible to couple the consumption of messages to the update of the durable data, this is not commonly available. The absence of this coupling leads to failure windows where the message is delivered more than once. Rather than lose messages, the message plumbing delivers them at least once.</p>
+<p>A consequence of this behavior is that the application must tolerate message retries and out-of-order delivery.</p>
+<h3>Opinions to Be Justified</h3>
+<p>The nice thing about writing an opinion piece is that you can express wild opinions. Here are a few that this article tries to justify.</p>
+<h4>Scalable Apps Use Uniquely Identified Entities</h4>
+<p>This article argues that the upper-layer code for each application must manipulate a single collection of data called an <i>entity</i>. There are no restrictions on the size of a single entity except that it must live within a single transactional scope (i.e., one machine).</p>
+<p>Each entity has a unique identifier or key, as shown in figure 2. An entity key may be of any shape, form, or flavor. Somehow, it must uniquely identify exactly one entity and the data it contains.</p>
+<img src="https://dl.acm.org/cms/attachment/6117aa72-42ee-46d9-84f1-77588fa006e6/helland2.png" alt="Life Beyond Distributed Transactions" />
+<p>There are no restrictions on the representations of the entity. It may be represented as SQL records, XML, JSON, files, or anything else. One possible representation would be a collection of SQL records, potentially across many tables, whose primary key has the entity key as its prefix.</p>
+<p>Entities represent disjoint sets of data. Each datum resides in exactly one entity. </p>
+<p>An application consists of many entities. For example, an order-processing application encapsulates many orders, each of which is identified by a unique Order-ID. To be a scalable order-processing application, data from one order must be disjoint from data for other orders.</p>
+<h4>Atomic Transactions Cannot Span Entities</h4>
+<p>Each computer is assumed to be a separate transactional scope. Later this article presents the argument that atomic transactions cannot span entities. The programmer must always stick to the data contained inside a single entity for each transaction. </p>
+<p>From the programmer's perspective, the <i>uniquely identified entity is the transactional scope</i>. This concept has a powerful impact on the behavior of applications designed for scaling. One implication to be explored is that alternate indices cannot be kept transactionally consistent when designing for almost-infinite scaling.</p>
+<h4>Messages Are Addressed to Entities</h4>
+<p>Most messaging systems do not consider the partitioning key for the data but rather target a queue that is consumed by a stateless process. Standard practice is to include some data in the message that informs the stateless application code where to get the data it needs. This is the entity key. The data for the entity is fetched from some database or other durable store by the application.</p>
+<p>A couple of interesting trends are happening. First, the size of the <i>set</i> of entities is growing larger than will fit on a single computer. Each individual entity usually fits in one computer, but the set of them does not. Increasingly, the stateless application is routing to fetch the entity based on some partitioning scheme. </p>
+<p>Second, the fetching and partitioning scheme is being separated into the lower layers of the application. This is deliberately isolated from the upper layers responsible for the business logic.</p>
+<p>This pattern effectively targets the entity by routing using the entity key. Both the stateless Unix-style process and the lower layers of the application are simply part of the implementation of the scale-agnostic API provided for the business logic. The upper-layer scale-agnostic business logic simply addresses the message to the entity key that identifies the durable state known as the entity.</p>
+<h4>Entities Manage Per-Partner State (Activities)</h4>
+<p>Scale-agnostic messaging is effectively entity-to-entity messaging. The sending entity is manifest by its durable state and is identified by its entity key. It sends a message to another entity and identifies it by its entity key. The recipient entity consists of both scale-agnostic upper-layer business logic and the durable data representing its state. This is identified by its entity key.</p>
+<p>Recall the assumption that messages are delivered at least once. The recipient entity may be assailed with redundant messages that must be ignored. In practice, messages fall into two categories: those that affect the state of the entity and those that do not. Messages that don't affect the entities state are easy—they are trivially idempotent. Messages that change the state require more care.</p>
+<p>To ensure idempotence (i.e., guarantee that the processing of retried messages is harmless), the recipient entity is typically designed to remember that the message has been processed. Once it has been successfully processed, repeated messages will typically generate another response matching the behavior of the first message.</p>
+<p>The knowledge of the received message creates state that is wrapped up on a per-partner basis. The important observation is that the state is organized on a per-partner basis and each partner is an entity.</p>
+<p>The term <i>activity</i> is applied to the state that manages the per-partner messaging on each side of a two-party relationship. Each activity lives in exactly one entity. An entity will have an activity for each partner entity.</p>
+<p>In addition to managing messaging melees, activities are used to manage loosely coupled agreements. In a world where atomic transactions are not a possibility, tentative operations are used to negotiate a shared outcome. These are performed between entities and are managed by activities.</p>
+<p>Building workflows to reach agreement is fraught with challenges that are well documented elsewhere.<sup>7</sup> This article does not assert that activities solve these challenges, but rather that they give a foundation for storing the state needed to solve them. Almost-infinite scaling leads to surprisingly fine-grained workflow-style solutions. The participants are entities, and each entity manages its workflow using specific knowledge about the other entities involved. That two-party knowledge maintained inside an entity is called an activity.</p>
+<p>Examples of activities are sometimes subtle. An order application sends messages to the shipping application. It includes the shipping ID and the sending order ID. The message type may be used to stimulate the state changes in the shipping application to record that the specified order is ready to ship. Frequently, implementers don't design for retries until a bug appears. Rarely, but occasionally, the application designers think about and plan for activities.</p>
+<h3>Entities</h3>
+<p>This section examines the nature of entities in greater depth. </p>
+<h4>Disjoint Transactional Scopes</h4>
+<p>Each entity is defined as a collection of data with a unique key known to live within a single transactional scope. Atomic transactions may always be done <i>within a single entity.</i> </p>
+<h4>Uniquely Keyed Entities</h4>
+<p>Code for the upper layer of an application is naturally designed around collections of data with a unique key. Customer IDs, Social Security numbers, product SKUs, and other unique identifiers can be seen within applications. They are used as keys to locate the applications' data. Guarantees of transactional atomicity come only within an entity identified by a unique key.</p>
+<h4>Repartitioning and Entities </h4>
+<p>One of the assumptions previously stated is that the emerging upper layer is scale agnostic and the lower layer decides how the deployment evolves as its scale changes. The location of a specific entity is likely to change as the deployment evolves. The upper layer of the application cannot make assumptions about the location of the entity because that would not be scale agnostic.</p>
+<p>As shown in figure 3, entities are spread across transactional scopes using either hashing or key-range partitioning.</p>
+<img src="https://dl.acm.org/cms/attachment/c00a0353-a2aa-4e41-88d6-53200d9fa2b6/helland3.png" alt="Life Beyond Distributed Transactions" />
+<h4>Atomic Transactions and Entities </h4>
+<p>In scalable systems, <i>you can't assume transactions for updates across these different entities.</i> Each entity has a unique key, and each entity is easily placed into one transactional scope. Recall the premise that almost-infinite scaling causes <i>the number of entities</i> inexorably to increase, but <i>size of the individual entity</i> remains small enough to fit in a transactional scope (i.e., one computer). </p>
+<p>How can you know that two separate entities are guaranteed to be within the same transactional scope and, hence, atomically updatable? You know only when a single unique key unifies both. Now it is really one entity! </p>
+<p>If hashing is used for partitioning by entity key, there's no telling when two entities with different keys land on the same box. If key-range partitioning is used for the entity keys, most of the time the adjacent key values reside on the same machine. Once in a while you will get unlucky and your neighbor will be on another machine. </p>
+<p>A simple test case that counts on atomicity with a neighbor in a key-range partitioning will usually succeed. Later, when redeployment moves the entities across machines the latent bug emerges; the updates are no longer atomic. You can never count on different entity-key values residing in the same place.</p>
+<p>Put more simply, the lower layer of the application will ensure that each entity key (and its entity) resides on a single machine. Different entities may be anywhere. </p>
+<p><i>A scale-agnostic programming abstraction must have the notion of entity as the boundary of atomicity.</i> Understanding entities, the use of the entity key, and the clear commitment to a lack of atomicity across entities are essential to scale-agnostic programming.</p>
+<p>Large-scale applications implicitly do this in the industry today; there just isn't a name for the concept of an entity. From an upper-layer app's perspective, it must assume that the entity is the scope of transactions. Assuming more will break when the deployment changes. </p>
+<h4>Considering Alternate Indices </h4>
+<p>We are accustomed to the ability to address data with multiple keys or indices. For example, sometimes a customer is referenced by Social Security number, sometimes by credit-card number, and sometimes by street address. Assuming extreme amounts of scaling, these indices cannot reside on the same machine or in a single large cluster. <i>The data about a single customer cannot be known to reside within a single transactional scope. </i>The entity itself resides in a single transactional scope. The challenge is that the copies of the information used to create an alternate index must be assumed to reside in a different transactional scope. </p>
+<p>Consider guaranteeing that the alternate index resides in the same transactional scope. When almost-infinite scaling kicks in, the set of entities is smeared across gigantic numbers of machines. The primary index and alternate index information must reside within the same transactional scope. The only way to ensure this is to locate the alternate index using the primary index. That takes you to the same transactional scope. If you start without the primary index and have to search all of the transactional scopes, each alternate index lookup must examine an almost-infinite number of scopes as it looks for the match to the alternate key. This will eventually become untenable.</p>
+<p>The only logical alternative is to do a two-step lookup. First, look up the alternate key, which yields the entity key. Second, access the entity using the entity key. This is very much like inside a relational database as it uses two steps to access a record via an alternate key. But the premise of almost-infinite scaling means the two indices (primary and alternate) cannot be known to reside in the same transactional scope. See figure 4.</p>
+<img src="https://dl.acm.org/cms/attachment/a2b63b82-85fe-4728-a23f-715eb6a6e9c0/helland4.png" alt="Life Beyond Distributed Transactions" />
+<blockquote style="margin:10px;padding:10px;background-color:#eeeeee;">
+The scale-agnostic application program can't atomically update an entity and its alternate index. The upper-layer scale-agnostic application must be designed to understand that alternate indices may be out of sync with the entity accessed with its primary index (i.e., entity key). As shown in figure 4, different keys (primary entity key versus alternate keys) cannot be collocated or updated atomically.
+</blockquote>
+<p>What in the past has been managed automatically as alternate indices must now be managed manually by the application. Workflow-style updates via asynchronous messaging are all that are left. When you read data from alternate indices, you must understand that it is potentially out of sync with the entity itself. Alternate indices are now harder. This is a fact of life in the big cruel world of huge systems.</p>
+<h3>Messaging Across Entities</h3>
+<p>This section considers connecting independent entities using messages. It examines naming, transactions and messages, message-delivery semantics, and the impact of repartitioning entities. </p>
+<h4>Messages to Communicate across Entities </h4>
+<p>If you can't update the data across two entities in the same transaction, you need a mechanism to update the data in different transactions. The connection between the entities is via a message. </p>
+<h4>Asynchronous with Respect to Sending Transactions </h4>
+<p>Since messages are across entities, the data associated with the decision to send the message is in one entity, and the destination of the message is in another entity. By definition of an entity, these entities cannot be atomically updated. Messages cannot be atomically sent and received across these different entities.</p>
+<p>It would be horribly complex for an application developer to send a message while working on a transaction, have the message sent, and then the transaction abort. This would mean you have no memory of causing something to happen and yet it does happen. For this reason, transactional enqueuing of messages is de rigueur. See figure 5.</p>
+<img src="https://dl.acm.org/cms/attachment/acbcd2cb-f2dd-4b0d-b660-ad1922a053fa/helland5.png" alt="Life Beyond Distributed Transactions" />
+<p>If the message cannot be seen at the destination until <i>after</i> the sending transaction commits, the message is asynchronous with respect to the sending transaction. Each entity advances to a new state with a transaction. Messages are the stimuli coming from one transaction and arriving at a new entity causing transactions. </p>
+<h4>Naming the Destination of Messages </h4>
+<p>Consider the programming of the scale-agnostic part of an application, as one entity wants to send a message to another entity. The location of the destination entity is not known to the scale-agnostic code. The entity key is. </p>
+<p>It falls on the scale-aware part of the application to correlate the entity key to the location of the entity. </p>
+<h4>Repartitioning and Message Delivery </h4>
+<p>When the scale-agnostic part of the application sends a message, the lower-level scale-aware portion hunts down the destination and delivers the message at least once. </p>
+<p>As the system scales, entities move. This is commonly called <i>repartitioning</i>. The location for the entity and, hence, the destination for the message may be in flux. Sometimes messages will chase to the old location only to find out the pesky entity has been sent elsewhere. Now the message will have to follow.</p>
+<p>As entities move, the clarity of a first-in, first-out queue between the sender and the destination is occasionally disrupted. Messages are repeated. Later messages arrive before earlier ones. Life gets messier. </p>
+<p>For these reasons, scale-agnostic applications are evolving to support idempotent processing of all application-visible messaging. This implies reordering in message delivery, too. </p>
+<h3>Activities: Coping with Messy Messages</h3>
+<p>This section discusses ways of coping with the challenges of message retries and reordering. It introduces the notion of an activity as the local information needed to manage a relationship with a partner entity. </p>
+<h4>Retries and Idempotence </h4>
+<p>Since any message may be delivered multiple times, the application needs a discipline to cope with repeated messages. While it is possible to build low-level support for the elimination of duplicate messages, in an almost-infinite scaling environment the low-level support would need to know about entities. The knowledge of which messages have been delivered to the entity must travel with the entity when it moves because of repartitioning. In practice, the low-level management of this knowledge rarely occurs; messages may be delivered more than once. </p>
+<p>Typically, the scale-agnostic (higher-level) portion of the application must implement mechanisms to ensure that the incoming message is idempotent. This is not essential to the nature of the problem. Duplicate elimination could certainly be built into the scale-aware parts of the application. This is not yet available. Hence, let's consider what the poor developer of the scale-agnostic application must implement. </p>
+<h4>Defining Idempotence of Substantive Behavior </h4>
+<p>The processing of a message is idempotent if a subsequent execution of the processing does not perform a <i>substantive change </i>to the entity. This is an amorphous definition that leaves open to the application the specification of what is and what is not substantive. </p>
+<p>If a message does not change the invoked entity but only reads information, its processing is idempotent. This is true even if a log record describing the read is written. The log record is not substantive to the behavior of the entity. The definition of what is and what is not substantive is application specific.</p>
+<h4>Natural Idempotence </h4>
+<p>To accomplish idempotence, it is essential that the message does not cause substantive side effects. Some messages provoke no substantive work any time they are processed. These are <i>naturally</i> idempotent. </p>
+<p>A message that only reads some data from an entity is naturally idempotent. What if the processing of a message does change the entity but not in a substantive way? Those, too, would be naturally idempotent. </p>
+<p>Now it gets harder. The work implied by some messages actually cause substantive changes. These messages are not naturally idempotent. The application must include mechanisms to ensure that these, too, are idempotent. This means remembering in some fashion that the message has been processed so that subsequent attempts make no substantive change.</p>
+<p>The next section considers the processing of messages that are not naturally idempotent.</p>
+<h4>Remembering Messages as State </h4>
+<p>To ensure the idempotent processing of messages that are not naturally idempotent, the entity must remember they have been processed. This knowledge is state. The state accumulates as messages are processed. </p>
+<p>In addition, if a reply is required, the same reply must be returned. After all, you don't know if the original sender has received the reply. </p>
+<h4>Managing State for Each Partner </h4>
+<p>To track relationships and the messages received, each entity within the scale-agnostic application must somehow remember state information about its partners. It must capture this state on a partner-by-partner basis. Let's name this state an <i>activity</i>. See figure 6. Each entity may have many activities if it interacts with many other entities. Activities track the interactions with each partner. </p>
+<img src="https://dl.acm.org/cms/attachment/2b83d86e-c85c-46e1-9ccc-94f6f00b16a5/helland6.png" alt="Life Beyond Distributed Transactions" />
+<p>Each entity consists of a set of activities and, perhaps, some other data that spans the activities. </p>
+<blockquote style="margin:10px;padding:10px;background-color:#eeeeee;">
+<p>Consider the processing of an order consisting of many items for purchase. Reserving inventory for shipment of each separate item will be a separate activity. There will be an entity for the order and separate entities for each item managed by the warehouse. Transactions cannot be assumed across these entities.</p>
+<p>Within the order, each inventory item will be separately managed. The messaging protocol must be separately managed. The per-inventory-item data contained within the order entity is an activity. While it is not named as such, this pattern frequently exists in large-scale apps.</p>
+</blockquote>
+<p>In an almost-infinitely scaled application, you need to be very clear about relationships. You can't just do a query to figure out what is related. Everything must be formally knit together using a web of two-party relationships. The knitting is done with the entity keys. Because the partner is some distance away, you have to formally manage your understanding of the partner's state as new knowledge when the partner arrives. The local information known about a distant partner is referred to as an activity. See figure 7.</p>
+<img src="https://dl.acm.org/cms/attachment/53036b29-01da-4886-b451-27cc4f983e4b/helland7.png" alt="Life Beyond Distributed Transactions" />
+<h4>Ensuring At-Most-Once Acceptance via Activities </h4>
+<p>Processing messages that are not naturally idempotent requires ensuring that each message is processed at most once (i.e., the substantive impact of the message must happen at most once). To do this, some unique characteristic of the message must be remembered to ensure it will not be processed more than once. </p>
+<p>The entity must durably remember the transition from a message being OK to process into the state where the message will not have substantive impact. </p>
+<p>Typically, an entity uses its activities to implement this state management on a partner-by-partner basis. This is essential because sometimes an entity supports many different partners, and each will pass through a pattern of messages associated with that relationship. The per-partner collection of state makes that possible.</p>
+<h3>Activities: Coping Without Atomicity</h3>
+<p>This section addresses how wildly scalable systems make decisions without distributed transactions. </p>
+<p>Managing distributed agreement is hard work. In an almost-infinitely scalable environment, the representation of uncertainty must be done in a fine-grained fashion that is oriented around per-partner relationships. This data is managed within entities using the notion of an activity. </p>
+<h4>Uncertainty at a Distance </h4>
+<p>The absence of distributed transactions means the acceptance of uncertainty when attempting to come to decisions across different entities. It is unavoidable that decisions across distributed systems involve accepting uncertainty for a while. When distributed transactions can be used, that uncertainty is manifest in the locks held on data and is managed by the transaction manager. </p>
+<p>In a system that cannot count on distributed transactions, the management of uncertainty must be implemented in the business logic. The uncertainty of the outcome is held in the business semantics rather than in the record lock. This is simply workflow. It's not magic. You can't use distributed transactions, so you use workflow. </p>
+<p>The assumptions that led to entities and messages now lead to the conclusion that the scale-agnostic application must manage uncertainty itself using workflow. This is needed to reach agreement across multiple entities. </p>
+<blockquote style="margin:10px;padding:10px;background-color:#eeeeee;">
+<p>Think about the style of interactions common across businesses. Contracts between businesses include time commitments, cancellation clauses, reserved resources, and much more. Uncertainty is wrapped up in the behavior of the business functionality. While more complicated to implement than using distributed transactions, it is how the real world works...</p>
+<p>Again, this is simply an argument for workflow.</p>
+</blockquote>
+<h4>Activities and the Management of Uncertainty </h4>
+<p>Entities sometimes accept uncertainty as they interact with other entities. This uncertainty must be managed on a partner-by-partner basis and can be visualized as being reified in the activity state for the partner. </p>
+<p>Many times, uncertainty is represented by relationship. It is necessary to track it by partner. The activity tracks each partner as it advances into a new state.</p>
+<blockquote style="margin:10px;padding:10px;background-color:#eeeeee;">
+<p>If an ordering system reserves inventory from a warehouse, the warehouse allocates the inventory without knowing if it will be used. That is accepting uncertainty. Later, the warehouse finds out if the reserved inventory will be needed. This resolves the uncertainty.</p>
+<p>The warehouse inventory manager must keep relationship data for each order encumbering its items. As it connects items and orders, these will be organized by item. Each item keeps information about outstanding orders for that item. Each activity within the item (one per order) manages the uncertainty of the order.</p>
+</blockquote>
+<h4>Performing Tentative Business Operations </h4>
+<p>To reach an agreement across entities, one entity asks another to accept uncertainty. One entity sends another a request that may be canceled later. This is called a <i>tentative operation</i>. At the end of this step, one entity agrees to abide by the wishes of the other. </p>
+<h4>Tentative Operations, Confirmation, and Cancellation </h4>
+<p>Essential to a tentative operation is the right to cancel. If the requesting entity decides not to move forward, it issues a <i>cancellation operation</i>. If it decides to move ahead, it issues a <i>confirmation operation</i>.</p>
+<p>When an entity agrees to perform a tentative operation, it agrees to let another entity decide the outcome. It accepts uncertainty, which adds to its confusion. As confirmations and cancellations arrive, the uncertainty decreases, reducing confusion. It is normal to proceed through life with ever increasing and decreasing uncertainty as old problems get resolved and new ones arrive in your lap. </p>
+<p>Again, this is simply workflow, but it is fine-grained workflow with entities as the participants. </p>
+<h4>Uncertainty and Almost-Infinite Scaling </h4>
+<p>The management of uncertainty usually revolves around two-party agreements. There may be multiple two-party agreements. These are knit together as a web of fine-grained two-party agreements using entity keys as the links and activities to track the known state of a distant partner. </p>
+<blockquote style="margin:10px;padding:10px;background-color:#eeeeee;">
+<p>Consider a house purchase and the relationships with the escrow company. The buyer enters into an agreement of trust with the escrow company, as do the seller, mortgage company, and all other parties involved in the transaction.</p>
+<p>When you go to sign papers to buy a house, you do not know the outcome of the deal. You accept that, until escrow closes, you are uncertain. The only party with control over the decision-making is the escrow company.</p>
+<p>This is a hub-and-spoke collection of two-party relationships that are used to get a large set of parties to agree without use of distributed transactions.</p>
+</blockquote>
+<p>When considering almost-infinite scaling, it is interesting to think about two-party relationships. By building up from two-party tentative/cancel/confirm (just like traditional workflow), you can see the basis for achieving distributed agreement. Just as in the escrow company (see sidebar), many entities may participate in an agreement through composition. </p>
+<p>Because the relationships are two-party, the simple concept of an activity as &quot;stuff I remember about that partner&quot; becomes a basis for managing enormous systems—even when the data is stored in entities and you don't know where the entity lives. You must assume it is far away. Still, it can be programmed in a scale-agnostic way. </p>
+<p>Real-world almost-infinite scale applications would love the luxury of a global transactional scope. Unfortunately, this is not readily available to most of us without introducing fragility when a system fails. </p>
+<p>Instead, the management of the uncertainty of the tentative work is passed off into the hands of the developer of the scale-agnostic application. It must be handled as reserved inventory, allocations against credit lines, and other application-specific concepts. </p>
+<h3>Conclusions</h3>
+<p>As usual, the computer industry is in flux.</p>
+<p>Today, new design pressures are being foisted onto programmers who simply want to solve business problems. Their realities are taking them into a world of almost-infinite scaling and forcing them into design problems largely unrelated to the real business at hand. This is true today, and it was true when this article was first published in 2007.</p>
+<p>Unfortunately, programmers striving to solve business goals such as e-commerce, supply-chain-management, financial, and health-care applications increasingly need to think about scaling without distributed transactions. Most developers simply don't have access to robust systems offering scalable distributed transactions.</p>
+<p>We are at a juncture where the patterns for building these applications can be seen, but no one is yet applying these patterns consistently. This article argues that these nascent patterns can be applied more consistently in the handcrafted development of applications designed for almost-infinite scaling.</p>
+<p>This article has introduced and named a couple of formalisms emerging in large-scale applications: </p>
+<p><i>• Entities</i> are collections of named (keyed) data that may be atomically updated within the entity but never atomically updated across entities. </p>
+<p><i>• Activities</i> consist of the collection of state within the entities used to manage messaging relationships with a single partner entity. </p>
+<p>Workflow to reach decisions functions within activities within entities. It is the fine-grained nature of workflow that is surprising when looking at almost-infinite scaling.</p>
+<p>Many applications are implicitly being designed with both entities and activities today. They are simply not formalized, nor are they consistently used. Where the use is inconsistent, bugs are found and eventually patched. By discussing and consistently using these patterns, better large-scale applications can be built and, as an industry, we can get closer to building solutions that allow business-logic programmers to concentrate on the business problems rather than the problems of scale. </p>
+<h4>References</h4>
+<p>1. Bernstein, P. A., Hadzilacos, V., Goodman, N. 1987. <i>Concurrency Control and Recovery in Database Systems</i>. Boston, MA: Addison-Wesley.</p>
+<p>2. Corbett, J. C., et al. 2012. Spanner: Google's globally distributed database. Tenth Usenix Symposium on Operating Systems Design and Implementation (OSDI).</p>
+<p>3. Dean, J., Ghemawat, S. 2004. MapReduce: simplified data processing on large clusters. Sixth Symposium on Operating Systems Design and Implementation (OSDI).</p>
+<p>4. Gray, J. 1990. A census of Tandem Systems availability between 1985 and 1990. <i>IEEE Transactions on Reliability</i> 39(4): 409-418.</p>
+<p>5. Lamport, L. 1998. The part-time parliament. <i>ACM Transactions on Computer Systems</i> 16(2): 133-169.</p>
+<p>6. Ongaro, D., Ousterhout, J. 2014. In search of an understandable consensus algorithm (extended version); <a href="https://raft.github.io/raft.pdf">https://raft.github.io/raft.pdf</a>.</p>
+<p>7. Wachter, H., Reuter, A. 1992. The ConTract Model. In <i>Database Transaction Models for Advanced Applications</i>: 219-263. San Francisco, CA: Morgan Kaufmann.</p>
+<h4>Related articles </h4>
+<p> <b><a href="https://queue.acm.org/detail.cfm?id=1036486">A Conversation with Bruce Lindsay</a></b> Designing for failure may be the key to success <a href="https://queue.acm.org/detail.cfm?id=1036486">http://queue.acm.org/detail.cfm?id=1036486</a> </p>
+<p> <b><a href="https://queue.acm.org/detail.cfm?id=2398392">Condos and Clouds</a></b> Constraints in an environment empower the services. By Pat Helland <a href="https://queue.acm.org/detail.cfm?id=2398392">http://queue.acm.org/detail.cfm?id=2398392</a> </p>
+<p> <b><a href="https://queue.acm.org/detail.cfm?id=1996412">Microsoft's Protocol Documentation Program: Interoperability Testing at Scale</a></b> A discussion with Nico Kicillof, Wolfgang Grieskamp, and Bob Binder <a href="https://queue.acm.org/detail.cfm?id=1996412">http://queue.acm.org/detail.cfm?id=1996412</a> </p>
+<p><b>Pat Helland</b> has been implementing transaction systems, databases, application platforms, distributed systems, fault-tolerant systems, and messaging systems since 1978. For recreation, he occasionally writes technical papers. He currently works at Salesforce.</p>
+<p class="Qcopyrightline">Copyright &copy; 2016 held by owner/author. Publication rights licensed to ACM.</p>
+<p>
+<img class="floatLeft" src="img/q stamp_small.jpg" width="26" height="45" alt="acmqueue"><br><br>
+<em>Originally published in Queue vol. 14, no. 5</em>&#8212;
+<br>
+see this item in the <a href="https://portal.acm.org/citation.cfm?id=3025012">ACM Digital Library</a>
+</p>
+<br />
+<a href="https://twitter.com/share" class="twitter-share-button" data-via="ACMQueue">Tweet</a>
+<script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+<br />
+
+<br />
+<div class="g-plusone" data-size="small" data-annotation="inline" data-width="120"></div>
+
+<script type="text/javascript">
+	addthis_pub             = 'acm';
+	addthis_logo            = 'http://queue.acm.org/img/logo_queue_small.gif';
+	addthis_logo_background = '#ffffff';
+	addthis_logo_color      = '000000';
+	addthis_brand           = 'ACM Queue';
+	addthis_options         = 'reddit, slashdot, facebook, favorites, email, delicious, digg, technorati, blinklist, furl, myspace, google, live, more';
+</script>
+
+
+
+
+<hr noshade size=1 />
+Related:
+<p>
+<span>Matt Fata, Philippe-Joseph Arida, Patrick Hahn, Betsy Beyer</span> - <a href="detail.cfm?id=3264508"><b>Corp to Cloud: Google&#8217;s Virtual Desktops</b></a>
+<br />
+Over one-fourth of Googlers use internal, data-center-hosted virtual desktops. This on-premises offering sits in the corporate network and allows users to develop code, access internal resources, and use GUI tools remotely from anywhere in the world. Among its most notable features, a virtual desktop instance can be sized according to the task at hand, has persistent user storage, and can be moved between corporate data centers to follow traveling Googlers. Until recently, our virtual desktops were hosted on commercially available hardware on Google&#8217;s corporate network using a homegrown open-source virtual cluster-management system called Ganeti. Today, this substantial and Google-critical workload runs on GCP (Google Compute Platform).
+</p>
+<br />
+<p>
+<span>Ivan Beschastnikh, Patty Wang, Yuriy Brun, Michael D, Ernst</span> - <a href="detail.cfm?id=2940294"><b>Debugging Distributed Systems</b></a>
+<br />
+Distributed systems pose unique challenges for software developers. Reasoning about concurrent activities of system nodes and even understanding the system&#8217;s communication topology can be difficult. A standard approach to gaining insight into system activity is to analyze system logs. Unfortunately, this can be a tedious and complex process. This article looks at several key features and debugging challenges that differentiate distributed systems from other kinds of software. The article presents several promising tools and ongoing research to help resolve these challenges.
+</p>
+<br />
+<p>
+<span>Sachin Date</span> - <a href="detail.cfm?id=2933408"><b>Should You Upload or Ship Big Data to the Cloud?</b></a>
+<br />
+It is accepted wisdom that when the data you wish to move into the cloud is at terabyte scale and beyond, you are better off shipping it to the cloud provider, rather than uploading it. This article takes an analytical look at how shipping and uploading strategies compare, the various factors on which they depend, and under what circumstances you are better off shipping rather than uploading data, and vice versa. Such an analytical determination is important to make, given the increasing availability of gigabit-speed Internet connections, along with the explosive growth in data-transfer speeds supported by newer editions of drive interfaces such as SAS and PCI Express.
+</p>
+<br />
+<p>
+<span>George Neville-Neil</span> - <a href="detail.cfm?id=2878574"><b>Time is an Illusion.</b></a>
+<br />
+One of the more surprising things about digital systems - and, in particular, modern computers - is how poorly they keep time. When most programs ran on a single system this was not a significant issue for the majority of software developers, but once software moved into the distributed-systems realm this inaccuracy became a significant challenge.
+</p>
+<br />
+<hr noshade size=1 />
+<hr noshade size=1 />
+<p>
+<a href='#'><img src='https://queue.acm.org/img/logo_acm.gif' /></a>
+<br />
+&copy; 2020 ACM, Inc. All Rights Reserved.
+</p>
+</div>
+</body>
+</html>

@@ -9055,3 +9055,59 @@ transcripts via proxy; the G-M&S §5 quote is agent-reported and UNVERIFIED — 
 before load-bearing use.
 STILL OUT: the image-distribution lane (gates the attachment spec's fetch/prefetch/
 distribution sections). Summon/teardown research is otherwise complete.
+
+**RESEARCH LANDED: image distribution (2026-08-22) — mostly a VERIFICATION/DEBUNK
+pass + 3 load-bearing findings. Evidence quality in this space is POOR: vendor
+claims arithmetically incoherent (AWS "150% reduction" when its own data = 60%;
+"100% reduction in startup"), figures misattributed (CNCF Dragonfly numbers are a
+community blogger's illustrative arithmetic, not measurements; Owl's CacheLib
+derivation not in the cited paper), NYDUS HAS NO PEER-REVIEWED PAPER (verified
+negatively: dblp 0, arXiv 0), DADI's ACM TOS extension closed-access. Treat this
+whole literature as vendor-blog-grade unless first-hand.
+**THE FINDING THAT KILLS MY PROPOSED CROSS-REGION ANSWER (#63):** lazy loading does
+NOT rescue a high-RTT cold region — IT MAKES IT WORSE. Measured us-east-1 ->
+ap-southeast-1 (209ms RTT): plain containerd 14.3s vs eStargz 34.7s (2.4x WORSE);
+Starlight 8.0s. CROSSOVER ~150ms RTT; at 300ms eStargz is 1.58x slower than a plain
+pull. Cause = ROUND-TRIP AMPLIFICATION behind a 2-3 connection cap, NOT bandwidth.
+=> cold region MUST bulk-transfer/pre-replicate; lazy fetch is for NEARBY only.
+**(#62) P2P IS NOT A COLD-START PRE-WARM**: Spegel's own data -6.6%..+3.8% on
+create (~zero), -23%..-94.5% only on update; Kraken/Owl numbers are WARM-FLEET
+fan-out. P2P helps the 2nd..Nth node in a region, never the 1st.
+**(#64) SOCI break-even = 80% ACCESS DENSITY** — above it, lazy loses to a full
+parallel pull. => lazy only pays when a small fraction is touched.
+**THE 3 LOAD-BEARING FINDINGS:** (1) OCI IMAGE LAYOUT is the settled sideload
+interop point AND EXPLICITLY PERMITS A SPARSE BLOB STORE — "The blobs directory MAY
+be missing referenced blobs, in which case the missing blobs SHOULD be fulfilled by
+an external blob store" — k3s/k0s ship air-gap bundles as exactly this; == OUR
+SEED-PACK SHAPE, already standardized. (2) THE MINIMAL microVM FLOOR IS ~2.1 MB
+USERLAND, not ~100MB: Firecracker CI initramfs = one static multi-call binary
+(2,124,608 B) + 256-byte init + 4 empty dirs; LIBKRUN GOES FURTHER — **ZERO ROOTFS
+ARTIFACT** (host dir over virtio-fs + synthetic /init.krun) + a 21.5 MB kernel .so.
+Comparable dev tools ship 330-940 MiB first-run downloads and NONE publish the
+number. (3) EVERY lazy design converges on 2 mechanisms, both about ROUND TRIPS not
+bytes: fetch-from-still-downloading-peers (Owl; Dragonfly scores a seed 1.0 while
+Running, 0.0 once finished — reached independently) and round-trip reduction
+(Nydus stream_prefetch; Starlight measured eStargz 2-3 HTTP requests/layer before
+first useful byte; SOCI ~123 extra range requests/pull, 290ms cold / 4.6ms warm).
+**CONSTRAINTS THAT BITE US:** (#56) LIBKRUN VIRTIO-FS HAS NO DIRECTORY-ESCAPE
+PROTECTION — "libkrun does NOT provide any protection against the guest attempting
+to access other directories in the same filesystem, or even other filesystems in
+the host. A mount point isolation mechanism from the host should be used in
+combination with virtio-fs" + guest can exhaust inodes/disk => our composed
+PROJECTION (not a host dir) is the isolation, MUST be stated + tested + quota'd.
+(#58) FIRECRACKER HAS NO VIRTIO-FS (Net/Block/Vsock only) => our whole
+projection design is IMPOSSIBLE on it — a concrete receipt for ADR-0001's libkrun
+choice. (#57) virtio-fs DAX "performs well only if data fits in cache window" => the
+DAX window is a derived constant WITH A CLIFF (PODS §2 requires DAX). (#54) FORMAT
+CONVERSION BREAKS DIGESTS/SIGNATURES for eStargz/Nydus-Native/zstd:chunked/SOCI-v2
+("breaking content-addressable integrity") — WE NEVER CONVERT (images are natively
+chunk manifests) so the class doesn't exist for us. (#10) OCI digest verification is
+SHOULD not MUST — our every-fetch intrinsic verification is STRONGER than the spec.
+(#48) OCI Range-on-blob is SHOULD w/ no conformance coverage. (#42) NO cloud
+publishes a replication-latency SLA (AWS: "majority < 30 min"). (#40) GKE streaming
+cache scope undocumented — material to cold-region. (#65) Sigstore verify cost is
+76-99% TUF metadata refresh, not crypto (~1ms local). (#51) Notary has NO n-of-m
+threshold ("succeeds if at least one signature verifies"). (#49) referrers fallback
+tag has a documented data-loss race, client's responsibility. (#50) artifactType is
+a discovery hint, NEVER an authenticated type check.
+STILL OUT: the lifecycle re-run (af2103) — gates the summon design.
