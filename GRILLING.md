@@ -9941,3 +9941,63 @@ different timeouts are different, even if they are otherwise identical… runnin
 execution run with a longer timeout, HIDING THE FACT THAT THE TIMEOUT IS TOO SHORT."*
 Everything affecting a result must be inside its digest — applies directly to our
 content-identity dedup.
+
+**LANE 1 COMPLETE -> /Users/adalundhe/.claude/jobs/6ac71cfa/tmp/research-crash-declaration.md**
+(1181 lines, written incrementally, all 7 sections). K8s quotes re-fetched verbatim
+from `kubernetes/website` raw source. §3 is an INDEPENDENT source-level pass on
+Temporal (server checkout `6805cae`, docs checkout, `sdk-go`) that CLOSES an open item
+in notes-temporal.md (the SDK's client-side handling of the NOT_FOUND rejection) and
+carries both of that file's corrections forward. §6 independent pass on Flink/Spark
+commit-path source. §7 is the deliverable. Shard Manager (Twine ref [16]) NOT reached
+— remains the open item.
+
+**S1 — TEMPORAL STATES THE LEDGER-VS-WORLD SPLIT MORE PRECISELY THAN WE HAVE:** the
+activity *"will be observed as completed exactly once. However, the Activity may be
+executed multiple times and may even partially complete more than once."* **Those are
+two different claims — one about the LEDGER, one about the WORLD — and only the first
+is guaranteed by ANY system surveyed.** Adopt this phrasing; it is the cleanest
+statement of what our claims plane can and cannot promise, and it forces the
+externalization law to be a SEPARATE guarantee rather than a corollary.
+
+**S2 — THE REAL TAXONOMY IS *WHERE THE CHECK RUNS*, NOT WHETHER IT IS CALLED A FENCE.
+This SUPERSEDES my Law 3 phrasing ("a fence must live in something that remembers what
+it decided") with something sharper and testable:**
+- **CLIENT-SIDE checks are WORTHLESS against a stopped process.** (The Curator lesson:
+  its listeners cannot fire inside a stopped process.)
+- **COORDINATOR-SIDE checks catch a zombie THAT COMES BACK AND ASKS** — Temporal's
+  attempt compare, Spark's `canCommit`, Flink's `ExecutionAttemptID`. **But Spark's is
+  a DEMONSTRABLE CHECK-THEN-ACT RACE: `canCommit` returns a boolean over RPC, and
+  `performCommit()` then renames against the filesystem WITH NO RE-CHECK.** A
+  coordinator-side check is only as good as the gap between the check and the act.
+- **ONLY RESOURCE-SIDE CHECKS SURVIVE AN UNBOUNDED PAUSE.**
+- **AND THE ARCHITECTURAL KICKER: "Kafka only has one because ITS COORDINATOR AND ITS
+  STORAGE ARE THE SAME PROCESS."**
+**=> DIRECT CONSEQUENCE FOR US, AND IT IS AN ADVANTAGE WE SHOULD NAME: OUR CLAIMS
+LEDGER IS BOTH THE COORDINATOR AND THE STORAGE.** The commit point and the durable
+record are the same component, so we can have a genuine RESOURCE-SIDE check where
+Temporal/Spark/Flink structurally cannot. LEDGER_CORE §2's effective-state affordance
+check IS a resource-side check — it runs where the write becomes durable, against
+applied arenas + pending queue, closing the check-then-act gap that breaks Spark. This
+is why the MERGE fix needed no new mechanism, and it is the argument for putting rung
+5's check in the same place rather than at any supervisor.
+
+**S3 — TIME-BOUNDED FENCES FAIL OPEN, AND *WHICH WAY* THEY FAIL IS A SEPARATE DESIGN
+DECISION FROM THE FENCE ITSELF.** Flink's exactly-once Kafka sink IS a genuine
+broker-enforced epoch fence — but bounded by `transaction.timeout.ms`, and Flink's own
+docs warn that past it *"data loss may happen when Kafka expires an uncommitted
+transaction."* **Chubby's `lock-delay` expiry fails toward DUPLICATION; Flink's fails
+toward LOSS.** => Rung 5 must state its failure DIRECTION explicitly and defend it —
+an unstated direction is an unmade decision. Given the priced-loss model already in
+CONSENSUS §7 / OBJECT_TIER §3, our direction should be the one the loss formula already
+prices, argued rather than inherited.
+
+**S4 — KUBERNETES' ONLY TRUSTWORTHY FENCE IS PHYSICAL, AND THAT IS THE RUNG-5 CRUX.**
+The `out-of-service` taint requires a HUMAN to have *"verified that the node is already
+in shutdown or power off state."* **At our scale a human-verified power-off is
+unavailable** — which is precisely why rung 5 cannot be solved by copying K8s, and why
+the answer has to be the quorum-decision + terminal-epoch + fresh-epoch-on-rejoin shape
+CONSENSUS §7 already specifies for regions. Recorded as the negative result that
+motivates the design.
+Also reconfirmed: ZooKeeper's recipes page carries the survey's ONE over-claim
+(*"at any snapshot in time no two clients think they hold the same lock"*) — false
+under pauses, undisclaimed.
