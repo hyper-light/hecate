@@ -9404,3 +9404,61 @@ timestamp is required => any design targeting ONLINE transparency-log lookup aim
 the DEPRECATED path. Also: the Notary trust-store dir is `truststore` (one word, per
 notation-go/dir/path.go) — two published docs are WRONG; and
 application/vnd.dsse.envelope.v1+json is cosign-defined, absent from the DSSE spec.
+
+**RECOVERED #4/#5: saga/pivot ordering + Firecracker ->
+/Users/adalundhe/.claude/jobs/6ac71cfa/tmp/recovered-saga.md** (56 KB) and
+**recovered-firecracker.md** (35 KB). All 13 topics, none empty. Firecracker merged
+from BOTH blocks, preferring whichever carried the unbroken passage (the earlier block
+had the complete warm-pool paragraph + the 16-step verbatim jailer list that the
+"refined" rewrite had compressed to 14 — the rewrite LOST material).
+**MY COMMISSIONING PREMISES WERE BOTH WRONG.** The 1987 Sagas paper NEVER says
+compensations must be idempotent — the word is ABSENT from pp.249-259 — and NEVER says
+they must not fail. It says the system gets **"stuck"**, with recovery blocks or manual
+repair as the only remedies. Do not cite Garcia-Molina & Salem for either property.
+**BUT THE PIVOT ORDERING IS VALIDATED HARDER THAN I ARGUED IT:** Garcia-Molina &
+Salem's §5 footnote (1987) and Richardson's blog (2023) give THE SAME DIRECTIVE 32
+YEARS APART — restructure so every post-pivot step is retriable-until-success and
+compensating transactions are NEVER NEEDED AT ALL. That is a 32-year-separated
+independent convergence on refusable-first -> one point of no return -> retriable-after
+=> zero compensation code. Recorded as the receipt for that law.
+Also recovered: save-points, §9 irreversibility, §8 parallel sagas, forward/backward
+recovery, idempotency keys (Stripe/IETF/AWS), exactly-once vs effectively-once w/ Kafka
+epoch fencing, durable execution, 2PC/TCC/Helland. Addendum OVERTURNS §3 of the main
+report (Richardson's taxonomy was NOT paywalled — free in Manning liveBook); corrected
+version written, supersession marked.
+**FIRECRACKER — A DERIVED CONSTANT FOR OUR POOL FILL (constants-from-anchors rule):**
+the warm pool obeys **LITTLE'S LAW — `pool_size = creation_rate x creation_latency`**
+(one pooled microVM per 8 creations/sec at 125 ms). **BOOT LATENCY IS THE DIRECT
+MULTIPLIER ON STANDING IDLE INVENTORY**, and that is the paper's OWN stated reason for
+optimizing boot time. This is the formula our pool-fill sizing takes (R1-OQ1: pre-create
+at pool-fill, start at assignment) — NOT a hand-picked pool count.
+TWO CITATION FLAGS: (a) the Worker Manager concurrency-control protocol and the
+MicroManager's locking APIs are NAMED BUT NEVER SPECIFIED, despite being the
+correctness mechanisms for one-concurrent-invocation-per-slot — we cannot cite them as
+precedent for our locking; (b) the NSDI companion DATASET DOES NOT RECONCILE with
+published Figure 5 (CHV p50 ~102 ms vs Firecracker 161-196 ms, contradicting the prose)
+— DO NOT derive medians from it.
+**RECOVERED #6: image distribution ->
+/Users/adalundhe/.claude/jobs/6ac71cfa/tmp/recovered-image-distribution.md**. Root
+cause of that loss now known: the report was emitted as TWO assistant blocks and ONLY
+THE TAIL (line 544) reached the caller — which is why delivery began mid-sentence at
+"...to 0.7s". The ~144 KB body (line 543) survived and is recovered in full.
+All 5 topics: lazy loading (Slacker/FAST'16, Nydus RAFS v5/v6 + virtio-fs + macOS
+limits, eStargz footer/TOC/landmark, SOCI zTOC + access-density crossover table,
+zstd:chunked CDC, composefs/EROFS/virtio-fs-DAX, 4-way cost matrix); P2P (Owl, Kraken,
+Dragonfly, DADI, FaaSNet, Lambda ATC'23, FAST'18 registry traces, Murder/Borg/Spegel);
+OCI+signing; cross-region (ECR/AR/ACR + Starlight WAN); air-gap/bootstrap.
+THREE LOAD-BEARING: (1) **OCI IMAGE LAYOUT IS THE SETTLED SIDELOAD INTEROP POINT and
+its spec EXPLICITLY PERMITS A SPARSE BLOB STORE FULFILLED EXTERNALLY** — that is the
+air-gap + laptop answer, standards-blessed. (2) **THE MINIMAL-MICROVM USERLAND FLOOR IS
+~2.1 MB, NOT ~100 MB**, against 330-940 MiB first-run downloads THAT NO VENDOR
+PUBLISHES — directly answers "don't explode the binary size": a default CAN be packed.
+(3) **CONNECTION COUNT x RTT, NOT BANDWIDTH, IS THE BINDING CONSTRAINT** — every
+lazy-loading and P2P design INDEPENDENTLY converges on minimizing round trips and
+attaching to in-flight peers. That is the design law for our fetch path.
+CORRECTIONS (Appendix B, from delta-scanning 4 child transcripts): Kraken's piece size
+IS documented (4 MB); request coalescing IS documented and is its CORE ORIGIN
+PROTECTION; and **its ring is RENDEZVOUS HASHING, NOT CONSISTENT HASHING** — the
+consolidation had been built from a README-only re-derivation after two sub-agent
+reports failed to arrive. (Note the convergence: our COLLECTOR assembler already uses
+weighted-HRW/rendezvous.) Dragonfly's doc values drift from code defaults throughout.
