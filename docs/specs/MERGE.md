@@ -344,10 +344,34 @@ non-blocking; the proposer never stalls.
 
 Unchanged in substance: the **frontier service** (colocated with the session
 home; state fully re-derivable from the merge log) batches contiguous green
-versions into review units, issues review claims (at-most-once, lease-expiry
-redelivery), and serves hot-context queries to Arbiter replica pods over
-directed request/response. The ledger carries only review claims and finding
-testaments. Streaming analysis makes the whole-work verdict largely
+versions into review units, issues review claims, and serves hot-context
+queries to Arbiter replica pods over directed request/response. The ledger
+carries only review claims and finding testaments.
+
+**Review-claim dispatch (amendment 2026-08-22, corrects a contradiction).** The
+former parenthetical read "at-most-once, lease-expiry redelivery", which is
+self-contradictory: timer-driven redelivery is precisely what breaks
+at-most-once. Dispatch is at-most-once; **redelivery fires on a durable
+decision, never on an elapsed deadline** — `HEALTH.md`'s claim-coherence
+observation (ledger activity inconsistent with assignment) escalates a
+`guardian_check` claim, the path `PODS.md` §(warden hold-and-escalate) already
+uses. A deadline may exist only as an **advisory work window** telling a holder
+when to stop spending turns; it is never read by an admission path and carries
+no safety weight. Timer-driven reclamation is refused on precedent: Kubernetes'
+30s assumed-pod TTL double-booked nodes (#106361), was set to 0, and is now
+deleted from master.
+
+**A redelivered unit cannot produce two verdicts.** A review unit is a batch of
+contiguous green versions — **immutable once cut** — so any Arbiter's verdict on
+it is equally valid, and the failure mode was never "the wrong Arbiter
+testified" but "two testaments land". The first findings testament closes the
+review claim; a second arrives against a terminal claim and is refused by
+`LEDGER_CORE.md` §2's effective-state affordance check (applied arenas ⊕ pending
+queue — "the Sylk update-on-terminal class, structurally closed"), which covers
+the case where both are in flight. No lease, holder generation, or fencing token
+is introduced here: a displaced Arbiter learns its unit was already judged and
+drops, and because the unit is immutable the completed review is kept rather
+than discarded — the work-conserving outcome. **M18** asserts it. Streaming analysis makes the whole-work verdict largely
 precomputed; the gate itself is a chokepoint where the verdict's structural
 consequence fires — validated ⇒ per-descriptor disk commit unlocks — never
 an evaluator.
@@ -402,6 +426,7 @@ with M12 restated for the two-pass shape: no IO inside either pure pass).
 | M17 | Submission-transaction fuzz: kill any party at any step ⇒ exactly-once apply, agent resumes with a truthful verdict or claim-driven redelivery | the transaction's failure table |
 | M15e | Lying-proposer injection: a corrupted recorded verdict, memcmp result, or manifest hash trips every applier's recomputation at that index, fatal-loud, before any downstream read | output-poison replication — the wrong answer agreed everywhere |
 | M17b | Resolver-storm fuzz: leadership churn under concurrent submitters ⇒ bounded retries, no ping-pong, single-flight refresh observed (instrumented) | the CRDB retry-storm class |
+| M18 | **Review-claim dispatch**: (a) redelivery under adversarial rehoming — including both testaments in flight — ⇒ exactly one findings testament reaches the gate, second refused at the terminal-state check; (b) displaced Arbiter finishes *first* ⇒ its verdict lands and is kept (unit immutable), never discarded for a slower current holder; (c) architecture test: no redelivery path reads a clock; (d) advisory work window set anywhere in [1ms, 1h] or deleted entirely ⇒ throughput changes, correctness does not | the double-verdict class; discarding valid completed work; the K8s #106361 timer-reclamation class; correctness secretly depending on a timeout |
 
 ## 13. Acceptance criteria
 
