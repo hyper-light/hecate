@@ -10001,3 +10001,62 @@ motivates the design.
 Also reconfirmed: ZooKeeper's recipes page carries the survey's ONE over-claim
 (*"at any snapshot in time no two clients think they hold the same lock"*) — false
 under pauses, undisclaimed.
+
+**LANE 2 COMPLETE -> /Users/adalundhe/.claude/jobs/6ac71cfa/tmp/research-crash-recovery.md**
+(1096 lines). Q1/Q2/Q5/Q6/Q7 in full from primary sources; Q3/Q4 cited to the sibling
+file, not duplicated. Unverifiable registered in-file: T10 SPC-4 paywalled, NVMe spec
+403, K8s #120328 comment thread. **Also: the URL inside kube-controller-manager's OWN
+flag help text (`k8s.io/docs/storage-disable-force-detach-on-timeout/`) 404s** —
+equivalent content quoted from `node-shutdown.md` instead.
+
+**R1 — THE ADVISORY/ENFORCED SPLIT IS STARK AND SMALL. ONLY THREE MECHANISMS ACTUALLY
+STOP A RESURRECTED WORKER:** SCSI-3 persistent reservations (target returns
+`SAM_STAT_RESERVATION_CONFLICT` 0x18), NVMe reservations (controller returns
+`NVME_SC_RESERVATION_CONFLICT` 0x83), and Ceph OSD blocklisting (OSDs refuse the
+blocklisted client). **ALL THREE HOLD THE ENTITLEMENT RECORD *BELOW* THE ORCHESTRATOR,
+ON THE DATA PATH.** Everything else is ADVISORY — and Ceph says so in a warning box:
+`exclusive-lock` *"does not prevent two or more concurrently running clients from
+opening the same RBD image and writing to it in turns… their writes just get
+linearized."* ext4 MMP is DETECTION with SELF-demotion by the loser, on a timer. CSI's
+`FAILED_PRECONDITION` on double-publish is control-plane bookkeeping **that
+force-detach itself invalidates.**
+**R2 — REVOKING ACCESS IS ONLY HALF THE FENCE. SCSI and NVMe BOTH define a SEPARATE
+`PREEMPT AND ABORT` distinct from plain `PREEMPT`, existing SOLELY to retract commands
+the displaced owner ALREADY ISSUED. Its existence is the PROOF that losing a
+reservation does not stop IN-FLIGHT I/O.** Correspondingly, the mechanisms that handle
+resurrection best all have a CHANNEL TELLING THE ZOMBIE IT LOST (NVMe Reservation
+Notification log page; Pacemaker's `fencing-reaction`, default `stop`, *"likely to be
+changed to `panic`"*).
+**R3 — THE FENCE MUST BE ARMED AND *OBSERVABLY PROPAGATED* BEFORE THE SUCCESSOR
+WRITES.** Ceph implements a STRICT CHAIN: **monitor records -> OSD map update COMPLETES
+-> THEN break the lock -> THEN write**, generalized as the **OSD EPOCH BARRIER, which
+SHIPS THE FRESHNESS PRECONDITION ATTACHED TO THE GRANT OF AUTHORITY ITSELF.** K8s
+force-detach is the named counterexample: **`verifySafeToDetach=false` REMOVES the
+check rather than tightening it, and the TIMEOUT path and the HUMAN `out-of-service`
+taint take THE IDENTICAL CODE PATH, differing only in which metric is recorded.**
+**R4 — EXPIRY IS SAFE *IF* IDENTITY IS PER-INCARNATION.** Ceph's blocklist EXPIRES
+(`mon_osd_blocklist_default_expire` = 1 hour) and that is safe **only because the
+blocklisted identity is per-incarnation** — the expired entry names an identity that
+can never legally return. This is the precise condition under which a bounded fence
+record may be reclaimed, and it is the rule our epoch retention must satisfy.
+
+**### HOW THIS LANDS ON OUR ARCHITECTURE — THREE CONSEQUENCES ###**
+1. **We have NO SCSI/NVMe layer to fence at.** Our volumes are host-side EdenFS-shaped
+   VFS manifests, never block devices. So R1's "below the orchestrator, on the data
+   path" must be realized as: **the VFS attach boundary + the disk-commit boundary**,
+   both host-side, both already chokepoints. There is no third option and no device to
+   delegate to.
+2. **R2 IS LARGELY NEUTRALIZED FOR US BY THE MICROVM BOUNDARY — state this as an
+   architectural advantage.** In-flight I/O from a displaced holder is the hard part of
+   SCSI fencing; for us, **killing the VMM terminates every in-flight guest I/O
+   atomically** — there is no equivalent of a command already queued at a target. That
+   holds for rungs 1-4 (host alive, VMM killable). **At rung 5 the host is gone, so its
+   pods' I/O is gone with it** — the zombie can only act if the host is PARTITIONED,
+   not dead, and then only through the network, where the egress chokepoints
+   (CONSENSUS §7) are the fence. So we never need PREEMPT-AND-ABORT: the two cases are
+   "I/O already dead" or "I/O must cross a fenced boundary."
+3. **R3's CHAIN IS THE RUNG-5 ORDERING, VERBATIM.** quorum records death -> epoch
+   propagation OBSERVABLY COMPLETES -> THEN successor attaches -> THEN successor
+   writes. And R3's counterexample is the trap to avoid by name: **do NOT let the
+   force path REMOVE a check; the difference between the timed path and the
+   operator path must be more than a metric label.**
