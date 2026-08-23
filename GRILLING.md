@@ -9163,3 +9163,79 @@ from a producer with an older epoch" appears in NO primary source — closest ar
 design doc's "If the epoch is older than the current one, return InvalidProducerEpoch"
 and Errors.java's "Producer attempted to produce with an old epoch." One linked
 Google Doc returned 401 (not read); a repo-wide grep was impossible (API 403).
+
+**RESEARCH LANDED: durable-execution / teardown addendum (2026-08-22).** NOTE: the
+lifecycle lane has now delivered ADDENDA TWICE without its main body (k8s scheduler
+extension points, syncPod idempotency, finalizers, gang-admission rollback,
+Firecracker slot lifecycle) — those specific mechanics remain UNSOURCED; the design
+proceeds on the ordering principle + fencing receipts, with the gap named.
+**THE CORRECTION TO MY OWN SUMMON SKETCH — time-based reclamation is the bug
+pattern.** I proposed "before the pivot, reclaim is LEASE EXPIRY, not compensation."
+Receipts say passive TTL reclaim is exactly the known-bad shape: Pardon & Pautasso
+(WWW'14 RESTful TCC) mandates it — "Every participant implementation MUST cancel
+autonomously after some internal timeout" — AND concedes in the same section: "As
+with every two-phase commit solution, heuristics are needed to deal with timeouts...
+this might result in 'heuristic' anomalies (i.e. the transaction atomicity was
+violated). In that case, HUMAN INTERVENTION IS REQUIRED." Tally: k8s shipped
+time-based reclaim and REVERTED it; Chubby keeps it only as an explicitly imperfect
+fallback; TCC mandates it and documents that it breaks atomicity. Helland's ONLY
+working expiry mechanism (Building on Quicksand §7.3, Seat Reservation) is a DURABLE
+REAPER QUEUE, not a passive TTL — "individual database transactions to durably
+enqueue requests to clean up seats abandoned in the 'purchase pending' state"; the
+cleanup is itself COMMITTED WORK. => OUR FIX: pre-pivot reclaim = a durable reaper
+action, AND the binding commit must be CONDITIONAL on the reservation still being
+live (a fenced conditional write), so reclaim-vs-commit can never both win.
+**STEP FUNCTIONS TASK-TOKEN INVALIDATION — the one system that fences a WORKER'S
+COMPLETION CALLBACK** (all others fence a scheduler's write): "After the task times
+out, Step Functions INVALIDATES the task token. API calls that use the expired task
+token fail with a TaskTimedOut exception" + "If a Task state using the callback task
+token times out, A NEW RANDOM TOKEN IS GENERATED." => mint-fresh + invalidate-old +
+named-error-on-late-completion. This is the pattern for our summon COMPLETION path
+(a re-driven summon must reject the old attempt's late "ready").
+**TEMPORAL — the counterexample worth naming (a hole we must not copy):** guarantee
+is "the Activity will be OBSERVED as completed EXACTLY ONCE. However, the Activity
+MAY BE EXECUTED MULTIPLE TIMES and may even partially complete more than once" (the
+docs NEVER say "at-least-once" about Activities — that shorthand is a misquote).
+"Activities that don't Heartbeat can't receive a Cancellation" + cancellation rides
+back on the heartbeat RESPONSE => A NON-HEARTBEATING ACTIVITY RUNS ON OBLIVIOUSLY
+WHILE THE SERVER RETRIES — a zombie window with NO worker-side fence; the only
+protection is an idempotency key "enforced by the service you are calling from your
+Activity, NOT by the Activity itself", and "lack of idempotency doesn't lead to a
+platform error." OUR fence is platform-enforced at the witness — strictly stronger,
+and now with a named counterexample.
+**DETERMINISM RULES (independent confirmation of our purity law):** "Intrinsic
+non-determinism is when a Workflow Function Execution might emit a different sequence
+of Commands on re-execution, REGARDLESS of whether all the input parameters are the
+same." Forbidden: map iteration by `range` ("the order of the map's iteration is
+RANDOMIZED"), external API calls, file I/O, wall-clock, threads/futures, mutable
+globals, AND "Do not access configuration APIs directly from a Workflow because
+changes in the configuration might affect a Workflow Execution path." Generalizing
+rule: "all operations that do not purely mutate the Workflow Execution's state should
+occur through a Temporal SDK API." => our MATERIALIZER/apply purity list should ADD
+config-access (a config change would alter replay).
+**HELLAND, corrected attributions:** the famous at-least-once+idempotent=exactly-once
+argument is NOT in "Idempotence Is Not a Medical Condition" — it's in "Mind Your
+State for Your State of Mind" (ACM Queue 16(3), 2018): "The desire to send is
+atomically committed with the sending transaction... The system retries until the
+destination acknowledges... The message must be processed at the receiver AT MOST
+ONCE. This means it must be idempotently processed." The 2012 article's actual
+sharp lines: "Each message is guaranteed to be delivered ZERO OR MORE TIMES! That is
+a guarantee you can count on"; "the last message from one application service to
+another CANNOT be guaranteed. The only way to know it was received is to send a
+message saying it was. That means it's no longer the last message"; "When a messaging
+transport sends an ACK... It says NOTHING about the actual delivery of the message to
+the destination... SERVICE A MUST NOT ACT ON THE ACK." **THE OPEN QUESTION HE LEAVES
+UNANSWERED IS OURS TO ANSWER: "How long do you remember? Does the destination split?
+Does the destination move?"** => every dedup window in our corpus (the collector's
+(claim_uid, log_seq) watermarks, QUEUE's dedup line, the attachment idempotency key)
+MUST state its remembering horizon as a derived bound + what happens on
+split/move. "Two-phase commit is the anti-availability protocol" is Helland (ACM
+Queue 14(2), 2016), NOT Jim Gray. There is NO Cadence/Temporal paper.
+**ANCHORS (industry ceilings for our own derived bounds):** Temporal history 50K
+events => terminate, 10K warn, 4K suggest-continue-as-new, 50 MiB total, 2 MiB per
+event, 2,000 incomplete activities; workflow-task timeout 10s (max 120s);
+non-determinism retry max interval 10 min. Step Functions: 25,000-event history cap
+("the execution will fail"), 256 KiB payload, 2,000/s standard exec rate, 14-day
+redrive. Heartbeat throttle = min(heartbeatTimeout*0.8, 30s default, 60s max).
+PROVENANCE: ACM Queue/CACM 403 to automated clients — those quotes came via Internet
+Archive raw captures (weaker provenance); CIDR PDFs read directly.
