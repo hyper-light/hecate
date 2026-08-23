@@ -9239,3 +9239,34 @@ non-determinism retry max interval 10 min. Step Functions: 25,000-event history 
 redrive. Heartbeat throttle = min(heartbeatTimeout*0.8, 30s default, 60s max).
 PROVENANCE: ACM Queue/CACM 403 to automated clients — those quotes came via Internet
 Archive raw captures (weaker provenance); CIDR PDFs read directly.
+
+**PROCESS LESSON + RECOVERY SWEEP (2026-08-22, user-directed):** Agent transcripts
+are SAVED TO DISK (tasks/*.output, JSONL). I had been treating the "don't read the
+whole file, it will overflow context" warning as "inaccessible" and reporting
+research as MISSING when it was on disk the whole time. Confirmed by grep: the
+kubelet pod-worker source (syncPod -> syncTerminatingPod -> syncTerminatedPod state
+machine w/ its annotated timeline) was already fetched in a07f45c4's transcript, and
+the synthesized "Permit is the last one" finding appears in FIVE transcripts.
+ROOT CAUSE of the losses: research lanes spawn CHILD agents; the children do the work
+and write it in their own transcripts, but only the PARENT's final message returns —
+and parents repeatedly sent addenda/supplements instead of the consolidated body.
+**STANDING RULE ADOPTED: when an agent delivers an addendum, references sections I
+never received, or its report begins mid-sentence — MINE THE TRANSCRIPT (grep with
+SMALL windows: >200-char context windows fail "maximum repetition exceeds 255"; use
+/usr/bin/grep -o -a; then Read w/ offset/limit), or dispatch a recovery agent. Never
+report a gap without checking disk first.**
+FOUR RECOVERY AGENTS DISPATCHED: (1) lifecycle body (k8s scheduler extension points +
+the last-point-that-can-refuse rule, syncPod idempotency/restart recovery, finalizers
++ graceful termination, gang admission + partial-placement rollback, Reserve/Unreserve
++ the fencing-pattern family, Firecracker slot lifecycle, the fuller saga material);
+(2) IMAGE-DISTRIBUTION BODY — that report reached me TRUNCATED (began mid-sentence),
+so the entire positive-findings section was lost: lazy-format internals (Nydus RAFS
+v6, eStargz TOC/landmarks, SOCI index/spans, zstd:chunked), P2P architecture
+(Owl/Kraken/Dragonfly), OCI publish+signing (cosign/Notary), cross-region
+geo-replication practice, offline bootstrap sizing; (3) HYPERSCALE CONTROL-PLANE BODY
+— that delivery was explicitly "a focused supplement... only what's new or sharper
+than what I ALREADY DELIVERED", so a main body existed and was lost: Borg
+(Borgmaster/cells/Paxos store/checkpointing), Twine, Delos main body, Chubby, Spanner
+placement; (4) INVENTORY SWEEP over every a*.output — topic, whether the final message
+is complete vs addendum/truncated, and what substantial synthesis is recoverable —
+prioritized, so we learn whether anything ELSE was silently lost.
