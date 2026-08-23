@@ -9462,3 +9462,52 @@ PROTECTION; and **its ring is RENDEZVOUS HASHING, NOT CONSISTENT HASHING** — t
 consolidation had been built from a README-only re-derivation after two sub-agent
 reports failed to arrive. (Note the convergence: our COLLECTOR assembler already uses
 weighted-HRW/rendezvous.) Dragonfly's doc values drift from code defaults throughout.
+
+**RECOVERED #7 (FINAL — sweep complete): lifecycle ->
+/Users/adalundhe/.claude/jobs/6ac71cfa/tmp/recovered-lifecycle.md** (1,341 lines).
+All 7 topics recovered, NONE empty. Only two sub-items had no material anywhere
+(Omega's numeric conflict-fraction results; a worked two-gang mutual-deadlock analysis
+— an agent searched the coscheduling KEPs and CONFIRMED ABSENCE, so do not go looking).
+NOTE: the `a941e769...` agent was ITSELF killed by a content filter mid-synthesis, so
+its section survives only as salvaged source quotes. ~17 unverified items + 8 explicit
+doc/code contradictions registered at the end of the file.
+**FINDING A — THE PIVOT STRUCTURE IS IN PRODUCTION CODE, NOT JUST IN THE 1987 PAPER.**
+`schedule_one.go` states IN CODE that **Permit is the LAST point at which a Pod can be
+made unschedulable**; everything after it (PreBind/Bind failure) MUST RETRY FORWARD via
+BackoffQ. The point of no return is **Bind's single `GuaranteedUpdate` CAS on an empty
+`.spec.nodeName`, guarded by UID + resourceVersion, failing 409.** That is
+refusable-first -> ONE atomic commit -> retriable-after, implemented, with the SAME 409
+the kubelet's UID precondition uses. Third independent convergence on the law (1987
+theory / 2023 practice / K8s scheduler).
+**FINDING B — A PROHIBITION, WITH A SHIPPED REGRESSION BEHIND IT. NEVER RECLAIM A
+RESERVATION ON A TIMER.** Kubernetes' 30s assumed-pod TTL **CAUSED NODE DOUBLE-BOOKING
+(#106361)**, was set to 0, and is **now DELETED FROM MASTER**. Matched by
+force-detach-on-timeout being made DISABLEABLE because the 6-minute fence CAN CORRUPT
+DATA. => Our summoning/attachment design MUST NOT contain "the reservation expires
+after N seconds". Reclamation must be EVENT-DRIVEN off a durable fact (the fence, the
+witness commit), never a clock. This is a design rule, not a caution.
+**FINDING C — WHY THE CRI ATTEMPT COUNTER ISN'T A FENCE (closes the loop with
+recovered-fencing-family).** The kubelet is idempotent because **IT HAS NO DURABLE
+RECORD OF INTENT AT ALL** — every action is a SET-DIFFERENCE over freshly re-read CRI
+observation, content-addressed by container hash. Source: "whether this is a create...
+should only be used for metrics since THIS METHOD MUST BE REENTRANT." A component that
+deliberately holds no durable intent CANNOT hold a durable monotonic counter — hence
+the reset-to-zero. **THE LAW: a fence requires a component that holds durable intent.**
+Ours is the witness/durable-commit point, which does. The K8s design is coherent; it
+simply places the fence in the API server's CAS, not in the kubelet.
+Also recovered in full: gang/all-or-nothing admission (LARGER than the brief assumed —
+in-tree KEP-4671 + out-of-tree coscheduling + Volcano + Borg allocs, with YARN/Omega
+salvaged from the terminated agent's raw sources); Reserve/Unreserve + scheduling
+gates + the full fencing comparison table + node fencing; deletion/teardown w/ a
+corrections layer (the "2s extension" is really a FLOOR; the documented 202 is really
+a 200); Permit's three outcomes; all backoff constants; the four kubelet idempotency
+properties and four first-party "no checkpointing" admissions; phase-is-derived proof.
+
+**=== RECOVERY SWEEP CLOSED. 7/7 files landed, ~500 KB of previously-undelivered
+synthesis now on disk and cited. Root cause of the losses is now known and general:
+research agents emit large reports as MULTIPLE assistant text blocks and ONLY THE LAST
+BLOCK REACHES THE CALLER (image-distribution began mid-sentence at "...to 0.7s" for
+exactly this reason); separately, three agents were killed outright by content filters
+for returning too much inline. STANDING RULE, now proven twice over: research agents
+MUST WRITE TO A FILE and return a <400-word summary. Transcripts are saved and
+searchable, so nothing is truly lost — but recovery costs a full second pass. ===**
