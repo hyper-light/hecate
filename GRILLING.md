@@ -9854,3 +9854,90 @@ resource-side check, is how the trap is normally sprung.
   decision + a fresh epoch (timer-as-barrier), NOT because Chubby blessed the timer.
   Anywhere the spec leans on lock-delay as if it were sufficient, that leaning is
   unsupported. Verify this when writing rung 5.
+
+**FOUR MORE STRAGGLERS LANDED (the killed run's children finished and wrote out).
+Files now on disk: notes-borg-twine.md, notes-zk-chubby.md, notes-temporal.md,
+notes-flink-spark.md, notes-idempotent-replay-handoff.md.** The last of these arrived
+INLINE (not written) and was captured to a file before it could be lost — same failure
+mode as the earlier losses, caught this time.
+
+**TEMPORAL — THE CLOSEST ANALOGUE TO OUR CLAIMS PLANE, AND IT DOCUMENTS THE UNSAFE
+WINDOW RATHER THAN CLOSING IT.**
+- Fence: the completion RPC ONLY. Temporal compares `token.Attempt` vs `ai.Attempt`
+  under the mutable-state lease -> `NOT_FOUND` / *"invalid activityID or activity
+  already timed out or invoking workflow is completed"*. SFN rotates the token on
+  timeout -> `TaskTimedOut`. **This buys exactly-once BOOKKEEPING, nothing more.**
+- **All external effects are explicitly DELEGATED**: idempotency keys *"are enforced
+  by the service you are calling from your Activity, NOT by the Activity itself."*
+- **The window is real, documented, and named by the vendor:** *"A timeout does not
+  forcibly stop Activity code that is already running"* — Temporal's own term is
+  **"ZOMBIE ACTIVITIES."**
+- TWO CORRECTIONS IN-FILE: `ErrStaleState` is NOT the zombie error; and **the
+  `...ById` completion path SKIPS THE ATTEMPT CHECK ENTIRELY** — a hole in their own
+  fence, worth remembering as the shape of how these fences get bypassed.
+**FLINK / SPARK — BOTH ARE HYBRIDS, WHICH IS THE PATTERN.** (b) re-runnable base +
+(a) EXACTLY ONE fenced chokepoint + (c) residual for arbitrary user side effects.
+**Flink's fence is at the resource but TIME-BOUNDED — `transaction.timeout.ms` expiry
+means DATA LOSS**, i.e. the fence FAILS OPEN on expiry. Spark's is control-plane but
+narrow (first-committer-wins, Hadoop commit only). Verbatim sources captured incl.
+Flink's `HeartbeatManagerOptions` (10s/50s/threshold=2) with the docs' OWN warning
+that it *"can produce false positives"*, `FencedRpcEndpoint`/`JobMasterId`, the stale
+`ExecutionAttemptID` drop path, and Spark's `OutputCommitCoordinator.scala`.
+
+**### THE CONVERGENT ANSWER ACROSS ALL SIX SYSTEMS — THIS IS THE DESIGN INPUT ###**
+**NOBODY PREVENTS THE DOUBLE ATTEMPT FOR EXTERNAL SIDE EFFECTS. Every system fences
+exactly ONE chokepoint — its own bookkeeping commit — and delegates external safety to
+idempotency at the far end.** K8s (force-delete "does not wait for confirmation";
+"pods scheduled for deletion may continue to run on the partitioned node"), Borg
+(kill-on-reconnect AFTER the fact), Twine (nothing), ZooKeeper alone (false claim),
+Temporal ("zombie activities"), Flink (time-bounded, fails open), Spark (narrow).
+The idempotent-replay corpus states the same boundary from the other side:
+**"Idempotent replay makes re-execution safe UP TO THE BOUNDARY OF YOUR OWN SYSTEM;
+past that boundary, every source falls back to DURABLY RECORDING THE INTENT BEFORE
+CROSSING IT, and to guaranteeing EVENTUAL COMPLETION rather than preventing the double
+attempt."** Brandur: *"once we make our first foreign state mutation, we're committed
+one way or another… We've pushed data into a system beyond our own boundaries and we
+shouldn't lose track of it."* Flink: *"After a successful pre-commit, the commit MUST
+be guaranteed to eventually succeed."*
+=> **CONSENSUS §7's EXTERNALIZATION-FENCING LAW IS STRONGER THAN INDUSTRY PRACTICE,
+NOT WEAKER.** Putting the epoch check at every egress chokepoint prevents the double
+ATTEMPT, where all six of these systems only make the double attempt SAFE-IF-THE-FAR-
+END-COOPERATES. That law is our differentiator and must NOT be softened toward the
+industry norm during the rung-5 design. It is also why category (b) alone is
+unavailable to us: our claims produce testaments AND external effects.
+
+**INDEPENDENT CONFIRMATION OF TWO CHOICES I ALREADY PRESENTED:**
+1. **The advisory-work-window vs correctness split.** Brandur's `locked_at` is
+   expiry-based and, in the analyst's words, *"an advisory liveness optimization
+   layered on top of a REPLAY-SAFE DESIGN, not the correctness mechanism."* That is
+   precisely the structure of the SIBYL design (routing = optimization, CAS = safety;
+   window advisory, test 4 asserts deletion changes only throughput).
+2. **The refusable-region-has-no-durable-effect property.** Stripe: *"We save results
+   ONLY AFTER THE EXECUTION OF AN ENDPOINT BEGINS. If incoming parameters fail
+   validation… we don't save the idempotent result… You can retry these requests."*
+   Same shape as our refusable region committing nothing.
+**PLUS A THREE-WAY OUTCOME PRECEDENT FOR THE CAS PIVOT:** S3 conditional writes
+distinguish **412 (lost the race)** from **409 (retryable concurrency conflict)** —
+matching the Lance-style rebasable/retryable/conflict split, and reinforcing Law 4's
+displaced-vs-absent distinction. Also: *"Conditional writes do not consider any
+in-progress multipart uploads… since those are not yet fully written objects"* +
+Hadoop/S3A's normative pair — *"The intermediate output of a task MUST NOT be visible
+in the destination directory"*, *"The output of a FAILED task must not be visible"* —
+which is the partial-work-invisibility rule our VFS/disk-commit boundary needs stated.
+**FOR DERIVED CONSTANTS (constants-from-anchors):** AWS's retention rule is a FORMULA,
+not a number — *"limit the time period to the LIFETIME OF THE RESOURCE, plus an
+interval after which it is reasonable to assume that any late arriving requests would
+either have arrived or would no longer be valid."* That is the shape our dedup/window
+retention derivation should take.
+**FOR THE INHERIT-VS-RECOMPUTE RULE (rung 5's successor brief):** every source
+converges — **inherit only what was ATOMICALLY PUBLISHED; recompute everything else.**
+Flink selects only *completed* checkpoints and resets operator state + source offsets
+as ONE unit; Spark materializes shuffle output rather than trusting pure lineage
+across wide dependencies, conceding a wide-dependency failure forces *"a complete
+re-execution."*
+**CACHE-KEY HYGIENE, canonical worked example (Bazel):** *"two `Actions` with
+different timeouts are different, even if they are otherwise identical… running an
+`Action` with a lower timeout than is required might result in a cache hit from an
+execution run with a longer timeout, HIDING THE FACT THAT THE TIMEOUT IS TOO SHORT."*
+Everything affecting a result must be inside its digest — applies directly to our
+content-identity dedup.
