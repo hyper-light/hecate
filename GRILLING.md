@@ -9360,3 +9360,47 @@ child) => the write-to-file pattern is mandatory, not a preference.
 18 flags recorded incl. FOUR the original agents missed: a wrong SOSP DOI (...3544
 not ...3540), two verbatim-drift items, and an unsupported "45s grace period" in the
 Chubby section that no transcript supports — do not cite that number.
+
+**RECOVERED #2: the fencing pattern family ->
+/Users/adalundhe/.claude/jobs/6ac71cfa/tmp/recovered-fencing-family.md** (831 lines,
+~48.8 KB). BOTH synthesis versions extracted intact (the 50,596-char rewrite as base,
+merged w/ unique material from the 42,290-char earlier version); sizes matched the
+audit exactly. All 7 items recovered, none empty.
+**CORRECTION TO MY OWN CLAIM (I told the user "five independent precedents"): THE CRI
+SANDBOX `attempt` COUNTER IS NOT A FENCE — it is FOUR precedents + one cautionary
+counter-example.** No component anywhere in CRI, the kubelet, or containerd compares
+an incoming attempt against a stored maximum; the entire distinguishing mechanism is
+containerd's `makeSandboxName` emitting `name_namespace_uid_N` vs `..._N+1`. And
+decisively: **the kubelet derives the counter by READ-MODIFY-WRITE FROM OBSERVED
+RUNTIME STATE, so it RESETS TO 0 when all sandboxes vanish — it is not even durably
+monotonic.** THE DESIGN LESSON, directly applicable: our attachment/key epochs must be
+DURABLY MONOTONIC FROM A SINGLE AUTHORITY, never derived by inspecting current state
+— a state-derived counter silently resets exactly when everything is gone, which is
+precisely the moment a fence is needed.
+**THE 409-vs-404 DISTINCTION (kubelet NewUIDPreconditions), for our error taxonomy:**
+Preconditions.Check -> NewInvalidObjError -> storage.IsInvalidObj -> errors.NewConflict.
+404 = "already gone, you're done" (success-shaped); 409 = "A DIFFERENT INCARNATION IS
+HERE, AND IT SURVIVES UNTOUCHED" (must NOT be retried as if absent). Semantically
+disjoint — our stale-attachment refusals need the same split.
+Also recovered in full: Kleppmann's definition + the 33/34 worked example + the
+"storage server takes an active role" requirement; Chubby §2.2/§2.4/§2.6 sequencers +
+lock-delay + the Boxwood contrast; GFS §4.5 verbatim + §3.1 leases (60s initial) +
+§4.4.1 HeartBeat GC; Kafka's two rejection checks + all six error classes.
+12 UNVERIFIED items flagged — incl. that NEITHER the Chubby lock-delay DEFAULT nor the
+GFS chunk-version BIT WIDTH is stated in its own paper. Do not cite either as fact.
+**RECOVERED #3: OCI signing/verification ->
+/Users/adalundhe/.claude/jobs/6ac71cfa/tmp/recovered-oci-signing.md** (961 lines,
+~48 KB). All of Part C (cosign C1a-C1j + Notary C2a-C2i) plus BOTH correction rounds
+(6 + 10 items), each cross-linked to the base claim it supersedes.
+THREE FINDINGS THAT CHANGE ASSUMPTIONS: (1) verification latency is dominated by TRUST
+METADATA REFRESH (76-99% of every path), NOT crypto or registry round-trips — but
+measured on an old client version, cache-amortizable, and NO warm-cache number exists,
+so "measure it yourself" stands. (2) "cosign defaults to legacy tags" is HALF TRUE —
+v3.1.3 flipped attestations to bundle-over-Referrers by DEFAULT (opt-out already
+deprecated) while signatures still default to legacy tags => THREE coexisting routes.
+(3) **REKOR v2 IS NOW THE CLIENT SPEC'S DEFAULT AND IT INVERTS THE OFFLINE STORY** —
+"Newer clients SHOULD not offer online verification of Rekor V2 log entries" + a signed
+timestamp is required => any design targeting ONLINE transparency-log lookup aims at
+the DEPRECATED path. Also: the Notary trust-store dir is `truststore` (one word, per
+notation-go/dir/path.go) — two published docs are WRONG; and
+application/vnd.dsse.envelope.v1+json is cosign-defined, absent from the DSSE spec.
