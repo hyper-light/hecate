@@ -9764,3 +9764,51 @@ competing.
 - PODS §7: teardown "**never before work is committed** — pod lifecycle is independent
   of disk commit; rejection/correction are NOT terminal for a pod's volumes" (T11:
   "volumes outlive uncommitted work").
+
+**RESEARCH LANDED (straggler from the killed run, recovered):
+/Users/adalundhe/.claude/jobs/6ac71cfa/tmp/notes-borg-twine.md** (37.4 KB). Borg
+(EuroSys'15) + Twine (OSDI'20) PDFs downloaded and text-extracted locally, so every
+quote is verbatim WITH PAGE NUMBERS. Autopilot not fetched (marked UNVERIFIED).
+
+**THE HEADLINE, AND IT CUTS AGAINST THE ASSUMPTION I WAS DESIGNING FROM: THE TWO
+SYSTEMS CLOSEST TO OUR TARGET SCALE DO NOT FENCE AT ALL.** Both are category (b) —
+re-execution assumed safe — not (a) fencing at the commit point.
+- **Borg's load-bearing sentence, verbatim:** *"If communication is restored the
+  Borgmaster tells the Borglet to KILL THOSE TASKS THAT HAVE BEEN RESCHEDULED, to
+  avoid duplicates."* That is **CLEANUP-ON-RECONNECT, NOT COMMIT-POINT FENCING** — it
+  repairs the duplicate AFTER the fact rather than preventing the zombie's effects.
+  Borg further concedes: *"cannot distinguish between large-scale machine failure and
+  a network partition."*
+- **VERIFIED NEGATIVE, BY GREP OVER BOTH FULL TEXTS: ZERO occurrences of `fence`,
+  `fencing`, `lease`, `epoch`, `at-most-once`, `exactly once`.** Borg's ONE
+  "idempotent" mention is client->Borgmaster API idempotence, NOT workload
+  idempotence. **Twine's `sequenceNumber` is an RPC counter, NOT a fencing token** —
+  do not cite it as one.
+- **TWINE IS WEAKER THAN BORG HERE, CONTRARY TO EXPECTATION:** it describes NO
+  duplicate-cleanup step at all, and answers partitions EMPIRICALLY — *"We did not
+  experience within-region network partitioning as a major challenge."* Its
+  TaskController veto is **DEADLINE-BOUNDED — the scheduler stops tasks anyway at
+  expiry** (i.e. the veto is advisory, and the timer wins).
+
+**WHAT THIS MEANS FOR OUR RUNG-5 DESIGN — three consequences, none of them "copy
+Borg":**
+1. **Our workload is NOT Borg's.** Borg tasks are largely restartable batch/service
+   replicas where double-execution is wasteful but not incorrect. **Our claims produce
+   TESTAMENTS AND EXTERNAL SIDE EFFECTS** (source-control pushes, external API calls —
+   CONSENSUS §7's externalization-fencing law exists precisely because these cannot be
+   retroactively conflict-valued). Category (b) is unavailable to us for the
+   externalizing class. **Adopting Borg's posture wholesale would be a category error
+   about our own workload.**
+2. **BUT it validates the SHAPE of the ladder**: at pod-within-host scope, where we
+   have a perfect failure detector, "just re-run it" IS what hyperscale does, and
+   heavyweight fencing there would be unpaid-for complexity. The fencing apparatus
+   belongs at rung 5 ONLY. This is direct support for the detection-authority law
+   (smallest domain that can observe death directly) rather than a uniform fence.
+3. **Twine's deadline-bounded veto is the ANTI-PATTERN NAMED**: a veto the timer
+   overrides is exactly timer-as-TRIGGER. Our lease-shadow is timer-as-BARRIER. Twine
+   is the concrete production example of the failure mode Law 1 prohibits — cite it
+   alongside K8s #106361.
+**FOLLOW-UP FLAGGED:** the **Shard Manager** paper (Twine ref [16]) is where Twine
+EXPLICITLY DELEGATES LIFECYCLE SAFETY — i.e. the fencing we could not find in Twine
+may live there. Queued as optional for the running lane; if Shard Manager fences, that
+is the Meta-scale precedent for rung 5 and must be found before the design settles.
