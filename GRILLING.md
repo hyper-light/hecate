@@ -8957,3 +8957,59 @@ retrofit ban in reverse). THE SEAM AS A CONTRACT: the ArchiveSearch trait
 engine's build sheet if the Tantivy dependency ever fails the bar. STANDING
 LESSON: references name the mechanisms taken + adapted + refused, never lineage
 labels.
+
+**RESEARCH LANDED: volume attach/detach + content-pull authorization (2026-08-22)
+— feeds Branches 36/37 (attachment lifecycle, volume provisioning).**
+VALIDATIONS OF EXISTING CORPUS CHOICES (2, independent):
+(1) OCI's model IS our chain: authorization is on the NAMESPACE
+(`repository:<name>:pull` scope; blob path `/v2/<name>/blobs/<digest>`) — the DIGEST
+IS NOT IN THE SCOPE; it is only a lookup key within an already-authorized namespace.
+"Knowing a digest gets you nothing without a token naming a repo you may pull." ==
+our claim->attachment->mount chain where the guest names PATHS, never hashes.
+(2) Tahoe-LAFS's convergence secret IS our OBJECT_TIER §9 scope-salted convergent
+encryption, shipped: "Changing the convergence secret = moving the client to a new
+DEDUPLICATION DOMAIN"; the dedup domain is the blast radius of every existence-probe
+attack (Harnik-Pinkas-Shulman-Peleg's oracle attacks: identify-file, learn-contents
+by brute force, covert channel; convergent encryption ALONE does NOT fix them —
+users still observe dedup occurrence; their mitigation = randomized threshold
+t_X=F(X,s), Thm 1: no leak for 1-1/(d-1) of files, framed as differential privacy).
+THE NAMED VULNERABILITY WE MUST NOT BUILD: Proofs-of-Ownership (Halevi et al.
+CCS'11) — "an attacker who knows the hash signature of a file can convince the
+storage service that it owns that file, hence the server later lets the attacker
+download the entire file." Four dispositions: namespace-authorize (OCI) / salt per
+domain (Tahoe) / proof-of-possession (PoW) / accept bearer-capability (IPFS, which
+says so explicitly: "anyone can download and view that data if they have the CID",
+and CIDs LEAK via the DHT so obscurity fails at discovery). Nix: signatures are
+PROVENANCE not confidentiality — the fingerprint (1;path;narHash;narSize;refs) has
+NO principal/audience/expiry/permission, and CONTENT-ADDRESSED paths need no
+signature at all.
+THE CACHE WARNING (CVE-2026-35172, distribution): a namespace-UNAWARE shared cache
+resurrected deleted content across repos — "the vulnerability is not in the
+authorization logic; it is in a cache whose invalidation was not namespace-aware."
+Pull-through caches universally DO NOT re-authorize per requester ("it authorizes
+itself, once, and then serves everyone" — distribution's own warning; Harbor scopes
+to a project; ECR's WORKING pattern = cache into the TENANT'S OWN namespace so the
+copy lands inside their normal permission domain).
+THE FENCING GAP WE MUST CLOSE (k8s documents its own failure): force-detach at
+6 min (ReconcilerMaxWaitForUnmountDuration) "will force detach volumes... causes a
+VIOLATION OF THE CSI SPECIFICATION... volumes might encounter DATA CORRUPTION";
+out-of-service taint is a HUMAN ASSERTION k8s cannot verify. Enforcement ladder:
+PV/PVC match (advisory) -> scheduler RWOP (soft cache) -> A/D controller RWO (soft
+cache, the "Multi-Attach error"/"Waiting for detach") -> kubelet mount (soft) ->
+CSI FAILED_PRECONDITION (first real gate) -> SCSI-3 PR / NVMe reservations (ONLY
+true fence: PREEMPT_AND_ABORT aborts the stale node's in-flight commands ->
+RESERVATION_CONFLICT 0x18). "Kubernetes has no plumbing from force-detach to device
+reservations." k8s RWO/ROX/RWX "do not enforce write protection once mounted"; only
+RWOP is constrained.
+IDEMPOTENCY DISCIPLINE TO ADOPT (CSI): every RPC MUST be idempotent w/ a per-call
+clause; the CO-generated NAME is the idempotency key at create, plugin IDs after;
+the disposition matrix (same target+same args = OK replay / same target+DIFFERENT
+args = ALREADY_EXISTS conflict / different target = access-mode question); errors
+carry REQUIRED recovery behavior (ABORTED = retry w/ exponential backoff;
+INVALID_ARGUMENT = fix first; UNIMPLEMENTED = MUST NOT retry; FAILED_PRECONDITION 9
+= published elsewhere, SHOULD name the holder); ref-counting is the ORCHESTRATOR's
+obligation; the CO owns mutual exclusion but plugins must tolerate CO amnesia.
+PREFETCH: CSI has no eager-vs-lazy capability bit ("a real gap if you care about
+first-touch latency"); content MUST be visible by NodePublish; `ready_to_use` +
+IDEMPOTENT-RETRY-AS-POLL is the spec's long-warm-up idiom; k8s volume populators
+(dataSourceRef) = the arbitrary-warm-up seam before pod start.
