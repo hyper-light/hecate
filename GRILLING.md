@@ -9270,3 +9270,56 @@ than what I ALREADY DELIVERED", so a main body existed and was lost: Borg
 placement; (4) INVENTORY SWEEP over every a*.output — topic, whether the final message
 is complete vs addendum/truncated, and what substantial synthesis is recoverable —
 prioritized, so we learn whether anything ELSE was silently lost.
+
+**TRANSCRIPT AUDIT COMPLETE (2026-08-22) — 48 research transcripts inspected.**
+Method: parsed every assistant text block per transcript and compared non-final
+synthesis against the delivered final message on URL/number/token coverage (heading
+diffs alone over-report loss — several agents legitimately REWROTE their report).
+VERDICT: 36 COMPLETE · 5 SEVERE LOSS · 2 MODERATE (condensations) · 2 FAILED
+(no synthesis ever written).
+**THE FIVE SEVERE LOSSES (~500 KB of synthesis produced, never delivered):**
+1. a0039150 IMAGE DISTRIBUTION — 143.9 KB / 69 headings on disk; delivered 14.9 KB
+   BEGINNING MID-SENTENCE. coverage 0.17. Four whole topics lost (lazy-load formats
+   incl. Slacker/RAFS/eStargz-landmarks/SOCI-v1-vs-v2/zstd:chunked w/ a side-by-side
+   cost model; P2P incl. Owl/Kraken/Dragonfly/DADI/FaaSNet/Lambda-ATC'23/FAST'18 +
+   a cross-source contradiction; OCI spec v1.1.1 + signing; cross-region + prewarm).
+2. af2103bc ORCHESTRATOR MECHANICS (the RE-RUN) — 110.5 KB / 35 headings; delivered
+   a 15.6 KB addendum. cov 0.12. Includes KEP-4671 IN-TREE GANG + `revertFns` +
+   Volcano JobReady. **The re-run reproduced the same failure mode** => recover from
+   disk, never commission a third pass.
+3. a07f45c4 ORCHESTRATOR MECHANICS (original) — 92.7 KB main + 20.1 KB supplement;
+   delivered 8.7 KB. cov 0.06/0.12. Five starred findings incl. the
+   reservation-timeout lesson, syncPod idempotency, and "THE TEARDOWN CLOCK IS NOT
+   DURABLE" + a warm-pool sizing formula.
+4. ac56665d THE FENCING PATTERN FAMILY — 92.9 KB across two versions;
+   **ZERO DELIVERED** (final message = content-filter error, 53 bytes). Highest loss
+   RATIO of all 48. Kleppmann's definition; Chubby sequencers + lock-delay bound; GFS
+   chunk version numbers; **the CRI PodSandbox `Attempt` counter is NOT a fence** (a
+   correction we would otherwise have inherited wrong); kubelet NewUIDPreconditions
+   (both call sites, the 409-not-404 proof); Kafka KIP-98; comparison table.
+5. a78c20fd SAGA/COMPENSATION — 58.7 KB; delivered 6.6 KB addendum. cov 0.08.
+   Page-cited Garcia-Molina & Salem definitions + TWO CORRECTIONS TO THE BRIEF'S
+   PREMISES, save-points, irreversibility §9, parallel sagas §8, idempotency keys
+   (Stripe/IETF/AWS ClientToken), 2PC/TCC/Helland.
+MODERATE: ad04e4b1 OCI+SIGNING — final says "Here it is in full" but omits ALL of
+PART C (cosign C1a-C1j + Notary C2a-C2i exact strings) plus two correction rounds
+that SUPERSEDE base claims (incl. Rekor v2 default changing the offline story).
+a9c88968 FIRECRACKER — dropped the warm-pool sizing law, the boot/memory tables with
+setup, three internal paper inconsistencies, and the measured current seccomp filter
+(the paper's counts are stale).
+FAILED, unrecoverable: a941e769 GANG SCHEDULING — content-filter killed it after
+~1.2 MB of fetching; NO synthesis exists. Mitigation: items 2 and 3 both contain
+substantial gang sections (KEP-4671, revertFns, Volcano JobReady/JobPipelined,
+Permit, Borg allocs) which likely cover it without a re-run.
+ROOT CAUSE CONFIRMED: children write complete reports -> parents deliver addenda ->
+caller gets scraps. Plus content filters killing large inline outputs (2 agents).
+FIX APPLIED TO ALL RECOVERY AGENTS: write findings to a FILE, return <400-word
+summary — the bulk never passes through a filter, and the research lands DURABLE
+instead of passing through context once.
+RECOVERY IN FLIGHT -> /Users/adalundhe/.claude/jobs/6ac71cfa/tmp/:
+recovered-lifecycle.md · recovered-image-distribution.md · recovered-fencing-family.md
+· recovered-saga.md · recovered-firecracker.md · recovered-oci-signing.md ·
+recovered-hyperscale-control-plane.md (redirected — that lane ran in the EARLIER
+session 16ae87db, different tasks dir).
+NOTE FOR FUTURE SESSIONS: transcripts symlink to
+~/.claude/projects/<project>/<session>/subagents/agent-<id>.jsonl — they persist.
