@@ -9563,3 +9563,63 @@ the displaced holder's action BECOMES DURABLE — the testament write (MERGE) an
 estate mutation (SIBYL) — never at the holder's own local deadline. Plus a vocabulary
 fix: "at-most-once" must stop being used for two different properties.
 => OPEN BRANCH: **claim-lease exclusivity fence** — next exchange after seal.
+
+**SEAL RESEARCH — LANE 1 (FORMAL) LANDED ->
+/Users/adalundhe/.claude/jobs/6ac71cfa/tmp/research-seal-formal.md**. 11 PDFs read
+first-hand, kept at `.../tmp/sealpapers/`: Delos OSDI'20, **Vertical Paxos FULL version
+(MSR-TR-2009-63 — NOT the 2-page PODC announcement)**, Chain Replication OSDI'04, CORFU
+NSDI'12, VR Revisited (MIT-CSAIL-TR-2012-021), "Reconfiguring a State Machine" (SIGACT
+News 2010), DynaStore, Matchmaker Paxos, Spiegelman/Keidar/Malkhi DISC'17, FLP.
+UNAVAILABLE, every dependent claim marked [UNVERIFIED]: Plotkin sticky-bit, ABD,
+Herlihy's hierarchy, WormSpace, Stoppable Paxos (unpublished), Jehl & Meling OPODIS'16
+(bad DROPS article number + web-search quota exhausted 200/200).
+
+**S1 — SEAL'S SEMANTICS ARE NARROWER THAN THE NAME, AND THE NARROWNESS IS THE POINT.**
+It is literally `void seal()` — RETURNS NOTHING, idempotent, callable by ANYONE. It
+guarantees ONLY that no future append is **ACKNOWLEDGED**. Writes CAN STILL BECOME
+DURABLE AFTERWARD ("**zombie appends**") — and **Delos's OWN recovery path CREATES them**
+by repairing servers while bypassing the seal bit. Delos DELIBERATELY REFUSES to fuse
+seal with the tail read or to return "who won", **because a seal that reported the
+winner would be TEST-AND-SET (consensus number 2), leaving the register class
+entirely.** The winner is decided by the **MetaStore's CAS**. => **SEAL IS THE SAFETY
+DEVICE; THE CAS IS THE AGREEMENT DEVICE; KEEPING THEM SEPARATE IS THE WHOLE TRICK.**
+Consequence for any adoption: seal does NOT establish the boundary — you seal, then
+SEPARATELY checkTail, and the CAS records where the segment ends.
+**S2 — THE FORMAL CHARACTERIZATION PREDATES DELOS BY TEN YEARS AND ISN'T CALLED
+"SEAL". CORRECTS THE FRAMING I RELAYED FROM THE HYPERSCALE RECOVERY.** NO paper defines
+a "sealable register" as a first-class object; Delos offers **ONE UNPROVEN PARAGRAPH**
+placing seal below write-once registers and sticky bits. The real characterization is
+Lamport/Malkhi/Zhou 2010: the hot path runs **UNRELIABLE CONSENSUS** — "guarantees at
+most one message is chosen, but may be prevented from making progress by the failure of
+even one process." Reliable consensus is invoked ONLY at view change. It is trivially
+FLP-immune **because it SURRENDERS EXACTLY THE LIVENESS FLP PROVES UNOBTAINABLE.**
+**THE COROLLARY THE LITERATURE BLURS AND I REPEATED: SEAL ESCAPES FLP; THE SYSTEM DOES
+NOT. The decomposition RELOCATES the FLP-hard component off the hot path — it does not
+REMOVE it.** "Weaker than consensus, not FLP-bound" is true of seal in isolation and
+MISLEADING about the system. Retract the framing as I gave it.
+**S3 — CHAIN REPLICATION IS *NOT* EVIDENCE THIS WORKS WITHOUT A FENCE, AND THIS
+DIRECTLY UPGRADES CONFLICTS C1/C2 ABOVE.** Its safety across reconfiguration rests on
+an EXPLICIT **FAIL-STOP** assumption — "a server's halted state can be detected by the
+environment", i.e. **A PERFECT FAILURE DETECTOR**. It needs no seal because it *ASSUMES*
+the old configuration verifiably halted. Seal is precisely the mechanism that BUYS THAT
+ASSUMPTION BACK WITHOUT A PERFECT FD: **it MAKES the old config stop rather than
+DETECTING that it did.** => **"AN EXTERNAL PAXOS MASTER OVER AN UNFENCED DATA PATH HAS
+SILENTLY ASSUMED FAIL-STOP."**
+**### THIS IS EXACTLY SIBYL §1 AND MERGE §9. ###** An external authority (the frontier
+service) reassigns work on LEASE EXPIRY over a data path with NO FENCE = silently
+assuming the displaced holder verifiably stopped. Same defect as the K8s assumed-pod
+TTL, now with its formal name. The remedy is therefore NOT a matter of taste: in an
+asynchronous system you either PROVE fail-stop (impossible with live-but-slow holders)
+or you SEAL. The empirical finding (reconciliation pass) and the theory (Chain
+Replication's fail-stop premise) arrived independently at the same defect.
+Also: **VR fences properly (monotone epochs) but stops the old group with an IN-BAND
+COMMITTED COMMAND**, so VR's data plane STILL NEEDS CONSENSUS — which is exactly what
+Delos's OUT-OF-BAND flag avoids, and is the substantive delta over Stoppable Paxos.
+**S4 — THE CAVEAT THAT MOST AFFECTS OUR DECISION: THE DECOMPOSITION'S VALUE SCALES
+*INVERSELY* WITH RECONFIGURATION RATE.** Delos ITSELF concedes a latency hit on PLANNED
+reconfigurations and proposes falling back to IN-BAND reconfiguration for them —
+**REINTRODUCING DATA-PLANE CONSENSUS for exactly those cases.** => The decisive question
+for us is NOT "is seal elegant" but **HOW OFTEN DO OUR SHARDS RECONFIGURE?** At Meta
+scale with whale-session splits + node churn, a high reconfiguration rate erodes the
+benefit while the cost (a second protocol, an extra layer, two failure models to test)
+stays fixed. Hold the verdict for Lane 2 (systems + counter-case), still running.
