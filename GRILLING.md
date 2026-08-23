@@ -9013,3 +9013,45 @@ PREFETCH: CSI has no eager-vs-lazy capability bit ("a real gap if you care about
 first-touch latency"); content MUST be visible by NodePublish; `ready_to_use` +
 IDEMPOTENT-RETRY-AS-POLL is the spec's long-warm-up idiom; k8s volume populators
 (dataSourceRef) = the arbitrary-warm-up seam before pod start.
+
+**RESEARCH LANDED (partial): workload-lifecycle lane — SUPPLEMENT ONLY (2026-08-22).**
+CAVEAT: the delivered message is the lane's supplement, referencing a main body
+(k8s pod lifecycle/finalizers/gang-admission/Firecracker slots) that did NOT reach
+me — those remain owed.
+THE FINDING THAT RESHAPES THE SUMMON DESIGN — the saga PIVOT taxonomy (Frank &
+Zahle's countermeasures model, popularized by Richardson; NOT his invention):
+compensatable / PIVOT / retriable. **The roles are POSITIONAL — determined entirely
+by what FOLLOWS**: "the first three steps are termed compensatable because they're
+FOLLOWED BY STEPS THAT CAN FAIL... the fourth is the PIVOT because it's followed by
+steps that never fail... the last two are retriable because they always succeed."
+=> the design question is NOT "is this undoable?" but "WHERE DO I PUT THE LAST THING
+THAT CAN FAIL?" Pivot placement: "neither compensatable nor retriable, OR the last
+compensatable, OR the first retriable."
+**THE DIRECTIVE (the strongest result): ELIMINATE compensations by reordering** —
+"You should structure the Saga so there are NO compensatable transactions. Its first
+step... is the only one that can fail due to business rule violations — it's the
+saga's pivot. The remaining steps are retriable transactions, which cannot violate
+business rules." Mechanism: "Simplify by moving updates to AFTER the pivot
+transaction... No compensation required — Reorder."
+**THREE-LINEAGE CONVERGENCE**: Garcia-Molina & Salem 1987 §5 ("Without these aborts,
+pure forward recovery is feasible and compensation is never needed" — AGENT-REPORTED,
+UNVERIFIED); Richardson 2019; and the K8S SCHEDULER: "Any failures after this point
+cannot lead to the Pod being considered unschedulable... Permit is the last one. If a
+Pod fails on PreBind or Bind, it should be moved to BackoffQ for retry."
+=> OUR SUMMON: the PIVOT = the identity-binding + attachment commit (the last
+REFUSABLE step: IAM/admission deny, capacity exhaustion, residual-compile failure,
+RWO attach conflict all precede it). Before the pivot: nothing durable to undo —
+reclaim is LEASE EXPIRY, not compensation. After the pivot: start/health-validate are
+FAULTS not refusals => retriable-with-escalation, and the exit is the NORMAL teardown
+path, never a special rollback. NET: the summon transaction contains ZERO compensation
+logic — by construction, per the directive.
+**FENCING PRECEDENT (our attachment/key epoch is the standard, not a novelty)**:
+structurally identical to Chubby sequencers, GFS chunk version numbers, the CRI
+sandbox `Attempt` counter, the kubelet's `NewUIDPreconditions` on final delete, and
+Kafka producer-epoch zombie fencing — five independent lineages.
+TRUST CALIBRATION (flagged): liveBook quotes via a rendering proxy; the §4.3.2 pivot
+passage is behind Manning's paywall (verified reproduction, not first-party); slide
+transcripts via proxy; the G-M&S §5 quote is agent-reported and UNVERIFIED — verify
+before load-bearing use.
+STILL OUT: the image-distribution lane (gates the attachment spec's fetch/prefetch/
+distribution sections). Summon/teardown research is otherwise complete.
