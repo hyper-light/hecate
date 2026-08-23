@@ -111,6 +111,20 @@ Fast-forward idempotent steps, each self-checking:
 A crash at any step boundary resumes at the missing half — never a duplicate agent,
 never a lost claim.
 
+**The ungraceful path reaches step 7 differently (amendment 2026-08-22).** The
+sequence above is the *graceful* handoff: step 5 delivers a drain order and step 6
+rotates keys, so the predecessor's frames die at both checks — a cryptographic fence
+at the wire boundary, and the predecessor is a willing participant. When the
+predecessor's **host** dies or partitions there is no drain order to deliver and no
+cooperating party: the successor arrives via `CONSENSUS.md` §7's R5 sequence
+(quorum declaration → confirmed propagation → summon at a fresh incarnation), and
+step 7's adoption executes unchanged — ALL open claims adopt under the chain, none
+force-closed, no status invented, volumes re-attaching under the bumped `key_epoch`.
+The distinction that matters for implementers: in the graceful path the fence is
+*handed over*, and in the ungraceful path it is *declared over the predecessor's
+head*, so step 7 must never depend on the predecessor having acknowledged anything.
+Cells and sweep: `FAULTS.md` §5's death-ladder rows and F9.
+
 ## 7. Test matrix (failure each catches)
 
 | # | Test | Catches |

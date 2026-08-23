@@ -238,6 +238,16 @@ is needed.
   together, so no resurrection is possible. Lineage heads and registry
   publications have holders anywhere ⇒ root-group epochs, WAN-committed —
   acceptable because those are human-cadence CAS operations.
+- **Death declaration** (§7's detection-authority law) classifies as
+  **CAS-first**, scoped to the failure domain doing the declaring: a pod's
+  death is declared by its host (no ref swap — direct observation *is* the
+  record), a host's by its **session-group** quorum, a region's by the **root**
+  quorum. It owns one fenced resource — the `PodIncarnation` — written as an
+  election-free CAS on the consensus-backed ref, so it introduces **no new
+  epoch class and no new quorum class**; the incarnation rides the existing
+  `key_epoch` discipline (`PODS.md`, `HANDOFF.md` X4). The health plane is
+  **not** in this roster: it observes and reports, and authors nothing
+  (`HEALTH.md` H4).
 - The score service (MONITORING §8) classifies as an **ordinary claims-plane
   client** — it owns no fenced resource and needs no roster entry; the roster
   covers resource-owning writers (amended 2026-08-22, MONITORING acceptance).
@@ -250,7 +260,109 @@ is needed.
   recognizes the writer-less registration. Branch 27's remaining scope =
   auditing this roster against the actual subsystem list at build time.
 
-## 7. Cross-region
+## 7. Cross-region — and the death ladder (scope generalization, 2026-08-22)
+
+**The laws in this section were written for regions; they are not
+region-specific.** The lease-shadow law, the externalization-fencing law, the
+terminal-epoch rule, and the rejoin protocol are hereby stated for **any failure
+domain**, with the region as the largest instance and the pod as the smallest.
+This is a generalization of existing accepted law, not a new mechanism: no new
+epoch class, no new quorum class, no new fence.
+
+**The detection-authority law.** *The authority to declare a holder dead is the
+smallest failure domain that can observe its death directly.*
+
+| Scope | Authority | Mechanism | Cost |
+|---|---|---|---|
+| Container / pod | its **host** | direct supervision — the host runs the VMM, so a dead pod is *observably* dead (fail-stop) | none: no barrier, no vote, no timer |
+| Host | the **session-group** quorum | R5 below | one region-local quorum round |
+| Region | the **root** quorum | this section, as originally written | human-cadence |
+
+The law is the epoch-scoping law above applied to *detection* rather than to
+minting, and it is why four of five failure rungs need no apparatus at all:
+inside a host there is no slow-versus-dead ambiguity to resolve. The ambiguity
+appears exactly once — **when the thing that died is the observer** — and that
+is the only rung that pays for a barrier and a quorum. `MONITORING.md` §11's
+matrix covers the four host-observed rungs; this section covers the fifth.
+
+**R5 — the death-declaration sequence** (host scope shown; the region case is
+this sequence with the root quorum, and the pod case collapses to R5-1 + R5-6):
+
+```
+ R5-1  DETECT     health observes silence (AbsenceIs::Degraded) and REPORTS.
+                  Health authors nothing and gates nothing (HEALTH H4).
+ R5-2  PROPOSE    a survivor proposes death for (pod_uid, incarnation N).
+ R5-3  BARRIER    the quorum WAITS OUT the lease shadow. Inside it a
+                  partitioned-but-alive holder may legally act; safety here
+                  is by waiting, and the wait is law (CN15).
+ R5-4  DECLARE    the quorum commits the declaration.   ◄── THE PIVOT
+                  N is now TERMINAL. Refusable before, retriable after.
+ R5-5  PROPAGATE  the declaration reaches every fenced boundary and the
+                  propagation OBSERVABLY COMPLETES (ReadIndex-confirmed).
+                  No successor is summoned until this returns.
+ R5-6  RECOVER    successor summons at N+1 under a bumped key_epoch;
+                  volumes re-attach; open claims ADOPT under the chain
+                  (HANDOFF HA8 — none force-closed, no status invented).
+ R5-7  REJOIN     a returning holder rejoins at a FRESH incarnation, never
+                  the declared one; its unlanded work lands as fork
+                  branches only (the rejoin protocol below).
+```
+
+R5-1…R5-3 are refusable and leave no durable effect; R5-4 is the single point of
+no return; R5-5…R5-7 retry until they succeed. **No compensation path exists
+because none is reachable** — the ordering the scheduler already uses
+(`SCHEDULER.md` §4: plan, then one serial commit stamped with the state version
+it was validated against).
+
+**R5-5 is the step production systems skip, and skipping it is the bug.**
+Kubernetes' force-detach sets `verifySafeToDetach=false` — it *removes* the
+check rather than tightening it — and its timeout path and its human
+`out-of-service` path run identical code, differing only in which metric is
+recorded. Here, propagation must be **confirmed**, and the operator path differs
+from the timed path by carrying **stronger evidence**, never by skipping a step.
+Ceph's ordering is the positive precedent: record, propagate, *then* break the
+lock, *then* write.
+
+**Three boundaries, three existing fences.** A declaration is consumed, never
+enforced, by this section. A displaced holder is refused at: the **ledger
+append** (`LEDGER_CORE.md` §2's effective-state affordance check — resource-side,
+because our ledger is both coordinator and storage, so the check-then-act gap
+that breaks a coordinator-side check does not exist here); the **VFS attach and
+disk-commit boundary** (manifest-head verification under the bumped `key_epoch`,
+`AGENTS_RUNTIME.md` §6, `HANDOFF.md` X4); and **every landing-class egress
+chokepoint** (the externalization-fencing law below). We need no analogue of
+SCSI's `PREEMPT AND ABORT` — that command exists because revoking a reservation
+does not retract already-issued I/O, and our two cases foreclose it: a dead host
+took its guests' in-flight I/O with it (killing a VMM terminates every queued
+guest operation atomically), and a merely-partitioned host can only act by
+crossing the network, where the egress fence stands.
+
+**The failure direction, stated rather than inherited.** A time-bounded fence
+fails open, and which way it fails is a design decision: Chubby's `lock-delay`
+expiry fails toward **duplication**, Flink's Kafka-sink transaction timeout
+fails toward **loss**. **Ours fails toward loss of unlanded work, never toward
+duplication of landed or externalized work** — because the loss class is already
+priced (`OBJECT_TIER.md` §3's formula, re-derivable by agent effort and
+user-visible) while duplication has no price: an external side effect cannot be
+retroactively conflict-valued.
+
+**Incarnation retention.** A declaration record may be reclaimed after the
+resource lifetime plus a late-arrival interval — safe **only because the fenced
+identity is per-incarnation**, so an expired record names an identity that can
+never legally return (Ceph's blocklist-expiry condition; the AWS
+retention-as-formula shape). An incarnation is **never** derived by observing
+live pods: a counter computed from current state resets to zero exactly when
+every holder is gone, which is precisely when the fence is needed (the CRI
+sandbox-attempt failure mode).
+
+### 7a. The region scope in full
+
+Region placement, durability, and failover as originally accepted — plus the four
+laws stated at their original (region) scope. **The lease-shadow, externalization-
+fencing, and rejoin laws are generalized to any failure domain by §7 above**; the
+region is their largest instance and the pod their smallest, and each bullet below
+carries its generalization inline. Nothing in this subsection is region-only except
+the placement and cross-region-durability clauses.
 
 **Evidence provenance**: verified on primary text 2026-08-17 (dossier in
 GRILLING.md research index; §7 re-settled with the six-amendment set,
@@ -311,7 +423,17 @@ one side).
   touch is region-scoped to begin with; genuinely global state commits on
   a global quorum at human cadence. (Recorded as compatible future work
   only if a latency-sensitive, genuinely-global write class ever appears.)
-- **The lease-shadow law**: the root may not re-grant a lineage/
+- **The lease-shadow law** (generalized above to any failure domain; the
+  declaring quorum stands where "the root" appears, and R5-3 is this law at
+  host scope). **It is a barrier, never a trigger**: the wait can only make
+  reclamation *later*, while the quorum decides *whether*. A timer that
+  **causes** reclamation is the refused shape — Kubernetes' 30s assumed-pod TTL
+  double-booked nodes (#106361), was set to 0, and is now deleted from master.
+  Chubby's `lock-delay` is the cited precedent for the wait itself, and the
+  paper calls it *"imperfect"*: it is capped, opt-in, and cannot carry the
+  safety argument alone — safety comes from composing the barrier with the
+  quorum decision and a fresh epoch. The law: the root may not re-grant a
+  lineage/
   materialization lease — nor re-summon a replacement session with
   materialization authority — until the prior lease's remaining validity
   has expired **plus a clock-drift margin derived from the stated maximum
@@ -329,12 +451,22 @@ one side).
   Guardian/warden egress chokepoints; this law adds the epoch check to
   that boundary. Without it, the §7 safety argument covers archive state
   only — a zombie region's un-fenced externalizations cannot be
-  retroactively conflict-valued (CN16, architecture test).
-- **The region rejoin protocol** (fate-sharing covers death, not
-  resurrection — Clark's model licenses losing state when the entity is
-  lost; a partitioned region did not die): dead-declaration is a
-  root-quorum decision, taken only after the lease-shadow window, and is
-  **terminal for the region epoch**. On heal, the region rejoins under a
+  retroactively conflict-valued (CN16, architecture test). **Generalized: the
+  epoch a chokepoint checks is the one scoped to the declaring domain** — a
+  fenced host's pods are refused at the same boundaries by the same discipline.
+  This law is why category (b) — "just re-run it, re-execution is safe" — is
+  unavailable to us for the externalizing class, and it is deliberately
+  stronger than industry practice: Borg cleans up duplicates *after* discovering
+  them, Temporal documents the residue as "Zombie Activities", and Kubernetes
+  concedes that pods scheduled for deletion may keep running on a partitioned
+  node. None of them prevents the double *attempt*; this law does, and must not
+  be softened toward that norm.
+- **The rejoin protocol** (generalized from the region case; fate-sharing covers
+  death, not resurrection — Clark's model licenses losing state when the entity
+  is lost; a partitioned entity did not die): dead-declaration is a
+  quorum decision by the authority of §7's detection-authority table, taken only
+  after the lease-shadow window, and is
+  **terminal for the declared epoch**. On heal, the entity rejoins under a
   **new** region epoch; no pre-partition epoch resumes any
   authority-bearing role or renews any lease; surviving sessions'
   unlanded work enters the archive **as fork branches only, never

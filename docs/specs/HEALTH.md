@@ -74,6 +74,19 @@ The health service itself has **no authority**: it cannot gate, author claims, o
 trigger anything. Health is continuous scoring feeding judgment — never a
 string-matched phase roll-up, never an enforcement layer.
 
+**This holds for death declaration specifically (amendment 2026-08-22).** Health
+is the *detector* in `CONSENSUS.md` §7's R5 sequence and nothing more: liveness
+silence surfaces as `AbsenceIs::Degraded` — silence **is** the signal, failing
+closed — and the composite is reported to consumers who judge. **Health does not
+declare a pod or host dead.** The declaration is a quorum decision at host scope
+and direct observation by the host at pod scope; the Guardian is the consumer that
+acts on it under its resource-response duty. H4 covers this by construction — a
+declaration is an authored, gating act, and health can do neither — so no exception
+is carved for it here. The reason is not tidiness: a detector that could declare
+would make an unreachable-but-alive host indistinguishable from a dead one *at the
+point of decision*, which is precisely the ambiguity the quorum and the
+lease-shadow barrier exist to resolve.
+
 ## 3. Scribe triggers
 
 - **Context handoff**: the derived utilization threshold crossing is sufficient
@@ -94,7 +107,7 @@ string-matched phase roll-up, never an enforcement layer.
 | H1 | Signal determinism: identical input streams ⇒ identical composites, in SIM and across platforms | nondeterministic health verdicts |
 | H2 | Threshold derivation: swapping the pinned ModelConfig moves context thresholds; no constant exists (the Sylk 100K hardcode is the named regression) | window constants returning |
 | H3 | Evidence completeness: a performance-handoff request carries every required signal class; the Guardian's single evidence request is exercised, and a second is structurally impossible | soft-gate becoming a stall loop |
-| H4 | No-authority: the health service can gate nothing and author nothing (architecture test) | health becoming enforcement |
+| H4 | No-authority: the health service can gate nothing and author nothing (architecture test) — **including death declaration**: no health path can commit a `CONSENSUS` §7 declaration, summon a successor, or bump an incarnation; liveness silence produces a reported `Degraded` composite and nothing else | health becoming enforcement; a detector declaring death and collapsing the unreachable-vs-dead distinction at the decision point |
 | H5 | One plane: no second health/liveness subsystem exists in the tree (architecture test — Sylk ran four) | fragmentation returning |
 | H6 | Rollup bounds: control-plane health traffic bounded by node count under 10× pod growth (with `PODS.md` T10) | telemetry self-DDoS |
 | H7 | Absence semantics: stalled-source fuzz per class ⇒ Degraded classes degrade, Unknown classes surface staleness; no consumer ever reads a frozen stale value as fresh | interpolation-as-lying; silent blindness |

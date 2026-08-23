@@ -197,6 +197,61 @@ take these cells:
 Every drop is counted; an unknown drop is a bug (the §2 no-silent-signal
 law applied to the primitives).
 
+**Agent-pod rows — the death ladder (amendment 2026-08-22, closing an F4
+violation).** An agent pod holding open claims had no stated cell for `kill`,
+`pause`, or `partition`: every prior failure path is written from the host's
+point of view (`MONITORING.md` §11's four rungs, `PODS.md` §7), so none of them
+covers the host's own loss. The recovery protocol is `CONSENSUS.md` §7's
+generalized death-declaration sequence (R5-1…R5-7); the cells:
+
+- **pod `kill`, host alive** ⇒ **Masked**. The host supervises the VMM
+  directly, so a dead pod is *observably* dead — the fail-stop case. No
+  barrier, no quorum, no incarnation bump: direct observation **is** the
+  declaration (§7's detection-authority law, smallest-domain clause). This is
+  the fast path and the amendment leaves it byte-identical (`PODS.md` T26).
+- **host `kill`** ⇒ **Degraded**. The observer itself died, so declaration
+  escalates to the session-group quorum. Unlanded work in the lost pods is the
+  existing priced loss class (`OBJECT_TIER.md` §3's formula) — re-derivable by
+  agent effort, user-visible, never existential. Landed and externalized work
+  is never duplicated (the stated failure direction, §7).
+- **`pause` (unbounded, any scope)** ⇒ **Masked** — by fencing, never by
+  timing (§1's standing law, now with a mechanism). A resumed holder's writes
+  are refused at all three boundaries: the ledger append (`LEDGER_CORE.md` §2's
+  effective-state affordance check), the VFS attach/disk-commit boundary
+  (manifest-head verification under the bumped `key_epoch`), and every
+  landing-class egress chokepoint (§7's externalization-fencing law). **All
+  three checks are resource-side** — a client-side check cannot fire inside a
+  stopped process, and a coordinator-side check is only as good as the gap
+  between check and act (Spark's `canCommit`→`performCommit` rename is the
+  named check-then-act counterexample). Our ledger is both coordinator and
+  storage, so no such gap exists (F9c).
+- **host `partition`** ⇒ **Degraded**. Identical to host `kill` from the
+  quorum's side; the difference is only that the holder may still be alive,
+  which is exactly what the fences cover. On heal the host rejoins under a
+  **new** incarnation (never the declared one), and its unlanded work enters
+  the archive **as fork branches only, never continuations** — overlapping
+  descendants surface as ordinary parallel workstreams carrying conflict values
+  (§7's rejoin protocol; LWW remains the named anti-pattern).
+- **`partition` healing mid-barrier** ⇒ **Masked**. The lease-shadow barrier
+  has not elapsed, so no declaration exists and the holder continues legally —
+  safety here is by waiting, and the wait is law (CN15). The common case costs
+  one proposal and no recovery.
+- **`partition` healing mid-propagation** ⇒ **Masked**. The declaration is
+  already terminal; propagation is idempotent; the successor is not summoned
+  until propagation is confirmed, so a returning holder meets armed fences.
+- **`clock` (strobe/jump/skew, arbitrary magnitude)** ⇒ **Masked**. The barrier
+  is logical-time and no admission path reads wall-clock (§1's clock clause).
+- **quorum unavailable** ⇒ **Refused**, loudly and typed. No declaration, no
+  successor, claims stay held. Availability is never bought with safety — the
+  same disposition as `corrupt(log body)` at N=1.
+
+**The barrier is not a trigger.** The lease-shadow wait can only make
+reclamation *later*; the quorum decides *whether*. A timer that **causes**
+reclamation is the refused shape (Kubernetes' 30s assumed-pod TTL double-booked
+nodes, #106361, was set to 0, and is now deleted from master); a timer that
+**forbids** reclamation before a bound, composed with a quorum decision and a
+fresh epoch, is safe. Every cell above depends on that distinction (F9b).
+
 ## 6. Test matrix
 
 | # | Test | Catches |
@@ -209,6 +264,7 @@ law applied to the primitives).
 | F6 | Disk-swap-on-reboot: node with stale/foreign disk is detected (epoch/identity mismatch) and refuses to vote | the FAST'18 disk-swap class |
 | F7 | Region-heal fuzz: partition a region (not kill), let both sides run, heal ⇒ safety holds under the full §7 protocol: (a) inside the lease-shadow window the root refuses re-grant/re-summon-with-materialization while the cut side may still legally materialize (CN15's window, exercised from the fault side); (b) after dead-declaration the region epoch is terminal — on heal the region rejoins under a new epoch, no pre-partition epoch resumes authority or renews a lease; (c) zombie sessions' unlanded work ingests as fork branches only, never continuations — overlapping descendants of one lineage node surface as parallel workstreams carrying conflict values; (d) zombie externalization attempts during and after the partition are refused at the fenced egress chokepoints (CN16 from the fault side) | zombie-region resurrection; the lease shadow; un-fenced externalization |
 | F8 | IAM inject-authority (the §1 scoped exception): a forged or foreign-signed authority record / IAM-root injected at any replica — leader included — is refused at apply, run-load, and snapshot install, and alarmed; blast radius stays the compromised node's resident sessions and replicas (no accepted mutation elsewhere) | authority injection via node/leader compromise |
+| F9 | **The death-ladder sweep** (agent pod holding open claims, `CONSENSUS` §7 R5-1…R5-7): **(a)** kill/partition the host at every step boundary ⇒ exactly one live incarnation at all times, open claims adopt exactly once (none force-closed, no status invented), crash mid-sequence fast-forwards; **(b)** barrier fuzz — set the lease shadow anywhere in [0, 1h]: safety identical, only recovery latency moves, and at 0 the quorum decision still gates (the barrier can never become a trigger — #106361 as a permanent regression seed); **(c)** unbounded `pause` past any lease ⇒ the woken holder's testament, volume write, and egress attempt are each refused **resource-side**, typed `Fenced` (never `Absent`), and an architecture test asserts no client-side or gapped coordinator-side check exists on any of the three paths; **(d)** propagation-ordering fuzz — adversarially delay propagation ⇒ no successor is summoned before confirmation, and no code path disables verification (the `verifySafeToDetach=false` shape: the operator path differs from the timed path by evidence class, never by skipping a step); **(e)** incarnation monotonicity across declaration, total pod loss, and full host restart — strictly increasing, never derived from observed state (the CRI-attempt reset class); **(f)** heal-after-declaration ⇒ rejoin at a fresh incarnation with unlanded work landing as fork branches carrying conflict values, never as continuations; **(g)** quorum-unavailable ⇒ typed loud refusal, claims stay held, zero successors | the zombie-holder class; timer-triggered reclamation; the check-then-act gap; force paths that remove checks; state-derived counters resetting to zero; silent LWW; availability bought with safety |
 
 ## 7. Acceptance criteria
 
@@ -221,10 +277,21 @@ law applied to the primitives).
    (architecture test).
 3. Simulation runs in CI from the first consensus commit; the seed corpus
    and CPU-hour floor only ratchet.
-4. The obligation matrix is complete and boot-validated (F4 permanent).
-5. Every incident-derived scenario (Cloudflare asymmetric partition, v3.5
+4. The obligation matrix is complete and boot-validated (F4 permanent). The
+   agent-pod × {`kill`, `pause`, `partition`} cells (§5's death-ladder rows)
+   are part of that completeness: their prior absence was itself an F4
+   violation, and F4 fails on their removal.
+5. **The failure direction is stated, not inherited** (§5's death-ladder rows,
+   `CONSENSUS.md` §7): unlanded work may be lost and is priced by
+   `OBJECT_TIER.md` §3's formula; landed or externalized work may never be
+   duplicated. A time-bounded fence fails open, and *which way* it fails is a
+   design decision made here rather than a consequence left to the mechanism —
+   Chubby's `lock-delay` expiry fails toward duplication, Flink's Kafka-sink
+   transaction timeout fails toward loss, and a spec that does not choose has
+   not decided.
+6. Every incident-derived scenario (Cloudflare asymmetric partition, v3.5
    watermark race, TiKV #10017, disk-swap, region-heal) exists as a named
    regression seed.
-6. The simulated failure-domain tree covers depth one (laptop) through
+7. The simulated failure-domain tree covers depth one (laptop) through
    multi-region in the same harness; no scenario is laptop-only or
    fleet-only by construction.

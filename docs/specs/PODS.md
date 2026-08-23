@@ -258,6 +258,26 @@ pre-effect, tamper-proof) → **Scribe** (semantic narration) → **Guardian** (
   unit's checkpointed detection substrate + the health plane drive replacement**
   (the successor's brief = the last flushed window; MONITORING §6; amended
   2026-08-22 — "the Scribe drives replacement" holds only for primary-only death).
+  **All of the above is host-observed**: the host runs the VMM, so a dead pod is
+  *observably* dead — the fail-stop case, with no barrier, no quorum, and no
+  timer anywhere on the path. Declaration here **is** direct observation
+  (`CONSENSUS.md` §7's detection-authority law), and T26 asserts this fast path
+  stays free of the host-loss apparatus.
+- **Host loss (amendment 2026-08-22 — the fifth rung).** Every edge above is
+  written from the host's point of view, so none of them covers the host's own
+  death or partition: the observer is the thing that failed. Declaration then
+  escalates to the **session-group quorum** and runs `CONSENSUS.md` §7's R5
+  sequence — detect (health reports, authors nothing), propose, wait out the
+  lease-shadow **barrier**, declare (terminal for that incarnation), propagate
+  and *confirm*, then summon the successor at a fresh incarnation under a bumped
+  `key_epoch`. Open claims **adopt** under the chain (HANDOFF HA8: none
+  force-closed, no status invented). A returning holder is refused at the ledger
+  append, at the VFS attach/disk-commit boundary, and at every egress chokepoint;
+  its unlanded work lands as **fork branches, never continuations**. Cells and
+  their sweep: `FAULTS.md` §5's death-ladder rows and F9. **No successor is
+  summoned before propagation is confirmed** — and no path may disable that
+  verification, the `verifySafeToDetach=false` shape being the named
+  counterexample.
 
 ## 8. Test matrix (failure each catches)
 
@@ -285,6 +305,8 @@ pre-effect, tamper-proof) → **Scribe** (semantic narration) → **Guardian** (
 | T22 | Channel tamper: cross-write attempts on ring/cursor ⇒ kernel EACCES; seal violations unrepresentable; CID_LOCAL rejected | policy-only channel direction |
 | T23 | Interior residuals: drainer death ⇒ pinned enforcement still denies (probe); denials counted per container (cgroup-id) | enforcement dying with its drainer |
 | T24 | Census: thread count N+1 under load (ratchet); Scribe resident-idle ≈ 0 CPU; Σ memory.max + init ≤ guest RAM refused at admission when violated | 2N creep; guest-global OOM |
+| T25 | **Host-loss rung** (`CONSENSUS` §7 R5, `FAULTS` F9): kill/partition the host at every R5 step boundary ⇒ exactly one live incarnation throughout, open claims adopt exactly once, successor never summoned before propagation is confirmed; a resumed pre-declaration pod is refused resource-side at all three boundaries (ledger append, VFS attach/disk-commit, egress), typed `Fenced` not `Absent`; incarnation strictly increases across total pod loss and full host restart | the zombie-holder class; summon racing propagation; state-derived counters resetting to zero; the 409/404 conflation |
+| T26 | **Fast-path regression**: host-observed pod death (§7's first four rungs) executes with no barrier wait, no quorum round, and no incarnation bump — measured latency unchanged against the pre-amendment baseline (architecture test: the host-loss apparatus is unreachable from the host-observed path) | rung-5 machinery leaking into every ordinary crash |
 
 ## 9. Acceptance criteria
 
