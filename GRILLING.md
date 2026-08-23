@@ -9623,3 +9623,55 @@ for us is NOT "is seal elegant" but **HOW OFTEN DO OUR SHARDS RECONFIGURE?** At 
 scale with whale-session splits + node churn, a high reconfiguration rate erodes the
 benefit while the cost (a second protocol, an extra layer, two failure models to test)
 stays fixed. Hold the verdict for Lane 2 (systems + counter-case), still running.
+
+**USER CORRECTION x2 — MY CLAIM-LEASE FENCE PROPOSAL WAS WRONG IN PLACEMENT, AND ITS
+MECHANISM ALREADY EXISTS AS ACCEPTED LAW. Both corrections stand.**
+**(i) FANOUT was cited wrongly.** FANOUT is the **SNS-shape topic router** (push;
+delegates durability: ephemeral sub -> CACHE pub-sub at-most-once PUSH, durable sub ->
+QUEUE at-least-once PULL). Its "at-most-once" is CORRECT, IN-DOMAIN usage — the SNS
+primitive describing ephemeral push. NOT a name collision, NOT evidence of confusion.
+Same for LEDGER_SUBSTRATE's "at-most-once NOTIFY + cursor recover". I implicated two
+blameless specs to dress a local defect as a systemic one. Retract that framing.
+**(ii) THE REAL ERROR: I DREW THE CLAIMS LEDGER INTO CLUSTER STATE — AGAIN.** My fix
+added `holder_epoch` to `ClaimLifecycle` to cover BOTH SIBYL and MERGE. But those two
+sit on OPPOSITE SIDES of the ledger boundary: **SIBYL's instance<->lineage assignment
+is WHICH SERVICE INSTANCE OWNS WHICH PARTITION = CLUSTER STATE, NOT AGENT WORK.**
+Claims are for agent work. SIBYL §1/§(AC 6)/WV8 using claims for partition ownership is
+the category error; my fix ENTRENCHED it by building cluster-ownership machinery into
+the claims ledger. MERGE's review claim, by contrast, IS genuine agent work (an Arbiter
+reviews and testifies) and legitimately stays.
+**(iii) THE MECHANISM I "DESIGNED" IS ALREADY ACCEPTED LAW IN CONSENSUS — VERBATIM,
+INCLUDING MY ARGUMENT FOR IT.** CONSENSUS §(standing writers): "**Standing writers** —
+the ledger sequencer, queue-partition sequencers, and the topic-router per-group FIFO
+sequencer... **plus any future open-write-stream holder** — hold a **meta-tree lease in
+Chubby's coarse-grained shape** (keepalives, grace period) **plus an epoch fencing token
+enforced AT THE RESOURCE** — **non-negotiable, because A PAUSED-AND-RESUMED WRITER
+DEFEATS ANY LEASE ALONE** (§3b layer 3). **Every write the resource accepts checks the
+token; a stale token is a typed refusal.**" That is EXACTLY the mechanism AND EXACTLY
+the argument (paused-but-alive holder) I re-derived from scratch and presented as new.
+**A SIBYL INSTANCE HOLDING EXCLUSIVE WRITE AUTHORITY OVER A LINEAGE *IS* AN
+"OPEN-WRITE-STREAM HOLDER"** — the clause already reaches it by its own terms. SIBYL was
+simply never brought under it. Failure of the reconciliation discipline: I researched
+outward before reading our own accepted ledger.
+Note the same clause also settles MERGE's sibling case: "**The merge proposer is the
+exception: it is LEADER-FUSED** — a role of its session group's Raft leader, with the
+TERM as its only fence (MERGE §2, M13d), no separate lease or epoch token." Same for
+each STORE data-shard writer. So we already have BOTH exclusivity shapes: leader-fused
+(term) and standing-writer (lease+token).
+**CORRECTED SPLIT — TWO DEFECTS, TWO LEDGERS, NO NEW MECHANISM:**
+- **SIBYL = cluster state.** Delete claims-based instance<->lineage assignment. Bring
+  it under CONSENSUS's standing-writer law: meta-tree lease + epoch fencing token
+  enforced at the resource. WV8 becomes a cluster-state test, not a claims test.
+  Removes machinery rather than adding it.
+- **MERGE = agent work, stays in the claims ledger.** Its defect is narrow and
+  self-contained: **"at-most-once, lease-expiry redelivery" IS SELF-CONTRADICTORY** —
+  timer-driven redelivery is precisely what breaks at-most-once dispatch. Remedy is
+  TWO parts, both using existing machinery: (a) reassignment fires off a DURABLE
+  DECISION, never a clock — HEALTH §(claim coherence: "ledger activity consistent with
+  assignment | frontier/ledger observation") escalating a `guardian_check` claim, the
+  path PODS:219 already uses; and (b) the finding testament carries its claim
+  generation, refused at the ledger append if stale — because (a) alone still loses the
+  race when a merely-slow Arbiter wakes after the durable reassignment.
+- **CHECK THE SIBLINGS under the same split** — the phrase recurs at PODS:148,
+  AUTOSCALING:82-83, SCHEDULER:219/SCH11. Those redistribute AGENT WORK claims on pod
+  loss (legitimate), but each needs the timer-vs-durable-decision test applied.
