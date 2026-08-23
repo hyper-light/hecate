@@ -9323,3 +9323,40 @@ recovered-hyperscale-control-plane.md (redirected — that lane ran in the EARLI
 session 16ae87db, different tasks dir).
 NOTE FOR FUTURE SESSIONS: transcripts symlink to
 ~/.claude/projects/<project>/<session>/subagents/agent-<id>.jsonl — they persist.
+
+**RECOVERED #1: hyperscale control planes ->
+/Users/adalundhe/.claude/jobs/6ac71cfa/tmp/recovered-hyperscale-control-plane.md**
+The lost body was INTACT at JSONL line 69 of the earlier session's transcript (a
+single 34,732-char block); line 74 was the delivered supplement. Recovered FULL:
+Borg, Twine/Tupperware (+ a child's richer 21.6 KB report), Delos (+ child 22.5 KB),
+Chubby (+ child 18.4 KB), and six common patterns A-F. EMPTY: Spanner movedir /
+zonemaster (not in this tree).
+**A THIRD CONTENT-FILTER CASUALTY CONFIRMED**: the Borg child agent died at line 28
+with the same "Output blocked by content filtering policy" — the parent's own PDF
+read is now the sole source (independently corroborated by an out-of-tree agent).
+That failure mode has now killed 3 agents (fencing-family, gang-scheduling, Borg
+child) => the write-to-file pattern is mandatory, not a preference.
+**THE THREE LOAD-BEARING FINDINGS:**
+1. **BORG BOUNDS CELLS FOR BLAST RADIUS, NOT SCALE** — the paper says outright that
+   independence goals "not scalability limitations, are the primary argument against
+   larger cells," while ONE Borgmaster manages many thousands of machines on 10-14
+   cores / 50 GiB RAM. => our per-session-group + per-region sharding is justified by
+   FAILURE ISOLATION, not by an inability to scale a group. State it that way.
+2. **DELOS FACTORS CONSENSUS INTO ONE REUSABLE PLACE** — the VirtualLog MetaStore is
+   "necessary and sufficient" and is touched ONLY on reconfiguration, so the HOT-PATH
+   Loglet needs only `seal` — WEAKER THAN CONSENSUS AND NOT FLP-BOUND. That is the
+   formal reason NativeLoglet can be consensus-free, and what let Meta swap
+   ZKLoglet->NativeLoglet live on 2026-04-02... (1919-04-02 per source: April 2nd
+   2019). => sharpens our LEDGER_SUBSTRATE/CONSENSUS citation: we cite the VirtualLog
+   shape for reconfiguration-as-data; the deeper claim is that the hot path can use a
+   seal-only primitive. NOT acting on this unilaterally — recorded as a live question
+   for the substrate (would let a shard's append path avoid consensus, with
+   consensus reserved for reconfiguration).
+3. **TWINE SCALES BY SHARDING, NOT FEDERATION** — schedulers and allocators shard 1:1
+   by entitlement with external per-component stores ("unlike Borg"), reaching ONE
+   MILLION MACHINES PER REGIONAL CONTROL PLANE vs the 5K-machine ceiling it attributes
+   to Kubernetes. => the direct receipt for the user's "Meta scale, adapt beyond
+   Kubernetes" instruction.
+18 flags recorded incl. FOUR the original agents missed: a wrong SOSP DOI (...3544
+not ...3540), two verbatim-drift items, and an unsupported "45s grace period" in the
+Chubby section that no transcript supports — do not cite that number.
