@@ -9675,3 +9675,92 @@ each STORE data-shard writer. So we already have BOTH exclusivity shapes: leader
 - **CHECK THE SIBLINGS under the same split** — the phrase recurs at PODS:148,
   AUTOSCALING:82-83, SCHEDULER:219/SCH11. Those redistribute AGENT WORK claims on pod
   loss (legitimate), but each needs the timer-vs-durable-decision test applied.
+
+**BRANCH OPENED: UNGRACEFUL CLAIM RECOVERY (a pod/host dies holding claims).
+Research dispatched (2 lanes: crash-declaration, crash-recovery+storage). SPEC
+ARCHAEOLOGY DONE FIRST — and it relocates the gap precisely.**
+
+**THE COVERAGE LADDER ALREADY EXISTS (MONITORING §11 + PODS §7). Four of five rungs
+are covered, HOST-OBSERVED, and need nothing:**
+1. Scribe dies -> init re-creates from the frozen bundle, same fds, resumes at cursor;
+   a long outage costs the OLDEST sub-buffers (gap records), never the newest.
+2. Primary dies -> Scribe tail-drains committed ring bytes, emits the death report,
+   teardown flush-gated; **the successor's brief carries the drained tail** (best case).
+3. Both containers die -> init supervises both independently; **the ring memfds live in
+   INIT'S fd table, so they survive both**.
+4. init / the VM dies -> **control-channel death, HOST-OBSERVED**; colocation unit's
+   checkpointed detection substrate + health plane drive replacement; **brief degrades
+   to the LAST FLUSHED WINDOW** (R1 §7 correction). PODS §7: "claims and parked turns
+   survive on the ledger BY CONSTRUCTION."
+**5. THE HOST DIES OR PARTITIONS -> NOTHING. The entire MONITORING §11 matrix is
+written FROM THE HOST'S PERSPECTIVE, so it cannot cover the host's own loss.** That,
+exactly, is the uncovered rung — not "claim dispatch is undefined" as I framed it.
+**KEY STRUCTURAL INSIGHT — WE HAVE A PERFECT FAILURE DETECTOR AT POD SCOPE, AND THAT
+IS WHY RUNGS 1-4 NEED NO TIMER.** The host supervises the VMM process directly; a dead
+VMM is OBSERVABLY dead to its own supervisor. There is no slow-but-alive ambiguity
+within a host. This is precisely the FAIL-STOP assumption Chain Replication requires
+(recovered-seal-formal S3: "a server's halted state can be detected by the
+environment") — and at pod-within-host scope WE ACTUALLY HAVE IT. Rung 5 is the only
+rung where crash and partition are indistinguishable, so it is the only rung needing
+the fencing apparatus.
+**=> THE DESIGN LAW THIS YIELDS: THE AUTHORITY TO DECLARE A HOLDER DEAD IS THE
+SMALLEST FAILURE DOMAIN THAT CAN OBSERVE ITS DEATH DIRECTLY.** Pod -> its host
+(fail-stop, no timer, no quorum). Host -> the session-group quorum. Region -> the root
+quorum. ONE law, three scopes, ZERO modes — and it is the exact shape of §6's existing
+epoch-scoping law ("an epoch/fencing authority lives in the smallest failure domain
+that contains every legal holder of the fenced resource"). Not a new principle; the
+same one applied to detection rather than to minting.
+
+**RUNG 5 IS THE REGION PROTOCOL ONE SCOPE DOWN. CONSENSUS §7 ALREADY SPECIFIES IT IN
+FULL — five laws that scale down verbatim:**
+- **Lease-shadow law**: no re-grant until the prior lease's remaining validity expires
+  PLUS a **rate-derived clock-drift margin** (Chubby's lock-delay is the precedent; its
+  own caveat — leases tolerate skew and pauses but NOT long-term rate divergence — is
+  why the margin is RATE-derived, never hand-picked). "Inside that window a
+  partitioned-but-alive holder MAY LEGALLY ACT on its lease; **safety there is BY
+  WAITING, and the wait is law**" (CN15).
+- **Externalization-fencing law**: "fencing tokens protect only effects that pass a
+  token-checking chokepoint — so EVERY external side-effect channel is a landing-class
+  chokepoint carrying the epoch" (CN16, architecture test). Without it the safety
+  argument covers archive state only.
+- **Rejoin protocol**: dead-declaration is a QUORUM decision, taken ONLY AFTER the
+  lease-shadow window, and is **TERMINAL for the epoch**. On heal the entity rejoins
+  under a NEW epoch; **no pre-partition epoch resumes authority or renews a lease**.
+- **Zombie work lands as FORK BRANCHES ONLY, NEVER CONTINUATIONS** — overlapping
+  descendants surface as parallel workstreams carrying conflict values (Dynamo's
+  surfaced-siblings; **DynamoDB global tables' LWW is the NAMED ANTI-PATTERN** — silent
+  loss of one side).
+- **Fate-sharing covers DEATH, NOT RESURRECTION** (Clark): licenses losing state when
+  the entity is lost; a PARTITIONED entity did not die.
+- Priced loss: OBJECT_TIER §3's formula, `correlated_event_rate` x `exposure_window`.
+
+**THE APPARENT CONFLICT WITH LAW 1 ("never reclaim on a timer") IS NOT ONE — AND THE
+DISTINCTION IS LOAD-BEARING, STATE IT EXPLICITLY IN THE SPEC:**
+- **TIMER AS TRIGGER** (K8s #106361, the 30s assumed-pod TTL): "30s elapsed => the
+  reservation is FREE." UNSAFE, because elapsed != dead. Reclamation is CAUSED by the
+  clock.
+- **TIMER AS BARRIER** (the lease-shadow law): "you may NOT reclaim until at least T
+  has elapsed, AND a quorum decides, AND the successor takes a fresh epoch." SAFE,
+  because the clock only DELAYS; the quorum decides and the epoch fences.
+A barrier timer can only make reclamation LATER; a trigger timer makes it HAPPEN. Our
+existing lease-shadow is the barrier form. The two laws are complementary, not
+competing.
+**ALSO SETTLED BY ARCHAEOLOGY — DO NOT REDESIGN THESE:**
+- HEALTH has **NO AUTHORITY** (H4, architecture test): "it cannot gate, author claims,
+  or trigger anything." So health OBSERVES rung 5; it must NOT declare death. The
+  declaration is a quorum decision; the Guardian is the consumer with "resource
+  response". Any design putting the declaration in the health plane violates H4.
+- FAULTS §1: `pause` (unbounded) is IN SCOPE, "the GC/scheduler stand-in — **defeated
+  by fencing, NEVER by timing assumptions**"; §5 headline row: **`pause` => Masked
+  everywhere by fencing (CN8)**. So the obligation is already stated as law — the
+  design owes the MECHANISM, not the policy.
+- FAULTS §5's matrix is **BOOT-VALIDATED for coverage**: "every subsystem x fault class
+  has a stated cell — **an uncovered cell fails CI, not review**" (F4). => The
+  agent-pod-holding-claims x {`kill`, `pause`, `partition`} cells are the deliverable's
+  acceptance surface, and their absence today is itself an F4 violation.
+- The graceful path is ALREADY cryptographically fenced: AGENTS_RUNTIME §6 step 6
+  "Keys and fencing rotate; **the predecessor's frames die at both checks**"; step 7
+  volumes re-attach under a bumped `key_epoch`; HANDOFF X4 + HA8.
+- PODS §7: teardown "**never before work is committed** — pod lifecycle is independent
+  of disk commit; rejection/correction are NOT terminal for a pod's volumes" (T11:
+  "volumes outlive uncommitted work").
