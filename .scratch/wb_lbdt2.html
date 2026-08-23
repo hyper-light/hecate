@@ -1,0 +1,518 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head><script type="text/javascript" src="/cf_scripts/scripts/cfform.js"></script>
+<script type="text/javascript" src="/cf_scripts/scripts/masks.js"></script>
+<title>Life Beyond Distributed Transactions - ACM Queue</title>
+<meta name='description' value='This article explores and names some of the practical approaches used in the implementation of large-scale mission-critical applications in a world that rejects distributed transactions. Topics include the management of fine-grained pieces of application data that may be repartitioned over time as the application grows. Design patterns support sending messages between these repartitionable pieces of data.' />
+<meta name='keywords' value='Distributed Computing' />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="shortcut icon" href="favicon.ico" />
+<script type="text/javascript" src="/js/jquery-1.2.6.min.js"></script>
+<script type="text/javascript" src="/js/jquery.validate.min.js"></script>
+<script type="text/javascript" src="/js/global.js"></script>
+<link rel="alternate" type="application/rss+xml" title="Latest Queue Content RSS 2.0" href="/rss/feeds/latestitems.xml" />
+<link rel="alternate" type="application/rss+xml" title="All Queue Content RSS 2.0" href="/rss/feeds/queuecontent.xml" />
+<link rel="alternate" type="application/rss+xml" title="Curmudgeon RSS 2.0" href="/rss/feeds/curmudgeon.xml" />
+<link rel="alternate" type="application/rss+xml" title="Opinion RSS 2.0" href="/rss/feeds/opinion.xml" />
+<link rel="alternate" type="application/rss+xml" title="Kode Vicious RSS 2.0" href="/rss/feeds/kodevicious.xml" />
+<link rel="alternate" type="application/rss+xml" title="ACM TechNews RSS" href="https://www.infoinc.com/acm/TechNews.rss" />
+<link rel="alternate" type="application/rss+xml" title="Washington Updates RSS" href="https://usacm.acm.org/weblog2/?feed=rss2" />
+<link rel="alternate" type="application/rss+xml" title="RISKS Forum RSS" href="/rss/feeds/risksforum.xml" />
+<link rel="alternate" type="application/rss+xml" title="AI RSS 2.0" href="/rss/feeds/ai.xml" />
+<link rel="alternate" type="application/rss+xml" title="API Design RSS 2.0" href="/rss/feeds/apidesign.xml" />
+<link rel="alternate" type="application/rss+xml" title="Bioscience RSS 2.0" href="/rss/feeds/bioscience.xml" />
+<link rel="alternate" type="application/rss+xml" title="Business/Management RSS 2.0" href="/rss/feeds/business/management.xml" />
+<link rel="alternate" type="application/rss+xml" title="Compliance RSS 2.0" href="/rss/feeds/compliance.xml" />
+<link rel="alternate" type="application/rss+xml" title="Component Technologies RSS 2.0" href="/rss/feeds/componenttechnologies.xml" />
+<link rel="alternate" type="application/rss+xml" title="Computer Architecture RSS 2.0" href="/rss/feeds/computerarchitecture.xml" />
+<link rel="alternate" type="application/rss+xml" title="Concurrency RSS 2.0" href="/rss/feeds/concurrency.xml" />
+<link rel="alternate" type="application/rss+xml" title="DSPs RSS 2.0" href="/rss/feeds/dsps.xml" />
+<link rel="alternate" type="application/rss+xml" title="Databases RSS 2.0" href="/rss/feeds/databases.xml" />
+<link rel="alternate" type="application/rss+xml" title="Debugging RSS 2.0" href="/rss/feeds/debugging.xml" />
+<link rel="alternate" type="application/rss+xml" title="Development RSS 2.0" href="/rss/feeds/development.xml" />
+<link rel="alternate" type="application/rss+xml" title="Distributed Computing RSS 2.0" href="/rss/feeds/distributedcomputing.xml" />
+<link rel="alternate" type="application/rss+xml" title="Distributed Development RSS 2.0" href="/rss/feeds/distributeddevelopment.xml" />
+<link rel="alternate" type="application/rss+xml" title="Education RSS 2.0" href="/rss/feeds/education.xml" />
+<link rel="alternate" type="application/rss+xml" title="Email and IM RSS 2.0" href="/rss/feeds/emailandim.xml" />
+<link rel="alternate" type="application/rss+xml" title="Embedded Systems RSS 2.0" href="/rss/feeds/embeddedsystems.xml" />
+<link rel="alternate" type="application/rss+xml" title="Failure and Recovery RSS 2.0" href="/rss/feeds/failureandrecovery.xml" />
+<link rel="alternate" type="application/rss+xml" title="File Systems and Storage RSS 2.0" href="/rss/feeds/filesystemsandstorage.xml" />
+<link rel="alternate" type="application/rss+xml" title="Game Development RSS 2.0" href="/rss/feeds/gamedevelopment.xml" />
+<link rel="alternate" type="application/rss+xml" title="Graphics RSS 2.0" href="/rss/feeds/graphics.xml" />
+<link rel="alternate" type="application/rss+xml" title="HCI RSS 2.0" href="/rss/feeds/hci.xml" />
+<link rel="alternate" type="application/rss+xml" title="Managing Megaservices RSS 2.0" href="/rss/feeds/managingmegaservices.xml" />
+<link rel="alternate" type="application/rss+xml" title="Mobile Computing RSS 2.0" href="/rss/feeds/mobilecomputing.xml" />
+<link rel="alternate" type="application/rss+xml" title="Networks RSS 2.0" href="/rss/feeds/networks.xml" />
+<link rel="alternate" type="application/rss+xml" title="Object-Relational Mapping RSS 2.0" href="/rss/feeds/object-relationalmapping.xml" />
+<link rel="alternate" type="application/rss+xml" title="Open Source RSS 2.0" href="/rss/feeds/opensource.xml" />
+<link rel="alternate" type="application/rss+xml" title="Patching and Deployment RSS 2.0" href="/rss/feeds/patchinganddeployment.xml" />
+<link rel="alternate" type="application/rss+xml" title="Performance RSS 2.0" href="/rss/feeds/performance.xml" />
+<link rel="alternate" type="application/rss+xml" title="Power Management RSS 2.0" href="/rss/feeds/powermanagement.xml" />
+<link rel="alternate" type="application/rss+xml" title="Privacy and Rights RSS 2.0" href="/rss/feeds/privacyandrights.xml" />
+<link rel="alternate" type="application/rss+xml" title="Processors RSS 2.0" href="/rss/feeds/processors.xml" />
+<link rel="alternate" type="application/rss+xml" title="Programming Languages RSS 2.0" href="/rss/feeds/programminglanguages.xml" />
+<link rel="alternate" type="application/rss+xml" title="Purpose-built Systems RSS 2.0" href="/rss/feeds/purpose-builtsystems.xml" />
+<link rel="alternate" type="application/rss+xml" title="Quality Assurance RSS 2.0" href="/rss/feeds/qualityassurance.xml" />
+<link rel="alternate" type="application/rss+xml" title="RFID RSS 2.0" href="/rss/feeds/rfid.xml" />
+<link rel="alternate" type="application/rss+xml" title="SIP RSS 2.0" href="/rss/feeds/sip.xml" />
+<link rel="alternate" type="application/rss+xml" title="Search Engines RSS 2.0" href="/rss/feeds/searchengines.xml" />
+<link rel="alternate" type="application/rss+xml" title="Security RSS 2.0" href="/rss/feeds/security.xml" />
+<link rel="alternate" type="application/rss+xml" title="Semi-structured Data RSS 2.0" href="/rss/feeds/semi-structureddata.xml" />
+<link rel="alternate" type="application/rss+xml" title="Social Computing RSS 2.0" href="/rss/feeds/socialcomputing.xml" />
+<link rel="alternate" type="application/rss+xml" title="System Administration RSS 2.0" href="/rss/feeds/systemadministration.xml" />
+<link rel="alternate" type="application/rss+xml" title="System Evolution RSS 2.0" href="/rss/feeds/systemevolution.xml" />
+<link rel="alternate" type="application/rss+xml" title="Testing RSS 2.0" href="/rss/feeds/testing.xml" />
+<link rel="alternate" type="application/rss+xml" title="Virtual Machines RSS 2.0" href="/rss/feeds/virtualmachines.xml" />
+<link rel="alternate" type="application/rss+xml" title="Virtualization RSS 2.0" href="/rss/feeds/virtualization.xml" />
+<link rel="alternate" type="application/rss+xml" title="Visualization RSS 2.0" href="/rss/feeds/visualization.xml" />
+<link rel="alternate" type="application/rss+xml" title="VoIP RSS 2.0" href="/rss/feeds/voip.xml" />
+<link rel="alternate" type="application/rss+xml" title="Web Development RSS 2.0" href="/rss/feeds/webdevelopment.xml" />
+<link rel="alternate" type="application/rss+xml" title="Web Security RSS 2.0" href="/rss/feeds/websecurity.xml" />
+<link rel="alternate" type="application/rss+xml" title="Web Services RSS 2.0" href="/rss/feeds/webservices.xml" />
+<link rel="alternate" type="application/rss+xml" title="Workflow Systems RSS 2.0" href="/rss/feeds/workflowsystems.xml" />
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-6562869-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://' : 'http://') + 'stats.g.doubleclick.net/dc.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+<script type="text/javascript">
+function plusone_vote( obj ) {
+_gaq.push(['_trackEvent','plusone',obj.state]);
+}
+</script>
+<style>
+body {
+	font-family: jaf-bernino-sans, 'Lucida Grande', 'Lucida Sans Unicode', 'Lucida Sans', Geneva, Verdana, sans-serif;
+	color: #333;
+}
+div.container p {
+	line-height: 1.65em;
+}
+h1 {
+	font-size: 32px;
+}
+h3 {
+	font-size: 18px;
+}
+h4 {
+	font-size: 14px;
+}
+
+div.container {
+	margin-left: auto;
+	margin-right: auto;
+}
+
+div {
+	margin: 64px;
+	max-width: 640px;
+	position: relative;
+}
+img {
+    max-width: 100%;
+    height: auto;
+    width: auto\9; /* ie8 */
+}
+a {
+	color: #009;
+	text-decoration: none;
+}
+a:hover {
+	text-decoration: underline;
+}
+hr {
+	margin:64px;
+}
+label {
+	font-size: 0.8em;
+	color: #666;
+}
+input {
+	color: #999;
+}
+
+/* NAVBAR */
+.navbar {
+//	position: fixed;
+	background: #EEEEEE;
+	top: -64px;
+	z-index: 10000;
+	width: 100%;
+	clear: both;
+	padding: 0px;
+	margin: 0px;
+	padding-top: 10px;
+	padding-left: 10px;
+	padding-right: 10px;
+}
+
+/*  SECTIONS  */
+.section {
+	clear: both;
+	padding: 0px;
+	margin: 0px;
+}
+
+/*  COLUMN SETUP  */
+.col {
+	display: block;
+	float:left;
+	margin: 1% 0 1% 1.6%;
+}
+.col:first-child { margin-left: 0; }
+
+
+/*  GROUPING  */
+.group:before,
+.group:after {
+	content:"";
+	display:table;
+}
+.group:after {
+	clear:both;
+}
+.group {
+    zoom:1; /* For IE 6/7 */
+}
+
+/*  GRID OF THREE  */
+.span_3_of_3 {
+	width: 100%;
+}
+.span_2_of_3 {
+	width: 66.1%;
+}
+.span_1_of_3 {
+	width: 32.2%;
+}
+
+/*  GO FULL WIDTH AT LESS THAN 480 PIXELS */
+
+@media only screen and (max-width: 480px) {
+	.col {
+		margin: 1% 0 1% 0%;
+	}
+}
+
+@media only screen and (max-width: 480px) {
+	.span_3_of_3 {
+		width: 100%;
+	}
+	.span_2_of_3 {
+		width: 100%;
+	}
+	.span_1_of_3 {
+		width: 100%;
+	}
+}
+
+.span_2_of_2 {
+	width: 100%;
+}
+
+.span_1_of_2 {
+	width: 49.2%;
+}
+
+/*  GO FULL WIDTH AT LESS THAN 480 PIXELS */
+
+@media only screen and (max-width: 480px) {
+	.span_2_of_2 {
+		width: 100%;
+	}
+	.span_1_of_2 {
+		width: 100%;
+	}
+}
+</style>
+<style>
+#form-search > .st-default-search-input {
+	width: 170px;
+  display: inline-block;
+  height: 16px;
+  padding: 7px 11px 7px 28px;
+  border: 1px solid #bbb;
+  border: 1px solid rgba(0,0,0,0.25);
+  font-weight: 400;
+  color: #3B454F;
+  font-size: 14px;
+  line-height: 16px;
+  -webkit-box-sizing: content-box;
+  -moz-box-sizing: content-box;
+  box-sizing: content-box;
+  -webkit-border-radius: 0;
+  -moz-border-radius: 0;
+  border-radius: 0;
+  -webkit-box-shadow: none;
+  -moz-box-shadow: none;
+  box-shadow: none;
+  font-family: system, -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Lucida Grande", sans-serif;
+}
+
+
+blockquote
+{
+    color: #666;
+    font-size: 1.1em;
+    background: none;
+    border-left: .2rem solid #d3d3d3;
+
+    display: block;
+    padding: 20px 20px 10px 45px;
+    margin: 20px 0;
+    font-style: italic;
+
+    margin-block-start: 1em;
+    margin-block-end: 1em;
+    margin-inline-start: 40px;
+    margin-inline-end: 40px;
+
+	font-family: Georgia, Palatino, "Palatino Linotype", Times, "Times New Roman", serif;
+}
+
+.ldq {
+	display: block;
+    padding-left: 10px;
+    content: "\201C";
+    font-size: 60px;
+    position: relative;
+    left: -50px;
+    top: 0;
+    height: 0;
+    color: #7a7a7a;
+}
+</style>
+<script type='text/javascript' src='/cfformprotect/js/mouseMovement.js'></script><script type='text/javascript' src='/cfformprotect/js/usedKeyboard.js'></script><script type="text/javascript">
+<!--
+    _CF_checkedit_form = function(_CF_this)
+    {
+        //reset on submit
+        _CF_error_exists = false;
+        _CF_error_messages = new Array();
+        _CF_error_fields = new Object();
+        _CF_FirstErrorField = null;
+
+
+        //display error messages and return success
+        if( _CF_error_exists )
+        {
+            if( _CF_error_messages.length > 0 )
+            {
+                // show alert() message
+                _CF_onErrorAlert(_CF_error_messages);
+                // set focus to first form error, if the field supports js focus().
+                if( _CF_this[_CF_FirstErrorField].type == "text" )
+                { _CF_this[_CF_FirstErrorField].focus(); }
+
+            }
+            return false;
+        }else {
+            return true;
+        }
+    }
+//-->
+</script>
+</head>
+<body>
+<div class=container>
+<div class="navbar">
+<form id="form-search" name="searchform" onsubmit="return false;" style='float:right;'>
+<input type="text" class="st-default-search-input">
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+  (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+  e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install','UyYECD1kdsPnbHJtPyzG','2.0.0');
+</script>
+<br />
+<a href="issuedetail.cfm?issue=3371595" style='width:150px;font-size:0.7em;'>Current Issue</a> &nbsp; <a href="pastissues.cfm" style='width:150px;font-size:0.7em;'>Past Issues</a> &nbsp; <a href="topics.cfm" style='width:150px;font-size:0.7em;'>Topics</a>
+</form>
+<a href='/'><img src='https://queue.acm.org/img/acmqueue_logo.gif' /></a>
+</div>
+<p style='text-align:center;'>
+<a href='/app/' target='_new'><img src='/app/2019_09-10_lrg.png' with=90 height=120 style='float:right;width:90px;height:120px;' alt='September/October 2019 issue of acmqueue' /></a>
+<b><a href='/app/'>The September/October 2019 issue of acmqueue is out now</a></b>
+<br />
+<br />
+<a href='https://cdn.coverstand.com/3rd_pty/acm/login.html?&btx_i=613940'>Subscribers and ACM Professional members login here</a>
+<br clear=all />
+<hr style='display:block;color:red;margin:5px;' />
+</p>
+<br />
+<h4><a href='/listing.cfm?item_topic=Distributed Computing&qc_type=theme_list&filter=Distributed Computing&page_title=Distributed Computing&order=desc'>Distributed Computing</a></h4>
+<p style='float:right;'>
+
+&nbsp;
+<a href="https://dl.acm.org/ft_gateway.cfm?id=3025012&ftid=1821278&dwn=1">
+<img src="img/icon_pdf.png" alt="Download PDF version of this article" />
+PDF
+</a>
+</p>
+<label>December 12, 2016<br /><b><a class="descriptor" href="issuedetail.cfm?issue=3012426">Volume 14, issue 5 </a></b></label>
+<div id="cf-wrapper">
+<div id="cf-error-details" class="cf-error-details-wrapper">
+<div class="cf-wrapper cf-error-overview">
+<h1>
+<span class="cf-error-type">Error</span>
+<span class="cf-error-code">526</span>
+<small class="heading-ray-id">Ray ID: 5409d4f0df78c5c8 &bull; 2019-12-05 23:34:37 UTC</small>
+</h1>
+<h2 class="cf-subheadline">Invalid SSL certificate</h2>
+</div>
+<div class="cf-section cf-highlight cf-status-display">
+<div class="cf-wrapper">
+<div class="cf-columns cols-3">
+<div id="cf-browser-status" class="cf-column cf-status-item cf-browser-status ">
+<div class="cf-icon-error-container">
+<i class="cf-icon cf-icon-browser"></i>
+<i class="cf-icon-status cf-icon-ok"></i>
+</div>
+<span class="cf-status-desc">You</span>
+<h3 class="cf-status-name">Browser</h3>
+<span class="cf-status-label">Working</span>
+</div>
+<div id="cf-cloudflare-status" class="cf-column cf-status-item cf-cloudflare-status ">
+<div class="cf-icon-error-container">
+<i class="cf-icon cf-icon-cloud"></i>
+<i class="cf-icon-status cf-icon-ok"></i>
+</div>
+<span class="cf-status-desc">Newark</span>
+<h3 class="cf-status-name">Cloudflare</h3>
+<span class="cf-status-label">Working</span>
+</div>
+<div id="cf-host-status" class="cf-column cf-status-item cf-host-status cf-error-source">
+<div class="cf-icon-error-container">
+<i class="cf-icon cf-icon-server"></i>
+<i class="cf-icon-status cf-icon-error"></i>
+</div>
+<span class="cf-status-desc">deliverybot.acm.org</span>
+<h3 class="cf-status-name">Host</h3>
+<span class="cf-status-label">Error</span>
+</div>
+</div>
+</div>
+</div>
+<div class="cf-section cf-wrapper">
+<div class="cf-columns two">
+<div class="cf-column">
+<h2>What happened?</h2>
+<p>The origin web server does not have a valid SSL certificate.</p>
+</div>
+<div class="cf-column">
+<h2>What can I do?</h2>
+<h5>If you're a visitor of this website:</h5>
+<p>Please try again in a few minutes.</p>
+<h5>If you're the owner of this website:</h5>
+<p><span>The SSL certificate presented by the server did not pass validation. This could indicate an expired SSL certificate or a certificate that does not include the requested domain name. Please contact your hosting provider to ensure that an up-to-date and valid SSL certificate issued by a Certificate Authority is configured for this domain name on the origin server.</span> <a href="https://support.cloudflare.com/hc/en-us/articles/200721975">Additional troubleshooting information here.</a></p>
+</div>
+</div>
+</div>
+<div class="cf-error-footer cf-wrapper">
+<p>
+<span class="cf-footer-item">Cloudflare Ray ID: <strong>5409d4f0df78c5c8</strong></span>
+<span class="cf-footer-separator">&bull;</span>
+<span class="cf-footer-item"><span>Your IP</span>: 64.238.159.119</span>
+<span class="cf-footer-separator">&bull;</span>
+<span class="cf-footer-item"><span>Performance &amp; security by</span> <a href="https://www.cloudflare.com/5xx-error-landing?utm_source=error_footer" id="brand_link" target="_blank">Cloudflare</a></span>
+</p>
+</div>
+</div>
+</div>
+<p>
+<img class="floatLeft" src="img/q stamp_small.jpg" width="26" height="45" alt="acmqueue"><br><br>
+<em>Originally published in Queue vol. 14, no. 5</em>&#8212;
+<br>
+see this item in the <a href="https://portal.acm.org/citation.cfm?id=3025012">ACM Digital Library</a>
+</p>
+<br />
+<a href="https://twitter.com/share" class="twitter-share-button" data-via="ACMQueue">Tweet</a>
+<script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+<br />
+
+<br />
+<div class="g-plusone" data-size="small" data-annotation="inline" data-width="120"></div>
+
+<script type="text/javascript">
+	addthis_pub             = 'acm';
+	addthis_logo            = 'http://queue.acm.org/img/logo_queue_small.gif';
+	addthis_logo_background = '#ffffff';
+	addthis_logo_color      = '000000';
+	addthis_brand           = 'ACM Queue';
+	addthis_options         = 'reddit, slashdot, facebook, favorites, email, delicious, digg, technorati, blinklist, furl, myspace, google, live, more';
+</script>
+
+
+
+
+
+<hr noshade size=1 />
+Related:
+<p>
+<span>Matt Fata, Philippe-Joseph Arida, Patrick Hahn, Betsy Beyer</span> - <a href="detail.cfm?id=3264508"><b>Corp to Cloud: Google's Virtual Desktops</b></a>
+<br />
+How Google moved its virtual desktops to the cloud
+</p>
+<br />
+<p>
+<span>Ivan Beschastnikh, Patty Wang, Yuriy Brun, Michael D, Ernst</span> - <a href="detail.cfm?id=2940294"><b>Debugging Distributed Systems</b></a>
+<br />
+Challenges and options for validation and debugging
+</p>
+<br />
+<p>
+<span>Sachin Date</span> - <a href="detail.cfm?id=2933408"><b>Should You Upload or Ship Big Data to the Cloud?</b></a>
+<br />
+The accepted wisdom does not always hold true.
+</p>
+<br />
+<p>
+<span>George Neville-Neil</span> - <a href="detail.cfm?id=2878574"><b>Time is an Illusion.</b></a>
+<br />
+Lunchtime doubly so. - Ford Prefect to Arthur Dent in "The Hitchhiker's Guide to the Galaxy", by Douglas Adams
+</p>
+<br />
+<hr noshade size=1 />
+<h3>Comments</h3>
+<p>(newest first)</p>
+<p class="author">Morten Nicolaj Pedersen | Wed, 15 Aug 2018 10:53:58 UTC </p>
+Article still valid in 2018! The Actor Model and implementations in Akka, Azure Service Fabric, and Orleans spring to mind. <P>
+<hr size=1 noshade width=160 />
+<p class="author">Serge Semenov | Thu, 21 Jun 2018 17:02:19 UTC </p>
+Really powerful vision for the year 2007! Today we know the fallacies of distributed computing - that's why we focus more on microservices rather than distributed objects. However, the concept still stands, and it almost describes the D-ASYNC project which turns C# language and async methods into distributed workflows. <P>
+<hr size=1 noshade width=160 />
+<form name="edit_form" id="edit_form" action="postcomment.cfm" method="post" onsubmit="return _CF_checkedit_form(this)">
+<input type="hidden" name="formfield1234567891" id="formfield1234567891" value="">
+<input type="hidden" name="formfield1234567892" id="formfield1234567892" value="">
+<input type="hidden" name="formfield1234567893" value="39931411,19923643">
+<span style="display:none">Leave this field empty <input type="text" name="formfield1234567894" value=""></span>
+<form name="edit_form" id="edit_form" action="postcomment.cfm" method="post" onsubmit="return ColdFusion.Ajax.checkForm(this, _CF_checkedit_form,'cf_layoutarea1411408071716')">
+<input type="Hidden" name="id" value="3025012">
+<p>Post a Comment:</p>
+<input name="Creator" type="text" id="username" size="40" alt="Submitter" title="Name" value='name' onfocus="if (this.value == 'name') {this.value = '';}" />
+<br />
+<input name="email" id="email" type="text" size="40" value='email' onfocus="if (this.value == 'email') {this.value = '';}" />
+<br />
+<label for="body_text">Comment: (Required - 4,000 character limit - HTML syntax is <strong>not</strong> allowed and <b>will be removed</b>)</span></label>
+<br />
+<textarea name="body_text" rows="8" id="body_text" html="No" cols="80"></textarea>
+<br />
+<input name="discussion_reply:method" id="discussion_reply:method" type="submit" value="Post" class="context" validate="SubmitOnce" />
+</form>
+</form>
+<hr noshade size=1 />
+<p>
+<a href='#'><img src='https://queue.acm.org/img/logo_acm.gif' /></a>
+<br />
+&copy; 2019 ACM, Inc. All Rights Reserved.
+</p>
+</div>
+</body>
+</html>

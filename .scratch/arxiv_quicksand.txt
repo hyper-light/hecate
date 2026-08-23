@@ -1,0 +1,205 @@
+-->
+
+#### Computer Science > Distributed, Parallel, and Cluster Computing
+
+ arXiv:0909.1788 (cs)
+
+- 
+
+ [Submitted on 9 Sep 2009]
+
+#### Title:Building on Quicksand
+
+ Authors:Pat Helland (Microsoft), David Campbell (Microsoft)
+ View a PDF of the paper titled Building on Quicksand, by Pat Helland (Microsoft) and 1 other authors
+
+ View PDF
+
+ Abstract: Reliable systems have always been built out of unreliable components. Early on, the reliable components were small such as mirrored disks or ECC (Error Correcting Codes) in core memory. These systems were designed such that failures of these small components were transparent to the application. Later, the size of the unreliable components grew larger and semantic challenges crept into the application when failures occurred.
+
+As the granularity of the unreliable component grows, the latency to communicate with a backup becomes unpalatable. This leads to a more relaxed model for fault tolerance. The primary system will acknowledge the work request and its actions without waiting to ensure that the backup is notified of the work. This improves the responsiveness of the system.
+
+There are two implications of asynchronous state capture: 1) Everything promised by the primary is probabilistic. There is always a chance that an untimely failure shortly after the promise results in a backup proceeding without knowledge of the commitment. Hence, nothing is guaranteed! 2) Applications must ensure eventual consistency. Since work may be stuck in the primary after a failure and reappear later, the processing order for work cannot be guaranteed.
+
+Platform designers are struggling to make this easier for their applications. Emerging patterns of eventual consistency and probabilistic execution may soon yield a way for applications to express requirements for a "looser" form of consistency while providing availability in the face of ever larger failures.
+
+This paper recounts portions of the evolution of these trends, attempts to show the patterns that span these changes, and talks about future directions as we continue to "build on quicksand".
+
+ | Comments:
+ | CIDR 2009
+
+ | Subjects:
+ | 
+ Distributed, Parallel, and Cluster Computing (cs.DC)
+
+ | Cite as:
+ | arXiv:0909.1788 [cs.DC]
+
+ |  
+ | (or 
+ arXiv:0909.1788v1 [cs.DC] for this version)
+
+ |  
+ | https://doi.org/10.48550/arXiv.0909.1788
+
+ Focus to learn more
+
+ arXiv-issued DOI via DataCite
+
+#### Submission history
+ From: Pat Helland [view email] 
+ [v1]
+ Wed, 9 Sep 2009 18:10:57 UTC (850 KB)
+
+ Full-text links:
+
+#### Access Paper:
+
+View a PDF of the paper titled Building on Quicksand, by Pat Helland (Microsoft) and 1 other authors
+
+- View PDF
+
+ view license
+
+#### Current browse context:
+
+ cs.DC
+
+ < prev
+ 
+   |   
+ next >
+
+ new
+ | 
+ recent
+ | 2009-09
+
+ Change to browse by:
+ 
+ cs
+
+#### References & Citations
+
+- NASA ADS
+
+- Google Scholar
+
+- Semantic Scholar
+
+#### DBLP - CS Bibliography
+
+ listing | bibtex 
+
+Pat Helland
+David Campbell 
+
+ export BibTeX citation
+ Loading...
+
+#### BibTeX formatted citation
+
+ ×
+
+ loading...
+
+ Data provided by: 
+
+#### Bookmark
+
+ Bibliographic Tools
+
+#### Bibliographic and Citation Tools
+
+ Bibliographic Explorer Toggle
+
+ Bibliographic Explorer (What is the Explorer?)
+
+ Connected Papers Toggle
+
+ Connected Papers (What is Connected Papers?)
+
+ Litmaps Toggle
+
+ Litmaps (What is Litmaps?)
+
+ scite.ai Toggle
+
+ scite Smart Citations (What are Smart Citations?)
+
+ Code, Data, Media
+
+#### Code, Data and Media Associated with this Article
+
+ alphaXiv Toggle
+
+ alphaXiv (What is alphaXiv?)
+
+ Links to Code Toggle
+
+ CatalyzeX Code Finder for Papers (What is CatalyzeX?)
+
+ DagsHub Toggle
+
+ DagsHub (What is DagsHub?)
+
+ GotitPub Toggle
+
+ Gotit.pub (What is GotitPub?)
+
+ Huggingface Toggle
+
+ Hugging Face (What is Huggingface?)
+
+ ScienceCast Toggle
+
+ ScienceCast (What is ScienceCast?)
+
+ Demos
+
+#### Demos
+
+ Replicate Toggle
+
+ Replicate (What is Replicate?)
+
+ Spaces Toggle
+
+ Hugging Face Spaces (What is Spaces?)
+
+ Spaces Toggle
+
+ TXYZ.AI (What is TXYZ.AI?)
+
+ Related Papers
+
+#### Recommenders and Search Tools
+
+ Link to Influence Flower
+
+ Influence Flower (What are Influence Flowers?)
+
+ Core recommender toggle
+
+ CORE Recommender (What is CORE?)
+
+- Author
+
+- Venue
+
+- Institution
+
+- Topic
+
+ About arXivLabs
+
+#### arXivLabs: experimental projects with community collaborators
+
+ arXivLabs is a framework that allows collaborators to develop and share new arXiv features directly on our website.
+
+ Both individuals and organizations that work with arXivLabs have embraced and accepted our values of openness, community, excellence, and user data privacy. arXiv is committed to these values and only works with partners that adhere to them.
+
+ Have an idea for a project that will add value for arXiv's community? Learn more about arXivLabs.
+
+ Which authors of this paper are endorsers? |
+ Disable MathJax (What is MathJax?)

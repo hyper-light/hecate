@@ -1,0 +1,102 @@
+
+
+Life Beyond Distributed Transactions - ACM Queue
+
+Current Issue   Past Issues   Topics
+
+The September/October 2019 issue of acmqueue is out now
+
+Subscribers and ACM Professional members login here
+
+Distributed Computing
+
+PDF
+
+December 12, 2016
+Volume 14, issue 5 
+
+Error
+526
+Ray ID: 5409d4f0df78c5c8 • 2019-12-05 23:34:37 UTC
+
+Invalid SSL certificate
+
+You
+Browser
+
+Working
+
+Newark
+Cloudflare
+
+Working
+
+deliverybot.acm.org
+Host
+
+Error
+
+What happened?
+
+The origin web server does not have a valid SSL certificate.
+
+What can I do?
+
+If you're a visitor of this website:
+
+Please try again in a few minutes.
+
+If you're the owner of this website:
+
+The SSL certificate presented by the server did not pass validation. This could indicate an expired SSL certificate or a certificate that does not include the requested domain name. Please contact your hosting provider to ensure that an up-to-date and valid SSL certificate issued by a Certificate Authority is configured for this domain name on the origin server. Additional troubleshooting information here.
+
+Cloudflare Ray ID: 5409d4f0df78c5c8
+•
+Your IP: 64.238.159.119
+•
+Performance & security by Cloudflare
+
+Originally published in Queue vol. 14, no. 5—
+
+see this item in the ACM Digital Library
+
+Tweet
+
+Related:
+
+Matt Fata, Philippe-Joseph Arida, Patrick Hahn, Betsy Beyer - Corp to Cloud: Google's Virtual Desktops
+
+How Google moved its virtual desktops to the cloud
+
+Ivan Beschastnikh, Patty Wang, Yuriy Brun, Michael D, Ernst - Debugging Distributed Systems
+
+Challenges and options for validation and debugging
+
+Sachin Date - Should You Upload or Ship Big Data to the Cloud?
+
+The accepted wisdom does not always hold true.
+
+George Neville-Neil - Time is an Illusion.
+
+Lunchtime doubly so. - Ford Prefect to Arthur Dent in "The Hitchhiker's Guide to the Galaxy", by Douglas Adams
+
+Comments
+
+(newest first)
+
+Morten Nicolaj Pedersen | Wed, 15 Aug 2018 10:53:58 UTC 
+
+Article still valid in 2018! The Actor Model and implementations in Akka, Azure Service Fabric, and Orleans spring to mind. 
+
+Serge Semenov | Thu, 21 Jun 2018 17:02:19 UTC 
+
+Really powerful vision for the year 2007! Today we know the fallacies of distributed computing - that's why we focus more on microservices rather than distributed objects. However, the concept still stands, and it almost describes the D-ASYNC project which turns C# language and async methods into distributed workflows. 
+
+Leave this field empty 
+
+Post a Comment:
+
+Comment: (Required - 4,000 character limit - HTML syntax is not allowed and will be removed)
+
+© 2019 ACM, Inc. All Rights Reserved.
+

@@ -1,0 +1,67 @@
+                                               Building on Quicksand
+                Pat Helland                                                                                   Dave Campbell
+         Microsoft Corporation                                                                             Microsoft Corporation
+          One Microsoft Way                                                                                 One Microsoft Way
+       Redmond, WA 98052 USA                                                                             Redmond, WA 98052 USA
+     PHelland@Microsoft.com                                                                            DavidC@Microsoft.com
+
+ABSTRACT                                                                     Keywords
+Reliable systems have always been built out of unreliable                    Fault Tolerance, Eventual           Consistency,     Reconciliation,
+components [1]. Early on, the reliable components were small                 Loose Coupling, Transactions
+such as mirrored disks or ECC (Error Correcting Codes) in core
+memory. These systems were designed such that failures of these              1. Introduction
+small components were transparent to the application. Later, the             There is an interesting connection between fault tolerance,
+size of the unreliable components grew larger and semantic                   offlineable systems, and the need for application-based eventual
+challenges crept into the application when failures occurred.                consistency. As we attempt to run our large scale applications
+Fault tolerant algorithms comprise a set of idempotent sub-                  spread across many systems, we cannot afford the latency to wait
+algorithms. Between these idempotent sub-algorithms, state is                for a backup system to remain in synch with the system actually
+sent across the failure boundaries of the unreliable components.             performing the work. This causes the server systems to look
+The failure of an unreliable component can then be tolerated as a            increasingly like offlineable client applications in that they do not
+takeover by a backup, which uses the last known state and drives             know the authoritative truth.         In turn, these server-based
+forward with a retry of the idempotent sub-algorithm. Classically,           applications are designed to record their intentions and allow the
+this has been done in a linear fashion (i.e. one step at a time).            work to interleave and flow across the replicas. In a properly
+                                                                             designed application, this results in system behavior that is
+As the granularity of the unreliable component grows (from a                 acceptable to the business while being resilient to an increasing
+mirrored disk to a system to a data center), the latency to                  number of system failures.
+communicate with a backup becomes unpalatable. This leads to a
+more relaxed model for fault tolerance. The primary system will              This paper starts by examining the concepts of fault tolerance and
+acknowledge the work request and its actions without waiting to              posits an abstraction for thinking about fault tolerant systems.
+ensure that the backup is notified of the work. This improves the            Next, section 3 examines how fault tolerant systems have
+responsiveness of the system because the user is not delayed                 historically provided the ability to transparently survive failures
+behind a slow interaction with the backup.                                   without special application consideration by using synchronous
+                                                                             checkpointing to send the application state to a backup. In section
+There are two implications of asynchronous state capture:                    4, we begin to examine what happens when we cannot afford the
+1) Everything promised by the primary is probabilistic. There is             latency associated with the synchronous checkpointing of state to
+   always a chance that an untimely failure shortly after the                the backup and, instead, allow the checkpointing of state to be
+   promise results in a backup proceeding without knowledge of               asynchronous. Section 5 examines in much more depth the ways
+   the commitment. Hence, nothing is guaranteed!                             in which an application must be modified to be true to its
+2) Applications must ensure eventual consistency [20]. Since                 semantics while allowing asynchronous checkpointing of the
+   work may be stuck in the primary after a failure and reappear             application state to its backup. Section 6 looks at a couple of
+   later, the processing order for work cannot be guaranteed.                example applications which offer correct behavior while allowing
+Platform designers are struggling to make this easier for their              delays (i.e. asynchrony) in checkpointing state to the backup. In
+applications. Emerging patterns of eventual consistency and                  section 7, we consider the management of resources when the
+probabilistic execution may soon yield a way for applications to             operations may be reordered due to asynchrony. Section 8
+express requirements for a “looser” form of consistency while                examines the relationship between this class of eventual
+providing availability in the face of ever larger failures. As we            consistency and the CAP (Consistency, Availability, and
+will also point out in this paper, the patterns of probabilistic             Partition-tolerance) Theory. Finally, in section 9, we consider
+execution and eventual consistency are applicable to                         some areas for future work.
+intermittently connected application patterns.
+                                                                             2. An Abstraction for Fault Tolerance
+This paper recounts portions of the evolution of these trends,               In section 2, we discuss the broad ideas required to build a fault
+attempts to show the patterns that span these changes, and talks             tolerant system. First, we start by describing the external behavior
+about future directions as we continue to “build on quicksand”.              of the systems we are considering. Next, we describe what it can
+                                                                             mean for these systems to offer transparent fault tolerance and not
+ Permission to make digital or hard copies of all or part of this work for
+ personal or classroom use is granted without fee provided that copies are
+                                                                             require special application consideration to cope with failures.
+ not made or distributed for profit or commercial advantage and that         Then, we quickly consider the issues associated with scalability of
+ copies bear this notice and the full citation on the first page. To copy    these systems. Finally, we briefly discuss the role of transactions
+ otherwise, or republish, to post on servers or to redistribute to lists,    in the composition of these fault tolerant systems.
+ requires prior specific permission and/or a fee.
+ CIDR ‘09, Jn 7-10, 2009, Asilomar, Pacific Grove, CA USA
+ Copyright 2009 ACM 1-58113-000-0/00/0004…$5.00.
+
+
+
+                                                              CIDR Perspectives 2009
+

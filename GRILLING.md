@@ -9111,3 +9111,55 @@ threshold ("succeeds if at least one signature verifies"). (#49) referrers fallb
 tag has a documented data-loss race, client's responsibility. (#50) artifactType is
 a discovery hint, NEVER an authenticated type check.
 STILL OUT: the lifecycle re-run (af2103) — gates the summon design.
+
+**RESEARCH LANDED: Kafka KIP-98 producer-epoch fencing (2026-08-22, child of the
+lifecycle re-run) — the mechanical detail for OUR attachment/witness fence.**
+MECHANISM: epoch = int16, bumped by InitProducerId ("Bumps up the epoch of the PID,
+so that any previous zombie instance of the producer is fenced off"); ISSUANCE
+GUARANTEE = "the epoch number returned in the response is strictly greater than any
+previous epochs that has been ever returned for this TransactionalId." REJECTION
+RULE (source, ProducerAppendInfo.checkProducerEpoch): producerEpoch < current =>
+throw InvalidProducerEpochException (legacy); producerEpoch <= current under TV2
+(KIP-890 bumps the epoch PER TRANSACTION, so a valid marker must be STRICTLY
+greater). Errors: INVALID_PRODUCER_EPOCH(47) "Producer attempted to produce with an
+old epoch" / PRODUCER_FENCED(90) "There is a newer producer with the same
+transactionalId which fences the current one."
+FOUR MECHANICS WE WOULD OTHERWISE HAVE GUESSED:
+(1) EXHAUSTION: isEpochExhausted = (epoch >= Short.MAX_VALUE - 1); on exhaustion a
+NEW producer ID is minted rather than wrapping — define the exhaustion path, never
+wrap silently.
+(2) ORIGIN EXEMPTION (the one I'd have gotten wrong): "if (origin ==
+AppendOrigin.REPLICATION) log.warn(message); else throw" — REPLICAS DO NOT RE-VALIDATE
+already-validated appends, they only log. Re-checking on every replica would let
+replicas diverge. Also: epoch check runs FIRST and ALWAYS; the sequence check runs
+ONLY for client-origin appends ("offset commits... do not have sequence numbers and
+therefore only producer epoch validation is done").
+(3) TWO-TIER ERROR SEMANTICS: 2.7 deliberately SPLIT the codes — "we replaced
+ProducerFenced error with InvalidProducerEpoch in the producer send response callback
+to differentiate from the former FATAL exception, letting client abort the ongoing
+transaction and RETRY." => our taxonomy needs the same split: fatal-you-are-replaced
+vs abortable-re-register-and-retry.
+(4) PERSISTENCE IN THREE PLACES w/ the log as truth: (a) __transaction_state topic
+(replicated, compacted) = coordinator's view; (b) per-partition producer-state
+SNAPSHOTS (".pidsnapshot" named by offset) so restart = "read the latest snapshot and
+scan the remainder of the log from the corresponding snapshot offset" — EXACTLY our
+checkpoint+tail-replay; (c) THE LOG ITSELF: "The source of truth for this information
+is always the log itself", and COMPACTION PRESERVES first/last sequence numbers +
+RETAINS EMPTY BATCH HEADERS specifically so producer state can be rebuilt.
+INTERLOCK: when the epoch changes the sequence MUST restart at 0 (ProducerAppendInfo
+line 169: `if (producerEpoch != updatedEntry.producerEpoch())`) — a stale writer
+cannot slot writes into the new generation's stream.
+TWO INDEPENDENT EPOCH DIMENSIONS: producer epoch (zombie WRITER) + coordinator epoch
+(zombie COORDINATOR, TransactionCoordinatorFencedException) — our analog: attachment
+epoch (which pod holds the volume) + key_epoch (which agent generation).
+THE HONESTY TO COPY — Kafka BOUNDS ITS OWN GUARANTEE: "We only guarantee that two
+producers sharing the same TransactionalId are not allowed to execute transactions
+concurrently" — a zombie that never starts a new transaction can keep writing with
+the old PID and is NOT fenced, "which is OK according to our semantics." => we must
+state equally explicitly what our fence covers (durable writes + externalizations)
+and what it does NOT (a partitioned node's stale local reads).
+FLAGGED BY THE RESEARCHER: the literal phrase "the broker will reject any request
+from a producer with an older epoch" appears in NO primary source — closest are the
+design doc's "If the epoch is older than the current one, return InvalidProducerEpoch"
+and Errors.java's "Producer attempted to produce with an old epoch." One linked
+Google Doc returned 401 (not read); a repo-wide grep was impossible (API 403).

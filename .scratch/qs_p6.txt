@@ -1,0 +1,77 @@
+point in time. Allowing for work being locked up in an                   This approach is similar to escrow locking as described in [9]. In
+unavailable backup (née primary) means we don’t know the truth.          escrow locking, commutative operations are allowed as long as
+                                                                         they do not violate the constraints of the system. Escrow locking
+5.2 Probabilistic Business Rules                                         was envisaged as a pessimistic locking scheme which crisply
+When we have asynchronous checkpointing, we have windows of              preserved serializable behavior.           Escrow locking was
+failure that mean work may be lost or delayed. When a primary            implemented in Tandem’s NonStop SQL in the late 1980s to
+fails, there may be work stuck inside the primary that has not yet       support high-throughput addition and subtraction.
+been sent to the backup. That work is either lost or delayed.
+                                                                                  WRITES to a database are not commutative!
+If a primary uses asynchronous checkpointing and applies a
+business rule on the incoming work, it is necessarily a                  The layering of an arbitrary application atop a storage
+probabilistic rule. The primary, despite its best intentions cannot      subsystem inhibits reordering. Only when commutative
+know it will be alive to enforce the business rules.                     operations are used can we achieve the desired loose
+                                                                         coupling. Application operations can be commutative.
+When the backup system that participates in the enforcement of
+                                                                         WRITE is not commutative. Storage (i.e. READ and
+these business rules is asynchronously tied to the primary, the
+                                                                         WRITE) is an annoying abstraction…
+enforcement of these rules inevitably becomes probabilistic!
+It is the cost/benefit analysis that values lower latency from           5.4 Idempotence and Partitioned Workflow
+asynchronous checkpointing higher than the risk of slippage in the       It is essential to ensure that the work of a single operation is
+business rule that generalizes the fault tolerant algorithm.             idempotent. This is an important design consideration in the
+                                                                         creation of an application that can handle asynchrony as it
+Distribution + Asynchrony  Probabilities of Enforcement                 tolerates faults and as it allows loose-coupling for latency, scale,
+We are seeing the emergence of applications which take this even         and offline.
+farther by increasing disconnection to achieve the economic              Each operation must occur once (i.e. have the business impact of a
+benefits of loose-coupled parallelism and offline. They are lower        single execution) even as it is processed (or simply logged) at
+latency, more parallel, and more available. They just screw up           multiple replicas. One room reservations must (with high
+more often and sort the mess out later. Sometimes, that’s good!          probability) result in exactly one room set aside for the guest.
+                                                                         One book ordered online should not (very often) result in two
+5.3 Commutativity and Business Rules                                     books delivered to the customer.
+In many applications, it is possible to express the business rules of
+the application and allow different operations to be reordered in        To ensure this, applications typically assign a unique number or
+their execution. When the operations occur on separate systems           ID to the work. This is assigned3 at the ingress to the system (i.e.
+and wind their way to each other, it is essential to preserve these      whichever replica first handles the work). As the work request
+business rules.                                                          rattles around the network, it is easy for a replica to detect that it
+                                                                         has already seen that operation and, hence, not do the work twice.
+Example business rules may be: “Don’t overbook the airplane by
+more than 15%” or “Don’t overdraw the checking account”.                 Sometimes, incoming work stimulates other work. For example,
+                                                                         processing a purchase order may result in scheduling a shipment.
+        Escrow Locking in Serializable Databases                         Two replicas may get overly enthusiastic about the incoming
+Escrow locking is a scheme to increase concurrency while                 purchase order and each schedule a shipment. By uniquely
+preserving classic transactional ACID behavior.                          identifying the purchase order at its ingress to the system, the
+                                                                         irrational exuberance on the part of the replicas can be identified
+If you assume a set of commutative operations (such as
+addition and subtraction), you ensure changes are logged                 as the knowledge sloshes through the network. We will see below
+via “operation logging”. Operation logging does not capture              in the discussions of eventual consistency how this can
+                                                                         (probabilistically) be rectified.
+the before and after images of the value but rather logs
+“Transaction T1 subtracted $10”. If transaction T1 needs to
+be aborted, the system would add $10 rather than restore
+the value that existed in the field before T1. In this fashion,
+the work of multiple transactions can interleave as long as
+they are doing the commutative operations.              If any           3
+                                                                             The experienced reader will realize that this leaves the concern
+transaction dares to READ the value, that does not
+                                                                             for idempotence in the incoming message from the client as
+commute, is annoying, and stops other concurrent work.
+                                                                             captured at the point of ingress. Retries could cause two or
+Escrow locking can be implemented in conjunction with                        more different replicas to charge ahead to help the user. If the
+constraints enforcing business rules. Consider addition and                  work has no side effects (such as simply reading something), it
+subtraction operations with a worst-case minimum and                         is OK to do the work multiple times. If the work has side-
+maximum for the value. The system simply needs to track                      effects, coordination around a cookie or user-id is usually
+the worst case for all the transactions pending commitment.                  performed to eliminate duplicates.
+A new operation will be delayed if it MIGHT cause the value
+                                                                             To avoid duplicate processing, the uniquifier for the request
+to fall out of bounds with the pending work.
+                                                                             should be functionally dependent only on the request as seen by
+Escrow locking offers crisp semantics because it is                          the server system. This is possible if the unique id is generated
+functioning on a centralized location and can enforce the                    outside the server (e.g. a check number as discussed in Section
+worst case outcome of the business rules.                                    6.2) and it is also possible if the server calculates it in a
+                                                                             predictable way as discussed in Section 2.1).
+
+
+
+                                                          CIDR Perspectives 2009
+

@@ -1,0 +1,564 @@
+         Atomic Distributed Transactions: a RESTful Design
+
+                               Guy Pardon                                                 Cesare Pautasso
+                              ATOMIKOS                                     Faculty of Informatics, University of Lugano,
+                           guy@atomikos.com                                                 Switzerland
+                      http://www.atomikos.com                                          c.pautasso@ieee.org
+                                                                                     http://www.pautasso.info
+
+
+
+
+ABSTRACT                                                                     The problem about how to transparently deal against failure sce-
+The REST architectural style supports the reliable interaction of         narios within REST compositions, where state needs to be atomi-
+clients with a single server. However, no guarantees can be made          cally transferred between more than two services, is an important
+for more complex interactions which require to atomically trans-          one. The solution makes it possible to group multiple RESTful in-
+fer state among resources distributed across multiple servers. In         teractions and treat them as a single logical step, as well as to ensure
+this paper we describe a lightweight design for transactional com-        that it is possible to guarantee the consistency of a set of resources
+position of RESTful services. The approach – based on the Try-            which belong to multiple RESTful Web services that are deployed
+Cancel/Confirm (TCC) pattern – does not require any extension to          on different Web servers. Whereas solutions have been proposed to
+the HTTP protocol. The design assumes that resources are designed         batch interactions affecting multiple resources provided by a single
+to comply with the TCC pattern and ensures that the resources in-         server (e.g., WebDAV’s explicit locking methods [6], or the transac-
+volved in the transaction are not aware of it. It delegates the respon-   tions as a resource approach from [20, p.231]), these are not appli-
+sability of achieving the atomicity of the transaction to a coordina-     cable to interact with multiple resources distributed across multiple
+tor which exposes a RESTful API.                                          services.
+                                                                             This paper’s contribution focuses on addressing the atomicity
+Categories and Subject Descriptors                                        property [7] of distributed transactions across RESTful Web ser-
+K.4.4 [Electronic Commerce]: Distributed Commercial Transac-              vices in a simple way [10]. This already addresses the requirements
+tions; H.2.4 [Systems]: Transaction processing                            of a wide class of applications, where atomicity is a necessity, while
+                                                                          isolation is not. For example, all scenarios involving some kind of
+                                                                          resource reservation where clients may need to atomically perform
+Keywords                                                                  multiple purchases, or, more in general, atomically change the state
+RESTful Web services; REST; Web API Design; Atomicity; Atomic             of a set of distributed resources.
+Distributed Transaction Protocol                                             This paper is structured as follows. In Section 2 we enumerate
+                                                                          the assumptions behind the Try-Cancel/Confirm pattern and how it
+1.    INTRODUCTION                                                        relates to lightweight distributed transactions. Section 3 outlines
+   Reliability of single client-server interactions is considered as      the transaction protocol, which is illustrated with an example in the
+a primary concern by the REST architectural style [4]. This is            following Section 4. We present a detailed view on the design of
+achieved through the uniform interface semantics of idempotent            the protocol in 5, and summarize the participant and coordinator
+methods (e.g., GET, PUT, DELETE in HTTP) so that any failure              APIs in Sections 6 and 7. We reflect upon the design and discuss
+during these interactions can be addressed by simply retrying the         some open questions in Section 8. We give a brief survey of related
+request. However, no guarantees can be made for complex inter-            work in Section 9 before drawing some conclusions in Section 10.
+actions which atomically transfer state among multiple resources
+distributed across multiple RESTful Web services [20]. For ex-
+ample, when a client interacts with more than one RESTful APIs            2. ASSUMPTIONS
+for flight reservations, we want to ensure that all requests are per-        The protocol we follow is based on the following assumptions -
+formed atomically to complete the reservation of all flights as a         without these assumptions there is no practical need for the outlined
+single step.                                                              solution.
+   The goal of this paper is to describe a simple solution which fits        Assumption 1 (A1 ): A business transaction T is sending requests
+the following design constraints: 1) Using a lightweight transaction      Ri to different RESTful services S j . Each participant S j is au-
+model (e.g., ATOMIKOS TCC [13]) to minimize interoperability              tonomous and loosely-coupled with T and the other S j .
+risks; 2) Avoiding extensions to the HTTP protocol to maximize               Example: T represents a flight reservation across two airlines,
+adoption; 3) Deploying the transaction coordinator as a RESTful           consisting of a request R1 to book a first flight at airline S1 and a
+service (as motivated in the remainder of this paper); 4) Keeping         connecting flight R2 at airline S2 .
+the participants unaware that they are part of a transaction (shipping       A1 is important since it distinguishes our solution from existing
+transaction contexts has shown to be major pain point of distributed      techniques like session-based optimistic locking (a standard indus-
+transactions).                                                            try practice that works across one site only [5, p.416]). Note that
+                                                                          for simplicity, we assume no ordering among Ri (no explicit first or
+                                                                          last request).
+Copyright is held by the author/owner(s).
+WWW’14 Companion,, April 7–11, 2014, Seoul, Korea.                          Assumption 2 (A2 ): Any Ri of T can fail in a non-transient way.
+ACM 978-1-4503-2745-9/14/04. http://dx.doi.org/10.1145/2567948.2579221.
+   Example: booking the connecting flight R2 may fail due to lack           services with idempotent messages (e.g., DELETE) to cancel their
+of available seats.                                                         state transition.
+   A2 emphasizes the point that if nothing can ever fail then idem-            The protocol guarantees atomicity because if it stops before steps
+potence is all that is needed for atomicity when each request Ri is         3a/3b the result is a cancel performed independently by each partic-
+retried until all have succeeded. Idempotence can help resolve tran-        ipant after a timeout. Otherwise each participant receives an idem-
+sient, technical failures but not fundamental failures such as lack of      potent request for confirmation (step 3a)/cancellation (step 3b) sent
+business resources to comply with the request.                              during the final phase. A more detailed discussion covering most
+   Assumption 3 (A3 ): T needs to be atomic, i.e., T needs to either        failure and recovery scenarios can be found in [14] and in the de-
+happen entirely (all Ri ∈ T succeed) or not at all. In the latter case,     tailed design presented below.
+the end result needs to be as if none of the Ri executed in the first          As with every two-phase commit solution, heuristics are needed
+place.                                                                      to deal with timeouts. To deal with them, we propose that in step
+   Example: you want to book the entire flight (R1 and R2 ) or none         2, a timeout is specified after which the service will unilaterally
+at all. If only part of the flight would be booked, you would be            cancel. If step 3 happens too late then this might result in ’heuristic’
+charged for an incomplete trip that would lead you to the wrong             anomalies (i.e. the transaction atomicity was violated). In that case,
+destination.                                                                human intervention is required to reconcile the state across all sites.
+   A3 states the important requirement that the outcome of the whole        In any case, the transaction service in step 3 is free to decide when
+transaction is what matters.                                                it will attempt confirmation (i.e., it might conservatively abort the
+                                                                            transaction if the participants are too close to expiring).
+   Assumption 4 (A4 ): Si temporarily reserves resources on behalf
+of Ri in T .
+   Example: airline S1 holds a seat reservation for the duration of         4. EXAMPLE
+T , but will not keep the seat reserved forever: either T succeeds             As we are going to show, we claim that the REST uniform in-
+(and S1 bills the customer) or T fails (and S1 releases the seat for        terface is sufficient to comply with the assumptions required to
+another customer to book).                                                  implement the proposed protocol. Thus, it is possible to achieve
+                                                                            distributed transactions over RESTful service APIs without any ex-
+   Corollary 1 (C1 ): Each Ri taking part in T may need to be can-
+                                                                            tension of the HTTP protocol, if the services are designed to comply
+celled after it has been executed. Consequently, each Ri needs to
+                                                                            with the Try-Cancel/Confirm pattern.
+have a cancellation event Ri,cancel associated with it.
+                                                                               In the context of the running example, this pattern can be ap-
+   From A1 + A2 it follows that partial transactions can exist in case
+                                                                            plied to the design of the RESTful flight reservation API as fol-
+of failure(s)1 . For instance, it is possible for R2 to fail, leaving the
+                                                                            lows. Clients can inquire about the availability of flights at the
+effects of R1 . From A3 it follows that R1 then needs to be cancelled.
+                                                                            URI: /flight/{flight-no}/seat. For example, the GET
+S1 is autonomous (by A1 ) so this requires the existence of a cancel
+                                                                            /flight/LX101/seat request will return a hyperlink to some
+event R1,cancel to inform S1 about this event. In this case, by invok-
+                                                                            of the available seats on the flight LX101 or none if the flight is
+ing R1,cancel , the system can ensure atomicity. The same holds for
+                                                                            fully booked. The URI of the chosen seat can be forwarded with
+every Ri .
+                                                                            a POST request to the /booking URL, which will create a new
+   Corollary 2 (C2 ): Each participant Si will offer/await a confirma-      booking resource by returning a hyperlink identifying it such as
+tion Ri,con f irm for every Ri .                                            /booking/{id}/. The body of the request can contain payment
+   From A4 we know that Si reserves resources on behalf of T .              information as well as a reference to the chosen flight and seat (i.e.,
+From C1 we know that Ri can be cancelled. Si will thus await                <seat href="/flight/LX101/seat/63F"/>). Seats on
+confirmation of Ri to signal that cancellation will no longer hap-          a flight are only reserved for a limited amount of time, during which
+pen. Since only T can know when all its requests have successfully          the client should confirm the reservation. The booking can be con-
+finished, it is the responsibility of T to trigger the confirmation.        firmed using a PUT /booking/{id} request or canceled with
+   Example: after flight reservation R2 completes, also flight R1           the corresponding DELETE /booking/{id} request.
+needs to be confirmed with S1 (and by T ) so that payment can be               The example illustrates that a RESTful service API compliant
+issued. Cancelling a confirmed flight may still be possible but could       with the uniform interface constraints can make use of hyperme-
+lead to cancellation fees.                                                  dia design to support the interaction with clients following the Try-
+                                                                            Cancel/Confirm pattern. In the examples, clients initialize the state
+                                                                            of a reservation with a standard POST request, which returns a URI
+3.    PROTOCOL OUTLINE                                                      identifying the resource that has been initialized. Clients can use
+    The previous assumptions lead to this protocol:                         this URI to confirm the reservation (with PUT) or to cancel it (with
+    1. A client goes about interacting with multiple RESTful service        DELETE). Additionally, the state of the newly created resource
+APIs following a given workflow.                                            should be discarded if a confirmation is not received by the service
+    2. Interactions may lead to a state transition of the service iden-     within a given timeout (the duration of which can be discovered by
+tified by some reservation URI. This URI can be later used to con-          the client with a GET request on the same hyperlink).
+firm or cancel it. If the service does not hear anything after some            A possible successful run of the protocol guaranteeing the atom-
+service-specific timeout, it will cancel autonomously.                      icity of multiple HTTP interactions could be summarized as fol-
+    3a. Once the workflow successfully completes, the set of reser-         lows:
+vation URIs is used to confirm the state transitions of the services
+                                                                                  ⇒GET swiss.com/flight/LX101/seat
+with idempotent requests (e.g., PUT).                                          1.
+                                                                                  ⇐200
+    3b. If the workflow fails, the set of reservation URIs that have              ⇒GET easyjet.com/flight/EZ999/seat
+been collected until the failure occurs are used to signal each of the         1.
+                                                                                  ⇐200
+1 As failures we abstract both business-level failures as well as tech-           ⇒POST swiss.com/booking
+                                                                               2. ⇐302
+nical failures, such as server crashes or network outages.                         Location: /booking/A
+      ⇒POST easyjet.com/booking
+   2. ⇐302
+                                                                           determine what that URI is - so it needs a way to communicate this
+       Location: /booking/B                                                URI towards the outside world. With this in mind, we designed the
+      ⇒PUT swiss.com/booking/A                                             notion of the participant reservation link. The link URI (used to
+  3a.                                                                      confirm it) is associated with the expires attribute indicating when
+      ⇐204
+      ⇒PUT easyjet.com/booking/B                                           the participant itself will cancel autonomously. There is also some
+  3a.
+      ⇐204                                                                 (fixed) meta-data about the protocol itself, useful to indicate the
+   The following shows a failed run of the composition, where the          semantics of the link (the tcc link relation).
+protocols will perform the cancellation of the successfully com-              The participant reservation link could be embedded in a JSON
+pleted state transitions:                                                  payload as shown in the following example:
+      ⇒GET swiss.com/flight/LX101/seat                                     { "participantLink": {
+     1.
+      ⇐200                                                                     "uri":"http://www.swiss.com/booking/A",
+      ⇒POST swiss.com/booking                                                  "expires":"2014-01-11T10:15:54.261+01:00",
+   2. ⇐302                                                                     "rel":"tcc",
+       Location: /booking/A                                                  }
+      ⇒GET easyjet.com/flight/EZ999/seat                                   }
+   1.
+      ⇐204 (No seat available)
+                                                                              It is up to the participant to negotiate with the client an appro-
+  3b. ⇒DELEte swiss.com/booking/A                                          priate timeout duration. In the simplest case, reservations are guar-
+      ⇐200
+                                                                           anteed for a fixed amount of time. It is also possible to consider
+5.        DETAILED PROTOCOL DESIGN                                         cases where the timeout depends on the client profile, or an ex-
+   The section proposes an incremental presentation of our design          tended timeout may be granted for a fee. Since this feature affects
+decisions, motivations and trade-offs, based on a story-based ap-          the interface between the participant and the application, we do not
+proach. Wherever possible, we have kept the response body to a             explore it further in this paper.
+minimum (merely 204 status) in order to avoid the need for defin-             The assumption of our design is that a participant reservation
+ing ad-hoc representation media types that introduce more coupling         link is properly identified (hence the tcc link relation) so that con-
+than necessary [17].                                                       firmation can be done with the following:
+                                                                           ⇒PUT /booking/A HTTP/1.1
+5.1 The Basics: Cancel vs Confirm                                           Host: www.swiss.com
+   One of the properties of classical transactions is the guarantee         Accept: application/tcc
+                                                                           ⇐HTTP/1.1 204 No Content
+that every change is temporary (subject to ’rollback’) until the appli-
+cation explicitly indicates that everything is done and can be saved          Although this only shows how to confirm one single participant,
+(’commit’). For REST, we think the same should be possible. How-           it does lay the foundation for our complete solution.
+ever, there is no classical ’rollback’ because we use service invoca-
+tions rather than databases and their locking mechanism to achieve         5.1.3 Timeout
+this. In TCC, the notion of ’rollback’ is replaced by ’cancel’. Like-         As a participant, I want to keep the ability to time-out and cancel
+wise, the notion of ’commit’ is replaced by ’confirm’.                     the reservation on my end. Clients should be informed that confir-
+                                                                           mation is no longer possible.
+ 5.1.1 Cancel                                                                 Confirmation requests might come too late, i.e. after the partici-
+   As an application developer, in case of failures, I want to revert      pant already timed out and cancelled on its own. This violates the
+changes across multiple, separate participants.                            intention of confirmation and therefore should be communicated to
+   For simplicity (and just like in classical transaction systems), we     the caller. The participant does this as follows:
+have chosen the cancellation mechanism to be implicit and internal
+                                                                           ⇒PUT /booking/A HTTP/1.1
+to each participant service: after some time-out, each participant          Host: www.swiss.com
+will/should cancel (revert) it on its own. This way, without further        Accept: application/tcc
+notifications, each participant service will eventually cancel and the     ⇐HTTP/1.1 404 Not Found
+global transaction will be cancelled by default. This greatly simpli-
+fies the failure semantics across multiple participant services.
+   Note that our notion of cancelling does not preclude any application-   5.2 Reusing The Hard Bits: Coordinator
+specific recovery mechanisms. For instance, an e-commerce web-                With nothing more but the basics, distributed transactions are
+site probably allows reservations to be made with a POST request.          possible if they are managed by the application developer (much
+If the reply gets lost, the user might still be able to verify if the      like the XA protocol enables ACID transactions). However, this is
+reservation was done (e.g., via a GET to some shopping basket              error-prone and difficult to manage, because concerns like recov-
+or equivalent resource representing the session state) and continue        ery and failure handling need to be taken into account. Also, it is
+from there. We merely offer the extra option of cancelling as a last       important to avoid confirmation attempts after one or more time-
+resort.                                                                    outs have happened, since this may lead to conflicting outcomes of
+                                                                           the global transaction. All this is specialized logic that is hard to
+ 5.1.2 Confirm                                                             build on your own. Just like ACID transactions rely on a transac-
+   As an application developer, I want to confirm as soon as I am          tion manager to manage the XA intricacies, we introduce a similar
+done so that no participant will cancel afterwards                         component sharing the same responsibilities.
+   If by default everything will be cancelled, there needs to be a
+way to perform otherwise. In TCC, this is done via an explicit             5.2.1 Transaction Coordinator
+’confirm’ request on the participant service(s) involved. In order to         As an application developer, I want to reuse existing confirma-
+do this with REST, the minimal requirement is a URI addressing the         tion logic so that I don’t have to deal with failure recovery on my
+resource to be confirmed. Only the participant service can/should          own
+   If the confirmation logic is offered as a reusable component (the                      1. bookTrip
+’coordinator’) then many concerns no longer need to be dealt with                                           1.3 PUT /confirm
+by the application developer. Also, the error scenarios that are most                          Booking          (R1, R2)
+difficult to test are abstracted away into a reusable and tested com-                          Process
+ponent that can be trusted. For these reasons, we developed a trans-
+action coordinator component. Moreover, this component can also          1.1 R1 = /booking/A             1.2 R2 = /booking/B
+be delivered as a service - as explained next and shown in Figure 1.                                                                 R1
+                                                                                                                               PUT
+                                                                                                                       1.3.1                    R2
+ 5.2.2 Transactions as a Service                                                                                                          PUT
+                                                                                                                                1.3.2
+   As an application developer, I want the coordinator to be a REST-
+ful service so I can access it anywhere, anytime
+   What better way to make a component available to a REST ap-
+plication than by exposing it as a RESTful service itself? There are
+many advantages, some of them being:
+   • Integration into REST applications is, by definition, easy and          Figure 1: Transaction Coordinator delivered as a service.
+natural since no other technical dependencies than REST itself are
+introduced.
+   • The service can be made available to any device, anywhere,
+                                                                             When the coordinator fails to enforce the confirmation, we need
+anytime.
+   • The service can be deployed on a reliable environment, with          a way to communicate the problem back to the application. There
+good connectivity to the participants, while keeping the rest of the      are two classes of problems that are relevant:
+applications closer to their users (e.g., on mobile devices).                1. Problems where the overall atomicity guarantees have been
+                                                                          preserved: this happens if ALL participants have timed out or have
+   • Thanks to the simplicity of REST and since no HTTP exten-
+                                                                          been canceled by the time confirmation starts.
+sions are required, the interoperability of the transaction coordina-
+                                                                             2. Everything else: this is where the overall transaction guaran-
+tor with both applications and participant services is much easier to
+achieve.                                                                  tees might not have been preserved. This happens if some partici-
+                                                                          pants timed out while others confirmed, or if some participants have
+ 5.2.3 Confirmation                                                       become unreachable.
+   The application developer now needs a way to invoke the coordi-           The corresponding solutions are like this:
+nator service to perform the confirmation phase.                             1. If every participant timed out and cancelled: this is indicated
+   We chose the following very simple approach, where a set of            by a ’404 Not Found’ error on behalf of the coordinator. It
+reservation links is simply transferred to the coordinator service        signals that, although confirmation was desired, cancellation hap-
+with an idempotent PUT request carrying a ’transaction’ payload           pened instead. While this may not be desirable, it does still adhere
+in the request body. The example shows the use of plain JSON [1],         to the atomic transactional semantics of all-or-nothing.
+but any collection media type that can carry a set of links associated       2. Everything else: to signal conditions like these, the coordi-
+with a set of timestamps can do.                                          nator uses a ’409 Conflict’ status code and can return a de-
+                                                                          tailed log, showing which of the given reservation links could be
+⇒PUT /coordinator/confirm HTTP/1.1                                        confirmed and which could not be confirmed. Note that it is the re-
+ Host: www.taas.com
+ Content-Type: application/tcc+json                                       sponsibility of the coordinator to minimize the number of failures
+ Content-Length: 253                                                      in this class.
+ {
+ "transaction" : [                                                        5.3 Recovery
+     {
+           "uri" : "http://www.swiss.com/booking/A",
+       "expires" : "2014-01-11T10:15:54.261+01:00"                         5.3.1 Idempotent Confirmation (at the Participant)
+     },                                                                      As a coordinator, I want confirmation of the participant to be
+     {
+           "uri" : "http://www.easyjet.com/booking/B",
+                                                                          idempotent so I can retry confirmation after a failure or crash.
+       "expires" : "2014-01-11T10:15:54.261+01:00"                           This is one of the main reasons why we chose to use PUT for
+     }                                                                    confirmation. With the given design of the participant so far, we
+   ]                                                                      need no extra changes to support this.
+ }                                                                           All the coordinator needs to do is log the participant links of
+   The coordinator will delegate the confirmation request to all par-     ongoing transactions in the confirmation phase. Recovery is needed
+ticipant(link)s included in the supplied transaction. If all goes fine    in two typical cases:
+then the following would be the typical response:                            1. The coordinator itself crashes: once it comes back up, it re-
+⇐HTTP/1.1 204 No Content                                                  tries the remaining participant links for which it was confirming the
+   For simplicity, we did not attempt a transaction resource design:      transaction.
+there is no separate resource that identifies the transaction. Should        2. Any participant crashes, or (the equivalent) becomes unreach-
+this be necessary and required then we can always add it later. For       able due to network errors: the coordinator simply retries confirm
+now, all that matters to us is validating the concept of transactions     requests.
+for REST with a working but minimal implementation.
+                                                                           5.3.2 Idempotent Confirmation (at the Coordinator)
+ 5.2.4 Failed Confirmation                                                  As an application developer, I want confirmation by the coordi-
+   As an application developer, I want to know when the coordina-         nator to be idempotent so I can retry confirmation after a failure or
+tor failed to confirm.                                                    crash.
+   Imagine that the application succeeds at doing all the work, at all             {
+participant service providers involved. At that time it would request                  "uri" : "http://www.swiss.com/booking/A",
+the coordinator to confirm. If there are crashes or network failures               "expires" : "2014-01-11T10:15:54.261+01:00"
+                                                                                   },
+then the response of the confirm request might get lost; this would                {
+leave the application in doubt about the outcome of the transaction.                   "uri" : "http://www.easyjet.com/booking/B",
+   According to the REST statelessness constraint, once the coor-                  "expires" : "2014-01-11T10:15:54.261+01:00"
+dinator completes the confirm request, it should forget about it, so               }
+the application should hold its own state and should still remember            ]
+the set of participants involved. Consequently, it can (and should)        }
+retry confirm requests when needed. This is why we chose to use
+PUT also for the coordinator’s confirm requests. The coordinator
+                                                                           5.4.3 Failed Participant Cancellation
+will return the same response to subsequent confirmation requests              As a coordinator, I don’t care if cancellation fails on the partici-
+involving the same participants.                                           pant
+                                                                               The coordinator notifies the participant of cancellation, but ig-
+5.4 Optimizations                                                          nores the result. This makes perfect sense, because cancellation
+   The basic protocol can be optimized a bit for better resource us-       is driven by the participant provider’s needs to release reserved re-
+age. Indeed, if there are any application-level errors then it seems       source as early as possible. In effect, cancellation is merely a no-
+inefficient to simply let participants hold on to the required business    tification out of courtesy. There are a number of different reasons
+resources until they time out by themselves. So here, we present           that support this decision:
+some optimizations.                                                            1. Since explicit cancellation of a participant is really an op-
+                                                                           tional operation, some participants may return a 405 error if they
+5.4.1 Participant Cancellation                                             do not support this operation.
+   As a participant provider, I would like to be notified as early as          2. Since the participant may have timed out before the coordina-
+possible when there is a need to cancel                                    tor requests an explicit cancellation on it, it may return a 404 error.
+   The participant service is likely to reserve valuable business re-          3. The participant URI does not really exist for some reason.
+sources for the duration of the transaction. Should there be a need            In all these cases, the overall transaction is cancelled everywhere
+to cancel then it is very likely that the participant service wants        (since no participant is ever confirmed). Hence, all these errors can
+to know about this well before it times out. Again, since we are           be safely ignored by the coordinator - making the protocol more
+talking about REST, the minimum requirement is a URI to follow             comfortable to use because application developers need to worry
+for notifying the participant. For simplicity, we did not want to in-      less about error handling.
+troduce an additional URI. Rather, we assume that the same URI
+                                                                           5.4.4 Failed Coordinator Cancellation
+representing the reservation resource that is used for confirmation
+can optionally also be used for cancellation as follows:                      As an application developer, I don’t care if cancellation fails on
+                                                                           the coordinator
+⇒DELETE /booking/A HTTP/1.1
+                                                                              For the same reasons, the coordinator does not return any errors
+ Host: www.swiss.com
+ Accept: application/tcc                                                   upon cancellation; instead, it always return 204 (including cases
+⇐HTTP/1.1 204 No Content                                                   where some participant URI does not exist).
+                                                                              Corollary: cancellation by the coordinator is idempotent
+   Note that the actual response does not really matter since the             This follows from the previous discussion: failed cancellations
+cancellation request is merely a courtesy call on behalf of the ap-        at both participants and the coordinator can be ignored. Hence we
+plication (developer). In its absence, the participant would cancel        decided to use the PUT method for the coordinator’s cancellation
+autonomously anyway.                                                       interface: it is idempotent and allows request body content (unlike
+   The capability to cancel a participant explicitly is really optional    DELETE).
+in our design: any participant can choose to ignore it. If a partici-
+pant provider does not support cancellation by the application then        5.5 MIME Types
+any DELETE request would simply produce:
+⇐HTTP/1.1 405 Method Not Allowed                                           5.5.1 Participant: application/tcc
+   This does not affect overall correctness of the state, since the par-      The participant interactions require no request payload, nor do
+ticipant will time out and cancel autonomously anyway. Thus, the           they return any response payload. So we chose this MIME type
+consistency of the distributed transaction is eventually preserved.        purely for indicating the semantics of confirm/cancel expected by
+                                                                           the client. We deliberately omitted any payload from the participant
+5.4.2 Coordinator Cancellation                                             interactions, so implementations can be as simple as possible with
+   As an application developer, I want to delegate the cancellation        minimal interoperability risks. There is no need for the participant
+logic to the coordinator so I don’t have to cancel those participant       to support anything like XML or JSON for that matter.
+providers myself.
+                                                                           5.5.2 Coordinator: application/tcc+json
+   The following example shows how the application can cancel all
+the participants involved:                                                    JSON seemed the best option to make the coordinator accessible
+                                                                           to the largest range of applications. As we imply custom semantics
+⇒PUT /coordinator/cancel HTTP/1.1
+ Host: www.taas.com                                                        with some of the attributes, this is reflected in the MIME type.
+ Content-Type: application/tcc+json
+ Content-Length: 253                                                       6. PARTICIPANT API
+ {                                                                           Here we summarize the actual RESTful API from the partici-
+     "transaction" : [                                                     pant perspective. Because participant instances are implemented
+by third-party providers, interoperability can only be achieved with        In case of an intermediate (internal) timeout/cancel by the partic-
+a minimalistic, simple and clear design.                                 ipant itself, it is OK to return 404:
+                                                                         ⇒DELETE /part/123 HTTP/1.1
+6.1 Participant Responsibilities                                          Host: www.example.com
+   The participant manages the provider-specific state of a reserva-      Accept: application/tcc
+tion of business resources. By default the reservation times out after   ⇐HTTP/1.1 404 Not Found
+a while, unless it is confirmed by the application (coordinator).          Since DELETE is really an optional operation, some participants
+                                                                         may choose not to implement it. In that case:
+6.2 Required: time-out and cancel
+                                                                         ⇒DELETE /part/123 HTTP/1.1
+   Every participant implementation MUST cancel autonomously              Host: www.example.com
+after some internal timeout. More precisely: nothing is permanent         Accept: application/tcc
+until the participant receives confirmation.                             ⇐HTTP/1.1 405 Method Not Allowed
+
+6.3 Required: participant link                                              This is perfectly fine in our overall design. Any others (such as,
+   Every participant implementation MUST return participant link         but not limited to, the MIME type not being understood) are also
+instances for an invocation that can be confirmed on its end. These      fine here.
+links contain metadata such as the URI to invoke (for confirmation),
+the expiration date/time when the participant will cancel on its own,
+                                                                         6.6 Optional: GET for failure diagnostics
+and other information related to the protocol version and semantics.        The participant service may implement GET to allow for failure
+   As an example, participant links are of the following form:           diagnostics. In-line with our intent of being minimalistic, diagnos-
+                                                                         tic features are (currently) outside the scope of our protocol itself
+{"participantLink": {                                                    and left to the application designers, so they can be tuned on a per-
+    "uri":"http://www.example.com/part/123",                             case basis.
+    "expires":"2014-01-11T10:15:54.261+01:00",
+    "rel":"tcc"}
+}                                                                        7. COORDINATOR API
+                                                                            The coordinator service is implemented by us and used by appli-
+   The exchange of participant links is between the participant and      cation developers. Therefore, we present the coordinator protocol
+the application, outside the context of the TCC protocol. Although       from the point-of-view of a client of the RESTful interface as op-
+our example suggests JSON, there is no real requirement on the           posed to discuss the implementation internals of the coordinator.
+data format of this exchange: this is entirely between the partic-
+ipant provider and the application developer to agree on. Other          7.1 Coordinator Responsibilities
+approaches, such as Link headers [22] can be used.                          The coordinator’s core responsibilities are the following:
+                                                                            1. Confirm all participants when asked to do so.
+6.4 Required: PUT to confirm                                                2. Recover after failures of participant instances or the coordina-
+  The URI indicated in the participant link instances MUST sup-          tor itself, in particular during the confirmation phase.
+port the PUT operation in order to confirm:                                 3. Intelligently use the supplied expiration date/time informa-
+⇒PUT /part/123 HTTP/1.1
+                                                                         tion to minimize the number of heuristic transaction outcomes.
+ Host: www.example.com                                                      4. Determine the right error on problematic outcomes of confir-
+ Accept: application/tcc                                                 mation.
+⇐HTTP/1.1 204 No Content                                                    5. Nice to have: allow cancellation of all participants.
+   Note the MIME type of the request, indicating the expectations        7.2 PUT to confirm
+of the client about the semantics implied by the TCC protocol.             Use PUT to confirm a transaction with the coordinator service.
+   If the confirmation request arrives after the participant has al-     A transaction is really only a collection of participant links:
+ready timed out and cancelled on its own then the participant MUST
+return a 404 error:                                                      ⇒PUT /coordinator/confirm HTTP/1.1
+                                                                          Host: www.taas.com
+⇒PUT /part/123 HTTP/1.1                                                   Content-Type: application/tcc+json
+ Host: www.example.com                                                    Content-Length: 425
+ Accept: application/tcc                                                  {
+⇐HTTP/1.1 404 Not Found                                                   "transaction": [
+                                                                              {
+   Any other errors will trigger recovery logic in the coordinator                "uri": "http://www.example.com/part/123",
+service (typically in the form of retries until it gives up).                     "expires": "2014-01-11T10:15:54.261+01:00"
+                                                                              },
+6.5 Optional: DELETE to cancel                                                {
+                                                                                  "uri": "http://www.example.com/part/234",
+   Each participant URI MAY optionally implement DELETE to                        "expires": "2014-01-11T10:15:54.261+01:00"
+receive explicit requests to cancel:                                          }
+⇒DELETE /part/123 HTTP/1.1                                                    ]
+ Host: www.example.com                                                    }
+ Accept: application/tcc                                                   If all goes well then the result would be:
+⇐HTTP/1.1 204 No Content                                                 ⇐HTTP/1.1 204 No Content
+  Any errors during cancel can be ignored and do not affect the            If the request to confirm arrives too late - meaning all participants
+overall transaction outcome.                                             have timed out and cancelled already, then:
+⇐HTTP/1.1 404 Not Found                                                   ipant reservation URIs are public URIs that can be forwarded by
+   The worst that can happen is a mixed outcome where some par-           the application to the coordinator. This is common behavior on the
+ticipants confirmed, whereas others did not. This is indicated as         open Web, where links are meant to be shared. However, if the par-
+follows:                                                                  ticipant will only allow the original client application to follow the
+                                                                          reservation link, then additional work is needed for the application
+⇐HTTP/1.1 409 Conflict
+                                                                          to delegate trust to the coordinator so that also this other compo-
+   Of course, the idea is to minimize the number of cases where this      nent is allowed to follow the link to the participant. We consider
+happens - which is one important part of the coordinator’s responsi-      this issue to be part of future work, based on the feedback we get
+bilities. If and when this happens, though, it is up to the application   from this first implementation.
+to inspect the affected participants - possibly via a GET request to
+each participant URI.                                                     8.3 Transaction Resource Model
+                                                                             So far, a transaction only exists explicitly as the request body of
+7.3 PUT to cancel                                                         a stateless confirm/cancel request towards the coordinator. There is
+ A cancellation request is similar to confirmation, except for the        no RESTful resource for it yet. For now, this minimalistic design
+URI on which the coordinator is listening:                                should be enough to get us the necessary feedback concerning the
+⇒PUT /coordinator/cancel HTTP/1.1                                         feasibility and desirability of our approach. Applications should be
+ Host: www.taas.com                                                       able to build a resource-ful model on top of this, and later versions
+ Content-Type: application/tcc+json                                       of our API should be able to incorporate such additions.
+ Content-Length: 425
+ {
+ "transaction": [                                                         8.4 IANA Standardization
+     {                                                                       So far, we did not achieve standardization at IANA for our neu-
+         "uri": "http://www.example.com/part/123",                        tral MIME types or link relationships because we haven’t found the
+         "expires": "2014-01-11T10:15:54.261+01:00"                       standards organization that needs to participate in that. We feel like
+     },
+     {                                                                    the MIME types involved should not be vendor-specific (i.e., in the
+         "uri": "http://www.example.com/part/234",                        vnd.* namespace) because we stress interoperability. However, that
+         "expires": "2014-01-11T10:15:54.261+01:00"                       leaves the open question of how to avoid collisions in the naming
+     }                                                                    of the MIME types and the tcc link relationship.
+     ]
+ }                                                                        8.5 Discovery of Coordinator API
+     The only foreseen result is:
+                                                                             Clients of the coordinators do not need to include hard-coded ref-
+⇐HTTP/1.1 204 No Content                                                  erences to the confirm and cancel URIs of the coordinator service.
+  Any other outcome can be safely ignored since by definition no          Instead, hypermedia can be used to let them discover the actual
+participant has been confirmed, meaning eventually all work will          URIs with a GET request on the coordinator root URI. Hyperlinks
+be cancelled everywhere.                                                  will be returned referring to the confirmation URI (with a link re-
+                                                                          lationship rel="confirm") and to the cancellation URI (with a
+8.      DISCUSSION                                                        link relationship rel="cancel"). The standardization of these
+                                                                          link relationships with IANA is currently pending.
+   We have presented a minimalistic protocol that offers the basics
+of atomicity guarantees for transactions spanning across multiple
+RESTful Web services. This section provides an overview of de-            9. RELATED WORK
+sign issues that are still open to further refinement and discussion.        REST is widely perceived as an established lightweight technol-
+                                                                          ogy for building Web services [20] and Web APIs [19]. The prop-
+8.1 Application-Level Errors:                                             erties of the REST architectural style are meant to enable serendip-
+    Cancel after Confirm                                                  itous reuse by means of composition [23].
+   For simplicity, the coordinator does not check nor prohibit the           The idea of RESTful service composition has also been explored
+case where the application first confirms a transaction and then          in the Bite project [2,21], or with the BPEL for REST extensions [15].
+later cancels the same transaction - for whatever reason. We con-         All of these contributions to do not explicitly address the require-
+sider this to be bad behavior on the account of the application, but      ment for transactional composition of RESTful services.
+checking for it would mean introducing new error codes on both the           In addition to several threads on the rest-discuss mailing list,
+participant side and the coordinator side. We’ve tried that, and as a     summarized by [8], the problem of transactional interactions for
+result we could no longer tolerate the cancellation of unknown par-       RESTful services has started to attract some interest also in the re-
+ticipants, nor could we tolerate other types of participant failures.     search community. A recent survey of RESTful transaction models
+The resulting added complexity seemed too high to justify the cor-        has been published here [12]. For example, [18] proposed an ap-
+responding gains so we’ve chosen not to reject such sequence of           proach to RESTful transactions based on isolation theorems. The
+requests. It is thus the responsability of the application developer      RETRO [11] transaction model also complies with the REST ar-
+to avoid that confirmed transactions are then cancelled at a later        chitectural style. The Timestamp-based Two Phase Commit Pro-
+point in time.                                                            tocol for RESTful Services (TS2PC4RS) algorithm was originally
+                                                                          presented in [3] and extended to deal with fault tolerance in [9].
+8.2 Security                                                              Our approach shares with 2PC the challenge of achieving a dis-
+   We did not consider security because we thought it is an orthogo-      tributed agreement, however we build upon the notion of reserva-
+nal matter typically dealt with by HTTPS. Nevertheless, there may         tion which fits directly into the business model of the participant
+be arguments in favor of more non-trivial solutions such as URI           service provider and does not require participants to deal with low-
+signing, OAuth and the like. Likewise, we assume that the partic-         level details of running 2PC protocol rounds.
+   In this paper we presented a RESTful design based on apply-            11. REFERENCES
+ing the Try-Cancel/Confirm pattern to the design of a RESTful ser-         [1] D. Crockford. JSON: The fat-free alternative to XML. In Proc. of
+                                                                               XML 2006, Boston, USA, December 2006.
+vice. The pattern fits with the business requirements of many ser-             http://www.json.org/fatfree.html.
+vice providers that need to participate within long running transac-       [2] F. Curbera, M. Duftler, R. Khalaf, and D. Lovell. Bite: Workflow
+tions that do not require isolation. Thus, they offer services allow-          composition for the web. In Proc. of the 5th International Conference
+ing clients to issue requests triggering state transitions (or resource        on Service-Oriented Computing (ICSOC 2007), Vienna, Austria,
+reservations) which can later be canceled and have to be confirmed             2007.
+within a given time window.                                                [3] L. A. H. da Silva Maciel and C. M. Hirata. A timestamp-based two
+   These basic assumptions could be weakened. For instance, it                 phase commit protocol for Web services using REST architectural
+                                                                               style. Journal of Web Engineering, 9(3):266–282, 2010.
+might be that some service providers do not hold reservations. Like-
+                                                                           [4] R. Fielding. Architectural Styles and The Design of Network-based
+wise, it might be that some requests cannot fail under normal cir-             Software Architectures. PhD thesis, University of California, Irvine,
+cumstances (like read-only GET requests). Further research along               2000.
+these lines, will help to widen the applicability of transactions over     [5] M. Fowler. Patterns of Enterprise Application Architecture.
+RESTful APIs which do not fully comply with the Try-Cancel/Confirm             Addison-Wesley, November 2002.
+pattern.                                                                   [6] Y. Y. Goland, E. J. Whitehead, A. Faizi, S. Carter, and D. Jensen.
+   An informal proof of the protocol upon which the design pre-                HTTP extensions for distributed authoring — WebDAV. Internet
+sented in this paper is based was originally published in [14]. This           RFC 2518, Feb. 1999.
+paper adds the concept of having the transaction coordinator deliv-        [7] J. Gray. The transaction concept: Virtues and limitations (invited
+                                                                               paper). In Proc.of the Seventh International Conference on Very
+ered as a service and presents a detailed RESTful design for its in-           Large Data Bases, VLDB ’81, pages 144–154. VLDB Endowment,
+terface and a systematic discussion of its main use cases, including           1981.
+recovery scenarios.                                                        [8] M. Little. REST and transactions?, 2009.
+   A browser extension that can intercept participant reservation              http://www.infoq.com/news/2009/06/rest-ts.
+URIs as the user navigates between different sites has been pre-           [9] L. A. H. d. S. Maciel and C. M. Hirata. Fault-tolerant
+sented in [16]. The browser extension makes use of an embed-                   timestamp-based two-phase commit protocol for RESTful services.
+ded implementation of the coordinator to atomically confirm a dis-             Software: Practice and Experience, 43(12):1459–1488, 2013.
+tributed transaction implicitly recorded by tracking the navigation       [10] T. Margaria and M. Hinchey. Simplicity in IT: The power of less.
+                                                                               Computer, 46(11):23–25, 2013.
+activities of the browser. Using the API design presented in this
+                                                                          [11] A. Marinos, A. R. Razavi, S. Moschoyiannis, and P. J. Krause.
+paper, it becomes possible to off-load the confirmation to the coor-           RETRO: A consistent and recoverable RESTful transaction model. In
+dinator delivered as a service.                                                ICWS 2009, pages 181–188, 2009.
+                                                                          [12] N. Mihindukulasooriya, M. E. Gutiérrez, and R. G. Castro. Seven
+10. CONCLUSIONS                                                                challenges for RESTful transaction models. In Proc. of Fifth
+                                                                               International Workshop on RESTful Design (WS-REST 2014), 2014.
+   In this paper we have given a detailed presentation of a simple        [13] G. Pardon. Try-Cancel/Confirm: Transactions for (Web) Services,
+RESTful design for achieving atomicity in distributed transactions             2009.
+involving multiple, separate Web resources that comply with the                http://www.atomikos.com/Publications/TryCancelConfirm.
+Try-Cancel/Confirm (TCC) pattern. There are currently two known           [14] G. Pardon and C. Pautasso. Towards distributed atomic transactions
+implementations of the design (one in Java by ATOMIKOS2 and                    over RESTful services. In REST: From Research to Practice, pages
+another in JavaScript by the University of Lugano). Since our solu-            507–524. Springer, 2011.
+tion does not require any HTTP protocol extension, but can be seen        [15] C. Pautasso. BPEL for REST. In Proc.of the 7th International
+                                                                               Conference on Business Process Management (BPM 08), Milan,
+more like a pattern, or a design best practice, we do not think it can         Italy, September 2008.
+be standardized per se. However, the design presented in this paper       [16] C. Pautasso and M. Babazadeh. The atomic web browser. Poster at
+could grow to become the standard interface of a RESTful trans-                the 22nd International World Wide Web Conference (WWW 2013),
+action coordinator delivered as a service. To achieve this, we plan            pages 217–218, May 2013.
+to submit the MIME types and Link relation to IANA. Likewise,             [17] C. Pautasso and E. Wilde. Why is the Web loosely coupled? a
+it would be beneficial to provide scaffolding in several languages             multi-faceted metric for service design. In Proc. of 18th International
+and frameworks to make it easier to support the TCC pattern when               World Wide Web Conference (WWW2009), pages 911–920, 2009.
+building well-behaved participants. As previously mentioned, fu-          [18] A. R. Razavi, A. Marinos, S. Moschoyiannis, and P. J. Krause.
+                                                                               RESTful transactions supported by the isolation theorems. In
+ture work also involves dealing with security issues and extending             ICWE’09, pages 394–409, 2009.
+the coordinator API to support persisting transactions as resources       [19] L. Richardson, M. Amundsen, and S. Ruby. RESTful Web APIs.
+in addition to the current stateless approach.                                 O’Reilly, September 2013.
+   While there are already many examples of e-commerce Web sites          [20] L. Richardson and S. Ruby. RESTful Web Services. O’Reilly, May
+that provide users with the ability to reserve items for a given time,         2007.
+we expect similar functionality to be pushed in the corresponding         [21] F. Rosenberg, F. Curbera, M. J. Duftler, and R. Kahalf. Composing
+Web APIs, which will then require an agreed upon mechanism for                 RESTful services and collaborative workflows. IEEE Internet
+advertising the presence of participant links within response pay-             Computing, 12(5):24–31, September-October 2008.
+                                                                          [22] T. Steiner and J. Algermissen. Fulfilling the hypermedia constraint
+loads. This will be critical to achieve adoption of our approach,
+                                                                               via HTTP OPTIONS, the HTTP vocabulary in RDF, and link
+so that atomic compositions of RESTful services can work on the                headers. In Proc. of the Second International Workshop on RESTful
+World Wide Web.                                                                Design (WS-REST 2011), pages 11–14, 2011.
+                                                                          [23] S. Vinoski. Serendipitous reuse. IEEE Internet Computing,
+                                                                               12(1):84–87, 2008.
+
+
+
+2 http://www.atomikos.com/Main/ForServiceOrientedArchitectures
+

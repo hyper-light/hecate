@@ -1,132 +1,6 @@
+
+
 Idempotence Is Not a Medical Condition - ACM Queue
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
-
-- 
 
 Current Issue   Past Issues   Topics
 
@@ -139,11 +13,11 @@ Volume 10, issue 4
 
 PDF
 
-#### Idempotence Is Not a Medical Condition
+Idempotence Is Not a Medical Condition
 
-#### An essential property for reliable systems
+An essential property for reliable systems
 
-#### Pat Helland
+Pat Helland
 
 The definition of distributed computing can be confusing. Sometimes, it refers to a tightly coupled cluster of computers working together to look like one larger computer. More often, however, it refers to a bunch of loosely related applications chattering together without a lot of system-level support.
 
@@ -151,15 +25,15 @@ This lack of support in distributed computing environments makes it difficult to
 
 In a world full of retried messages, idempotence is an essential property for reliable systems. Idempotence is a mathematical term meaning that performing an operation multiple times will have the same effect as performing it exactly one time. The challenges occur when messages are related to each other and may have ordering constraints. How are messages associated? What can go wrong? How can an application developer build a correctly functioning app without losing his or her mojo?
 
-#### THE MESSAGING ENVIRONMENT
+THE MESSAGING ENVIRONMENT
 
 This section frames the problem by describing the kind of application under consideration. It looks at services and how long-running work can run across them, and it considers the need for messaging across applications that evolve independently in a world where they share relatively simple standards. 
 
-#### SERVERS AND SERVICES
+SERVERS AND SERVICES
 
 This article considers messaging in a service-oriented environment consisting of a collection of servers that share the work. The hope is that you can scale by adding more servers when the demand increases. This opens up the question of how later messages can locate a service (running on a server) that remembers what happened before.
 
-#### MESSAGES AND LONG-RUNNING WORK
+MESSAGES AND LONG-RUNNING WORK
 
 Sometimes related messages arrive much later, perhaps days or weeks later. These messages are part of the same piece of work performed by an application attempting to work across multiple machines, departments, or enterprises. Somehow the communicating applications need to have the information necessary for correlating the related messages. 
 
@@ -167,23 +41,23 @@ Predictable and consistent behavior is essential for message processing, even wh
 
 Of course, there is a technical term for unusual behavior when a system crash intervenes; it is called a bug.
 
-#### BUILDING APPLICATIONS IN AN EVER-CHANGING WORLD
+BUILDING APPLICATIONS IN AN EVER-CHANGING WORLD
 
 The shape and form of applications continue to evolve as years go by, transitioning from mainframes to minicomputers to PCs to departmental networks. Now scalable cloud-computing networks offer new ways of implementing applications in support of an ever-increasing number of messaging partners.
 
 As the mechanisms for implementing applications change, the subtleties of messaging change. Most applications work to include messaging with multiple partners using semi-stable Internet standards. These standards support the evolving environment but cannot eliminate some of the possible anomalies.
 
-#### IMAGINING A DIALOG BETWEEN TWO SERVICES
+IMAGINING A DIALOG BETWEEN TWO SERVICES
 
 This article considers the challenges of communicating between two parties. (Other messaging patterns, such as pub-sub, are not addressed here.) It imagines an arbitrary communication sequence of messages between these two parties that are related to each other and assumes that somehow the two programs have a notion of the work accomplished by this dialog. Even with the best “messaging plumbing” support, a two-party messaging dialog between two services has complications to be addressed.
 
-#### PLUMBING AND APPLICATIONS
+PLUMBING AND APPLICATIONS
 
 Applications often run on top of some form of “plumbing.” Among other services, the application’s plumbing offers assistance in the delivery of messages. It likely offers help in naming, delivery, and retries, and may provide an abstraction that relates messages together (e.g., request-response).
 
 As an application designer, you can only understand what you see as you interact with the plumbing on your client, server, or mobile device. You can anticipate or infer what happens farther down the line, but all of it is intermediated by your local plumbing (see figure 1).
 
-#### IDENTITY AND RELATIONSHIPS
+IDENTITY AND RELATIONSHIPS
 
 When a local application (or service) decides to engage in a dialog with another service, it must use a name for the intended partner. The identity of a partner service for the first message specifies the desire to chat with a service doing the application’s work but not yet engaged in some joint project. That’s really different from connecting to the same service instance that has processed previous messages.
 
@@ -191,7 +65,7 @@ A relationship is established when messages are sent in a dialog. Processing sub
 
 The representation of the mid-dialog identity, and how the later messages are routed to the right place, are all part of the “plumbing.” Sometimes the plumbing is so weak that the application developer must provide these mechanisms, or the plumbing may not be universally available on all the communicating applications, so the applications must delve into solving these issues. For now, let’s assume that the plumbing is reasonably smart, and look at the best-case behavior an application can expect.
 
-#### MESSAGES, DATA, AND TRANSACTIONS
+MESSAGES, DATA, AND TRANSACTIONS
 
 What happens when the application has some data it is manipulating (perhaps in a database with transactional updates)? Consider the following options:
 
@@ -203,11 +77,11 @@ What happens when the application has some data it is manipulating (perhaps in a
 
 • The message is consumed after processing. This is the most common case. The application must be designed so that each and every message is idempotent in its processing. There is a failure window in which the work is successfully applied to the database, but a failure prevents the messaging system from knowing the message was consumed. The messaging system will re-drive the delivery of the message.
 
-#### DON’T TALK AND LISTEN AT THE SAME TIME
+DON’T TALK AND LISTEN AT THE SAME TIME
 
 Outgoing messages are typically queued as part of committing the processing work. They, too, may be either tightly coupled to the database changes or allowed to be separate. When the database and messaging changes are tied together with a common transaction, the consumption of the message, the changes to the database, and the enqueuing of outgoing messages are all tied together in one transaction (see figure 2). Only after enqueuing an outgoing message will the message depart the sending system. Allowing it to depart before the transaction commits may open up the possibility of the message being sent but the transaction aborting.
 
-#### IN-ORDER DELIVERY: HISTORY OR CURRENCY?
+IN-ORDER DELIVERY: HISTORY OR CURRENCY?
 
 In a communication between two partners, there is a clear notion of sending order in each direction. You may be sending to me while I am sending to you, meaning there is fuzziness in the ordering for messages going past each other, but only one message at a time is sent in a specific direction.
 
@@ -219,7 +93,7 @@ HISTORY (NO GAPS). Not only will the messages be delivered in order, but also th
 
 CURRENCY (DELIVER THE LATEST—GAPS OR NO GAPS). Sometimes the delay to fill in the gap is more of a problem than the gap. When watching the price for a specific stock or the temperature gauge of a chemical process in a factory, you may be happy to skip a few intermediate results to get a more timely reading. Still, order is desired to avoid moving back in time for the stock price or temperature.
 
-#### KNOWING WHAT YOU DON’T KNOW WHEN SENDING MESSAGES
+KNOWING WHAT YOU DON’T KNOW WHEN SENDING MESSAGES
 
 When a communicating application wants to request some work to be done by its partner, there are a few stages to consider:
 
@@ -231,13 +105,13 @@ AFTER YOU RECEIVE THE ANSWER. Now, you know. Either it worked or it didn’t wor
 
 Messaging across loosely coupled partners is inherently an exercise in confusion and uncertainty. It is important for the application programmer to understand the ambiguities involved in messaging (see figure 3). The interesting semantic occurs as an application talks to the local plumbing on its box. This is all it can see.
 
-#### I’M NOT WAITING FOREVER!
+I’M NOT WAITING FOREVER!
 
 Every application is allowed to get bored and abandon its participation in the work. It is useful to have the messaging plumbing track the time since the last message was received. Frequently, the application will want to specify that it is willing to wait only so long until it gives up. If the plumbing helps with this, that’s great. If not, the application will need to track on its own any timeouts it needs.
 
 Some application developers may push for no timeout and argue it is OK to wait indefinitely. I typically propose they set the timeout to 30 years. That, in turn, generates a response that I need to be reasonable and not silly. Why is 30 years silly but infinity is reasonable? I have yet to see a messaging application that really wants to wait for an unbounded period of time…
 
-#### WHEN YOUR PLUMBER DOESN’T UNDERSTAND YOU
+WHEN YOUR PLUMBER DOESN’T UNDERSTAND YOU
 
 Nothing beats a plumber who can alleviate your worries and make everything “just work.” It is especially nice if that plumber shares the same understanding of you and your needs. 
 
@@ -259,19 +133,19 @@ Many applications just want to have a multimessage dialog between two services i
 
 These challenges assume that you have met the plumber of your dreams who has implemented great support for your messaging environment. It is rarely that clean and simple. On the contrary, the application developer needs to watch out for a slew of issues.
 
-#### GUARANTEED MESSAGE DELIVERY
+GUARANTEED MESSAGE DELIVERY
 
 Some messaging systems offer guaranteed delivery. These systems (e.g., MQ-Series)1 will typically record the message in a disk-based queue as a part of accepting the send of the message. The consumption of the message (and its removal from the queue) happens either as part of the transaction stimulated by the message or only after the transactional work has been completed. In the latter case, the work may be processed twice if there is a glitch.
 
 One challenge in the classic guaranteed-delivery queue system occurs when the application gets a message that it can’t process. Guaranteed delivery means the messaging system delivered it, but there’s no guarantee that the message was well formed or, even if it was, that the tempestuous application did something reasonable with the message. Before my wife started doing our household bills and it was my responsibility, the reliable delivery of the electric bill to our house was only loosely correlated to the electric company receiving its money.
 
-#### ZERO OR MORE TIMES… GUARANTEED!
+ZERO OR MORE TIMES… GUARANTEED!
 
 When considering the behavior of the underlying message transport, it is best to remember what is promised. Each message is guaranteed to be delivered zero or more times! That is a guarantee you can count on. There is a lovely probability spike showing that most messages are delivered one time.
 
 If you don’t assume that the underlying transport may drop or repeat messages, then you will have latent bugs in your application. More interesting is the question of how much help the plumbing layered on top of the transport can give you. If the communicating applications run on top of plumbing that shares common abstractions for messaging, some help may exist. In most environments, the app must cope with this issue by itself.
 
-#### WHY ISN’T TCP ENOUGH?
+WHY ISN’T TCP ENOUGH?
 
 TCP has had a major impact on unifying the ways in which we perform data communication.5 It offers exactly-once and in-order byte delivery between two communicating processes. It offers no guarantees once the connection is terminated or one of the processes completes or fails. This means that it covers only a small portion of the landscape visible to developers building reliable applications in a loosely coupled distributed system. Realistically, the application layers on top of TCP and must solve many of the same problems all over again.
 
@@ -281,7 +155,7 @@ Consider, for example, HTTP Web requests. HTTP typically shuts down the TCP conn
 
 In scalable Web-service worlds, we are constantly reimplementing the same sliding window protocol2 that is so ubiquitous in TCP. In TCP, the endpoints are running processes. The failure of either of the processes means the failure of the TCP connection. In a long-running messaging environment implemented by a collection of servers, the semantics of the endpoint are more complex. As the representation of an endpoint and its state evolves, so do the messaging anomalies that are (hopefully) managed by the plumbing. More likely, they are incrementally solved by the application as patches to surprising bugs. Either way, even application developers will need to have a copy of Andrew Tanenbaum’s classic book, Computer Networks, at their fingertips.2 
 
-#### AVOIDING EMBARRASSMENT WHEN TALKING ABOUT IDEMPOTENCE
+AVOIDING EMBARRASSMENT WHEN TALKING ABOUT IDEMPOTENCE
 
 To review, idempotence means that multiple invocations of some work are identical to exactly one invocation.
 
@@ -307,11 +181,11 @@ PERFORMANCE. The repeated requests may consume computation, network, and/or stor
 
 These side effects are not relevant to the semantics of the application behavior, so the processing of an idempotent request is still considered idempotent even if side effects exist.
 
-#### CHALLENGES OF MULTIMESSAGE INTERACTIONS
+CHALLENGES OF MULTIMESSAGE INTERACTIONS
 
 Any message may arrive multiple times… even after a long while. Think of a messaging system as containing a bunch of Machiavellian gnomes who are watching your messages float by so they can interject a copy of a message at precisely the worst time for your application (see figure 4). In most loosely coupled systems, messages may arrive multiple times. Furthermore, related messages may be delivered out of order.
 
-#### STATEFULNESS AND MULTIMESSAGE INTERACTIONS
+STATEFULNESS AND MULTIMESSAGE INTERACTIONS
 
 A typical approach to this problem is to use request-response and then ensure the messages processed are idempotent. This has the benefit of the application seeing the delivery of the message via a positive response. If the application gets a response from its intended partner, then it is confident that the message has actually arrived. Because of retries, the receiving application may receive the message many times.
 
@@ -325,19 +199,19 @@ STATELESS APPLICATION SERVERS. Many architectures have the computation separated
 
 In all of these cases, the system must behave correctly in bringing together the state (which is the result of memories from earlier messages) with the new message. Messages may be merged into the state in different orders and those orders may be affected by failures of one or more of the systems.
 
-#### YOU’RE JUST NOT THE PERSON I THOUGHT YOU WERE
+YOU’RE JUST NOT THE PERSON I THOUGHT YOU WERE
 
 Many systems implement a target application with a pool of load-balanced servers. This works well when the incoming message makes no assumptions about previous communications and previous state. The first message is routed to one of the servers and gets processed (see figure 5). When communicating with Service Foo, multiple machines may be implementing the service. This puts interesting burdens on the implementation of Service Foo and can show up in anomalous behavior visible to the communicating partner.
 
 Challenges may arise when the second (or later) message arrives and expects the partner not to have amnesia. When chatting with multiple messages, you assume your partner remembers the earlier messages. The whole notion of a multimessage dialog is based on this.
 
-#### WHAT DO YOU MEAN THE WORK IS NOT DONE ON THE PREMISES?
+WHAT DO YOU MEAN THE WORK IS NOT DONE ON THE PREMISES?
 
 When Service A talks to Service B, you don’t know where the work is really done. Service A believes it is doing work with Service B, while Service B may actually subcontract all the work to Service C (see figure 6). This is not in itself a problem, but it can magnify the failure possibilities seen by Service A.
 
 You cannot assume that the work is actually done by the system you are chatting with. All you know is that you have a messaging protocol, and, if things are going well, appropriate messages come back from the named partner according to the protocol’s definition. You simply don’t know what goes on behind the curtain.
 
-#### ACK MEANS “STOP REPEATING YOURSELF”
+ACK MEANS “STOP REPEATING YOURSELF”
 
 You know a message has been delivered only when the answer comes back from the partner doing the work. Tracking the intermediate waypoints doesn’t help to know that the work will get done. Knowing a FedEx package has reached Memphis won’t tell you that your grandmother will receive her box of chocolates.
 
@@ -345,7 +219,7 @@ When a messaging transport sends an ACK to a sender, it means that the message h
 
 ACK means sending the message again won’t help. If the sending application is made aware of the ACK and acts on that knowledge, then it may cause bugs if and when the real work fails to materialize.
 
-#### PLUMBING CAN MASK AMBIGUITIES OF PARTNERSHIP (BUT RARELY DOES)
+PLUMBING CAN MASK AMBIGUITIES OF PARTNERSHIP (BUT RARELY DOES)
 
 It is possible for the message-delivery plumbing to have a formalized notion of a long-running dialog. The plumbing must define and implement the following:
 
@@ -357,11 +231,11 @@ DIALOG SEMANTICS. How can the dialog provide correct semantics even when the rea
 
 Thus, it seems that messaging semantics are intimately tied to naming, routing, and state management. This inevitably means that the application designer is faced with challenges when the database comes from a plumbing supply house that is different from that of the messaging system. One system that does provide crisp dialog semantics is SQL Service Broker.4 It does so by holding the messaging and dialog state in the SQL database.
 
-#### TALKING TO A SERVICE
+TALKING TO A SERVICE
 
 Services are designed to be black boxes. You know the service address, start working with it, chatter back and forth, and then finish. It turns out that, even with the support of some plumbing to provide you with dialogs, there are issues with repeated messages and lost messages. These challenges are compounded when the target service is implemented in a scalable fashion. Of course, that means you may start out interacting with a service that is not yet scalable, and, as it grows, certain new obstacles may arise.
 
-#### STAGES OF A DIALOG 
+STAGES OF A DIALOG 
 
 A dialog goes through three stages in its lifetime:
 
@@ -373,7 +247,7 @@ CLOSING. The last message (or messages flowing together in the same direction) g
 
 Each of these stages of communication offers challenges, especially the initiation and closing stages.
 
-#### THE INITIATION-STAGE AMBIGUITY
+THE INITIATION-STAGE AMBIGUITY
 
 When the first message in a dialog is sent, it may or may not need retrying. In a load-balanced server environment, the two retries may land at different back-end servers and be processed independently.
 
@@ -381,7 +255,7 @@ From the sender’s perspective, the application tosses a message into the plumb
 
 The first message sent to a service must be idempotent because it may be retried in order to cope with transmission failures. Subsequent messages can count on some plumbing to help (provided that the application runs on top of the plumbing). After the first message, the plumbing can know enough about the destination of the message (in a scalable system) to perform automatic duplicate elimination. During the processing of the first message, the retries may land in different portions of the scalable service, and then automatic duplicate elimination is not possible.
 
-#### I THINK MY EVIL TWIN GOT YOUR FIRST MESSAGE
+I THINK MY EVIL TWIN GOT YOUR FIRST MESSAGE
 
 Sometimes a server receives the first message (or messages) from a dialog, then a retry of the message (or sequence of messages) is rerouted to another server in the load-balanced pool. This can go awry in two ways:
 
@@ -407,7 +281,7 @@ When an initiating service sends a sequence of messages to a load-balanced servi
 
 Somehow, we must ensure that the redundant work performed at Foo A is not a problem.
 
-#### ACCURATELY ENDING THE INITIATION STAGE
+ACCURATELY ENDING THE INITIATION STAGE
 
 An application knows it has reached a specific partner when a message is returned from its local plumbing. If the other service has responded on the dialog, then there is a specific server or a bound session state for the dialog. While the application may not directly see the binding to the specific resources in the partner, they must have been connected by the time an application response is seen.
 
@@ -415,7 +289,7 @@ Prior to the application’s receipt of a partner application’s message from i
 
 Only after you’ve heard from the application on the other side may you exit the initiation stage of the dialog (see figure 10). An application can see only what its plumbing shows it. When an app starts sending messages to its partner, it has the initiation-stage ambiguity and must ensure that all messages have a semantic for idempotent processing. When the local plumbing returns a message from the partner, the local application can be assured that the plumbing has resolved the initiation-stage ambiguity and now messages can be sent without having to ensure that they are idempotent.
 
-#### GUARANTEEING IDEMPOTENCE OF THE FIRST MESSAGES
+GUARANTEEING IDEMPOTENCE OF THE FIRST MESSAGES
 
 Everything you say as an application in a dialog before the first answer may be retried. That can cause a world of trouble if the early messages cause some serious (and non-idempotent) work to happen. What’s an application developer to do?
 
@@ -429,21 +303,21 @@ PENDING WORK. The initiating application can send a bunch of stuff, which the pa
 
 Using one of these three approaches, the application developer (and not the plumbing) will ensure that no bugs are lying in wait for a retry to a different back-end partner. To eliminate this risk completely, the plumbing can use TCP’s trick and send a trivial round-trip set of messages (the SYN messages in TCP), which hooks up the partner without bothering the application layered on top. On the other hand, allowing the application to do useful work with the round-trip (e.g., read some data) is cool.
 
-#### THE CLOSING-STAGE AMBIGUITY
+THE CLOSING-STAGE AMBIGUITY
 
 In any interaction, the last message from one application service to another cannot be guaranteed. The only way to know it was received is to send a message saying it was. That means it’s no longer the last message.
 
 Somehow, some way, the application must deal with the fact that the last message or messages sent in the same direction may simply go poof in the network. This may be in a simple request-response, or it may be in a complex full-duplex chatter. When the last messages are sent, it is just a matter of luck if they actually get delivered (see figure 11). In each interaction between two partners, the last messages sent in the same direction cannot be guaranteed. They may simply disappear.
 
-#### THE PENULTIMATE CONFUSION
+THE PENULTIMATE CONFUSION
 
 The penultimate message can be guaranteed (by receiving the notification in the ultimate message). The ultimate message must be best effort. This complexity is typically part of designing an application protocol. The application must not really care if that last message is received because you can’t really tell if it is.
 
-#### LIVING WITH IDEMPOTENCE
+LIVING WITH IDEMPOTENCE
 
 As we’ve seen, most loosely coupled systems depend on the application designer to consider repeated processing of a request. The complications are made even worse in a scalable implementation of a service. Application designers must learn to live with the reality of idempotence in their daily life.
 
-#### CONCLUSION
+CONCLUSION
 
 Distributed systems can pose challenges to applications sending messages. The messaging transport can be downright mischievous. The target for the message may be an illusion of a partner implemented by a set of worker bees. These, in turn, may have challenges in their coordination of the state of your work. Also, the system you think you are talking to may, in fact, be subcontracting the work to other systems. This, too, can add to the confusion.
 
@@ -465,11 +339,11 @@ Keeping these principles in mind can lead to a more robust application.
 
 While it is possible for plumbing or platforms to remove some of these concerns from the application, this can occur only when the communicating apps share common plumbing. The emergence of such common environments is not imminent (and may never happen). In the meantime, developers need to be thoughtful of these potential dysfunctions in erecting applications.
 
-#### ACKNOWLEDGMENTS
+ACKNOWLEDGMENTS
 
 Thank you to Erik Meijer and Jim Maurer for their commentary and editorial improvements.
 
-#### REFERENCES
+REFERENCES
 
 1. IBM. WebSphere MQ; http://www-01.ibm.com/software/integration/wmq/.
 
@@ -517,3 +391,4 @@ Rich Harris - Dismantling the Barriers to Entry
 A war is being waged in the world of web development. On one side is a vanguard of toolmakers and tool users, who thrive on the destruction of bad old ideas ("old," in this milieu, meaning anything that debuted on Hacker News more than a month ago) and raucous debates about transpilers and suchlike.
 
 © 2020 ACM, Inc. All Rights Reserved.
+

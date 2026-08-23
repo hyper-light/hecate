@@ -1,0 +1,707 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+
+
+<head>
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-20JYM3ZFN0"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-20JYM3ZFN0');
+</script>
+
+
+
+	  
+	  <title>Standing on Distributed Shoulders of Giants - ACM Queue</title>
+
+	  
+
+	  <meta name='description' value='If you squint hard enough, many of the challenges of distributed computing appear similar to the work done by the great physicists. Dang, those fellows were smart! Here, we examine some of the most important physics breakthroughs and draw some whimsical parallels to phenomena in the world of computing... just for fun.' />
+	  <meta name='keywords' value='Distributed Computing' />
+
+<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-P52H78L');</script>
+<!-- End Google Tag Manager -->
+
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="shortcut icon" href="favicon.ico" />
+
+<script type="text/javascript" src="/js/jquery-1.2.6.min.js"></script>
+<script type="text/javascript" src="/js/jquery.validate.min.js"></script>
+<script type="text/javascript" src="/js/global.js"></script>
+
+
+
+<!--
+<link rel="alternate" type="application/rss+xml" title="Latest Queue Content RSS 2.0" href="/rss/feeds/latestitems.xml" />
+-->
+<link rel="alternate" type="application/rss+xml" title="All Queue Content RSS 2.0" href="/rss/feeds/queuecontent.xml" />
+<link rel="alternate" type="application/rss+xml" title="Curmudgeon RSS 2.0"     href="/rss/feeds/curmudgeon.xml" />
+<link rel="alternate" type="application/rss+xml" title="Opinion RSS 2.0"        href="/rss/feeds/opinion.xml" />
+<link rel="alternate" type="application/rss+xml" title="Kode Vicious RSS 2.0"   href="/rss/feeds/kodevicious.xml" />
+<link rel="alternate" type="application/rss+xml" title="ACM TechNews RSS"       href="https://www.infoinc.com/acm/TechNews.rss" />
+<link rel="alternate" type="application/rss+xml" title="Washington Updates RSS" href="https://usacm.acm.org/weblog2/?feed=rss2" />
+<link rel="alternate" type="application/rss+xml" title="RISKS Forum RSS"        href="/rss/feeds/risksforum.xml" />
+
+
+<link rel="alternate" type="application/rss+xml" title="AI RSS 2.0"        href="/rss/feeds/ai.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="API Design RSS 2.0"        href="/rss/feeds/apidesign.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="Bioscience RSS 2.0"        href="/rss/feeds/bioscience.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="Blockchain RSS 2.0"        href="/rss/feeds/blockchain.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="Business/Management RSS 2.0"        href="/rss/feeds/business/management.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="Compliance RSS 2.0"        href="/rss/feeds/compliance.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="Component Technologies RSS 2.0"        href="/rss/feeds/componenttechnologies.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="Computer Architecture RSS 2.0"        href="/rss/feeds/computerarchitecture.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="Concurrency RSS 2.0"        href="/rss/feeds/concurrency.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="Cryptocurrency RSS 2.0"        href="/rss/feeds/cryptocurrency.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="DSPs RSS 2.0"        href="/rss/feeds/dsps.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="Data RSS 2.0"        href="/rss/feeds/data.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="Databases RSS 2.0"        href="/rss/feeds/databases.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="Debugging RSS 2.0"        href="/rss/feeds/debugging.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="Development RSS 2.0"        href="/rss/feeds/development.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="Distributed Computing RSS 2.0"        href="/rss/feeds/distributedcomputing.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="Distributed Development RSS 2.0"        href="/rss/feeds/distributeddevelopment.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="Education RSS 2.0"        href="/rss/feeds/education.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="Email and IM RSS 2.0"        href="/rss/feeds/emailandim.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="Embedded Systems RSS 2.0"        href="/rss/feeds/embeddedsystems.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="Failure and Recovery RSS 2.0"        href="/rss/feeds/failureandrecovery.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="File Systems and Storage RSS 2.0"        href="/rss/feeds/filesystemsandstorage.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="Game Development RSS 2.0"        href="/rss/feeds/gamedevelopment.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="Graphics RSS 2.0"        href="/rss/feeds/graphics.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="HCI RSS 2.0"        href="/rss/feeds/hci.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="Managing Megaservices RSS 2.0"        href="/rss/feeds/managingmegaservices.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="Mobile Computing RSS 2.0"        href="/rss/feeds/mobilecomputing.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="Networks RSS 2.0"        href="/rss/feeds/networks.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="Object-Relational Mapping RSS 2.0"        href="/rss/feeds/object-relationalmapping.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="Open Source RSS 2.0"        href="/rss/feeds/opensource.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="Patching and Deployment RSS 2.0"        href="/rss/feeds/patchinganddeployment.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="Performance RSS 2.0"        href="/rss/feeds/performance.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="Power Management RSS 2.0"        href="/rss/feeds/powermanagement.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="Privacy and Rights RSS 2.0"        href="/rss/feeds/privacyandrights.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="Processors RSS 2.0"        href="/rss/feeds/processors.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="Programming Languages RSS 2.0"        href="/rss/feeds/programminglanguages.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="Purpose-built Systems RSS 2.0"        href="/rss/feeds/purpose-builtsystems.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="Quality Assurance RSS 2.0"        href="/rss/feeds/qualityassurance.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="RFID RSS 2.0"        href="/rss/feeds/rfid.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="SIP RSS 2.0"        href="/rss/feeds/sip.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="Search Engines RSS 2.0"        href="/rss/feeds/searchengines.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="Security RSS 2.0"        href="/rss/feeds/security.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="Semi-structured Data RSS 2.0"        href="/rss/feeds/semi-structureddata.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="Social Computing RSS 2.0"        href="/rss/feeds/socialcomputing.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="System Administration RSS 2.0"        href="/rss/feeds/systemadministration.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="System Evolution RSS 2.0"        href="/rss/feeds/systemevolution.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="Testing RSS 2.0"        href="/rss/feeds/testing.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="Virtual Machines RSS 2.0"        href="/rss/feeds/virtualmachines.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="Virtualization RSS 2.0"        href="/rss/feeds/virtualization.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="Visualization RSS 2.0"        href="/rss/feeds/visualization.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="VoIP RSS 2.0"        href="/rss/feeds/voip.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="Web Development RSS 2.0"        href="/rss/feeds/webdevelopment.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="Web Security RSS 2.0"        href="/rss/feeds/websecurity.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="Web Services RSS 2.0"        href="/rss/feeds/webservices.xml" />
+
+<link rel="alternate" type="application/rss+xml" title="Workflow Systems RSS 2.0"        href="/rss/feeds/workflowsystems.xml" />
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-6562869-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://' : 'http://') + 'stats.g.doubleclick.net/dc.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+<script type="text/javascript">
+function plusone_vote( obj ) {
+_gaq.push(['_trackEvent','plusone',obj.state]);
+}
+</script>
+
+
+
+<style>
+body {
+	font-family: jaf-bernino-sans, 'Lucida Grande', 'Lucida Sans Unicode', 'Lucida Sans', Geneva, Verdana, sans-serif;
+	color: #333;
+	max-width: 100%;
+}
+div.container p {
+	line-height: 1.65em;
+}
+h1 {
+	font-size: 32px;
+}
+h3 {
+	font-size: 18px;
+}
+h4 {
+	font-size: 14px;
+}
+
+div.container {
+	margin-left: auto;
+	margin-right: auto;
+}
+
+div {
+	margin: 64px;
+//	max-width: 800px;
+	position: relative;
+}
+
+@media only screen and (min-width: 1024px) {
+	div {
+		max-width: 800px;
+	}
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+    width: auto\9; /* ie8 */
+}
+a {
+	color: #009;
+	text-decoration: none;
+}
+a:hover {
+	text-decoration: underline;
+}
+hr {
+	margin:64px;
+}
+label {
+	font-size: 0.8em;
+	color: #666;
+}
+input {
+	color: #999;
+}
+
+/* NAVBAR */
+.navbar {
+//	position: fixed;
+	background: #EEEEEE;
+	top: -64px;
+	z-index: 10000;
+	width: 100%;
+	clear: both;
+	padding: 0px;
+	margin: 0px;
+	padding-top: 10px;
+	padding-left: 10px;
+	padding-right: 10px;
+}
+
+/*  SECTIONS  */
+.section {
+	clear: both;
+	padding: 0px;
+	margin: 0px;
+}
+
+/*  COLUMN SETUP  */
+.col {
+	display: block;
+	float:left;
+	margin: 1% 0 1% 1.6%;
+}
+.col:first-child { margin-left: 0; }
+
+
+/*  GROUPING  */
+.group:before,
+.group:after {
+	content:"";
+	display:table;
+}
+.group:after {
+	clear:both;
+}
+.group {
+    zoom:1; /* For IE 6/7 */
+}
+
+/*  GRID OF THREE  */
+.span_3_of_3 {
+	width: 100%;
+}
+.span_2_of_3 {
+	width: 66.1%;
+}
+.span_1_of_3 {
+	width: 32.2%;
+}
+
+/*  GO FULL WIDTH AT LESS THAN 480 PIXELS */
+
+@media only screen and (max-width: 480px) {
+	.col {
+		margin: 1% 0 1% 0%;
+	}
+}
+
+@media only screen and (max-width: 480px) {
+	.span_3_of_3 {
+		width: 100%;
+	}
+	.span_2_of_3 {
+		width: 100%;
+	}
+	.span_1_of_3 {
+		width: 100%;
+	}
+}
+
+.span_2_of_2 {
+	width: 100%;
+}
+
+.span_1_of_2 {
+	width: 49.2%;
+}
+
+/*  GO FULL WIDTH AT LESS THAN 480 PIXELS */
+
+@media only screen and (max-width: 480px) {
+	.span_2_of_2 {
+		width: 100%;
+	}
+	.span_1_of_2 {
+		width: 100%;
+	}
+}
+</style>
+
+
+<style>
+body {
+	font-size: 19px;
+}
+#form-search > .st-default-search-input {
+	width: 170px;
+  display: inline-block;
+  height: 16px;
+  padding: 7px 11px 7px 28px;
+  border: 1px solid #bbb;
+  border: 1px solid rgba(0,0,0,0.25);
+  font-weight: 400;
+  color: #3B454F;
+  font-size: 14px;
+  line-height: 16px;
+  -webkit-box-sizing: content-box;
+  -moz-box-sizing: content-box;
+  box-sizing: content-box;
+  -webkit-border-radius: 0;
+  -moz-border-radius: 0;
+  border-radius: 0;
+  -webkit-box-shadow: none;
+  -moz-box-shadow: none;
+  box-shadow: none;
+  font-family: system, -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Lucida Grande", sans-serif;
+}
+
+
+blockquote
+{
+    color: #666;
+    font-size: 1.1em;
+    background: none;
+    border-left: .2rem solid #d3d3d3;
+
+    display: block;
+    padding: 20px 20px 10px 45px;
+    margin: 20px 0;
+    font-style: italic;
+
+    margin-block-start: 1em;
+    margin-block-end: 1em;
+    margin-inline-start: 40px;
+    margin-inline-end: 40px;
+
+	font-family: Georgia, Palatino, "Palatino Linotype", Times, "Times New Roman", serif;
+}
+
+.ldq {
+	display: block;
+    padding-left: 10px;
+    content: "\201C";
+    font-size: 60px;
+    position: relative;
+    left: -50px;
+    top: 0;
+    height: 0;
+    color: #7a7a7a;
+}
+code {
+//	font-size:1.25em;
+}
+a {overflow-wrap: break-word;}
+pre {
+	overflow-x: auto;
+	white-space: pre-wrap;
+	word-wrap: break-word;
+}
+</style>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+
+<body>
+<!-- Google Tag Manager (noscript)
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-P52H78L"
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+ End Google Tag Manager (noscript) -->
+
+
+
+<div class=container>
+	<div class="navbar">
+		<form id="form-search" name="searchform" onsubmit="return false;" style='float:right;'>
+				<input type="text" class="st-default-search-input">
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+  (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+  e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install','UyYECD1kdsPnbHJtPyzG','2.0.0');
+</script>
+				<br />
+			
+			<a href="issuedetail.cfm?issue=3775067" style='width:150px;font-size:0.7em;'>Current Issue</a> &nbsp; <a href="pastissues.cfm" style='width:150px;font-size:0.7em;'>Past Issues</a> &nbsp; <a href="topics.cfm" style='width:150px;font-size:0.7em;'>Topics</a>
+			
+		</form>
+		<a href='/'><img src='https://queue.acm.org/img/acmqueue_logo.gif' /></a>
+
+	</div>
+
+<div style='border:1px red solid;padding:20px;margin:20px;padding-left:40px;margin-left:40px;font-size:1.2em;'>
+We are redesigning the Queue website.
+<br />
+<a href='https://spawn-queue.acm.org/' target='_new'>Please take a look and let us know what you think</a>.
+</div>
+
+<!--
+<p style='text-align:center;'>
+<a href='/app/' target='_new'><img src='/app/2021_03-04_lrg.png' with=90 height=120 style='float:right;width:90px;height:120px;' alt='March/April 2021 issue of acmqueue' /></a>
+<b><a href='/app/'>The March/April 2021 issue of acmqueue is out now</a></b>
+<br />
+<br />
+<a href='https://cdn.coverstand.com/3rd_pty/acm/login.html?&btx_i=705849'>Subscribers and ACM Professional members login here</a>
+<br clear=all />
+<hr style='display:block;color:red;margin:5px;' />
+</p>
+-->
+<br />
+
+
+		<p style='float:right; width:33%;margin:0px;padding:20px;margin-top:25px;border:1px solid green;'>
+		Check out Pat's<br /><a href="https://pathelland.substack.com" target=_new2><b>Scattered Thoughts on Distributed Systems</b></a> <br/><br/> <a href="https://pathelland.substack.com" target=_new2>pathelland.substack.com</a>
+		</a><br />
+		</p>
+		<h3><a href='/listing.cfm?typefilter=Escapingthesingularity&sort=publication_date&order=desc&qc_type=Escapingthesingularity&article_type=&item_topic=all&filter_type=topic&page_title=Escaping%20the%20Singularity&filter=all'>Escaping the Singularity</a></h3>
+
+	
+
+<label>June 7, 2016<br /><b><a class="descriptor" href="issuedetail.cfm?issue=2927299">Volume 14, issue 2 </a></b></label>
+
+
+<p>
+<!-- // Check for existence of associated MP3 file-->
+
+ &nbsp;
+	
+				<a href="https://spawn-queue.acm.org/doi/pdf/10.1145/2927299.2953944">
+					<img src="img/icon_pdf.png" alt="Download PDF version of this article" />
+					PDF
+				</a>
+			
+</p>
+
+
+ 
+  <h1 class="hidetitle">Standing on Distributed Shoulders of Giants</h1> 
+  <h2>Farsighted Physicists of Yore Were Danged Smart!</h2> 
+  <br /> 
+  <h3> Pat Helland </h3> 
+  <p>If you squint hard enough, many of the challenges of distributed computing appear similar to the work done by the great physicists. Dang, those fellows were smart!</p> 
+  <p>Here, we examine some of the most important physics breakthroughs and draw some whimsical parallels to phenomena in the world of computing... just for fun.</p> 
+  <p>&nbsp;</p> 
+  <h3>Newton Thought He Knew What Time It Was</h3> 
+  <p>Isaac Newton (1642 - 1727) was a brilliant physicist who defined the foundations for classical mechanics, laws of motion, and universal gravitation. He also built the first refracting telescope, developed a theory of color, and much more. He was one bad dude.</p> 
+  <p>Newton saw the notion of time as constant and consistent across the universe. Furthermore, he assumed that gravity operated instantaneously without regard to distance. Each object in the universe is exerting gravitational force at all times.</p> 
+  <p>This is very much like what we see in a single computer or in a tightly coupled cluster of computers that perform consistent work in a shared transaction. Transactions have a clearly defined local notion of time. Each transaction sees its work as crisply following a set of transactions. Time marches forward unperturbed by distance.</p> 
+  <p>When I was studying computer science (and Nixon was president), we thought about only one computer. There was barely any network other than the one connecting terminals to the single computer. Sometimes, a tape would arrive from another computer and we had to figure out how to understand the data on it. We never thought much about time across computers. It would take a few years before we realized our perspective was too narrow.</p> 
+  <p>&nbsp;</p> 
+  <h3>Einstein Had Many Watches</h3> 
+  <p>In 1905, Albert Einstein (1879 - 1955) proposed the special theory of relativity based on two principles. First, the laws of physics, including time, appear to be the same to all observers. Second, the speed of light is unchanging.</p> 
+  <p>An implication of this theory is that there's no notion of simultaneity. The notion of simultaneity is relative to the observer, and the march of time is also relative to the observer. Each of these frames of reference is separated by the speed of light as interpreted relative to their speed in space.</p> 
+  <p>This concept has some interesting consequences. The sun might have blown up five minutes ago, and the next three minutes will be lovely. When stuff happens far away, it takes time to find out... potentially a long time.</p> 
+  <p>In computing, you can't know what's happening "over there." Interacting with another system always takes time. You can launch a message, but you always have to wait for the answer to come back to know the result. More and more, latency is becoming the major design point in systems.</p> 
+  <p>The time horizon for knowledge propagation in a distributed system is unpredictable. This is even worse than in the physical Einstein-based universe. At least with our sun and the speed of light, we know that we can see what's happening at the sun as of eight minutes ago. In a distributed system, we have a statistical understanding of how our knowledge propagates, but we simply cannot know with certainty. The other server, in its very own time domain, may be incommunicado for a heck of a long time.</p> 
+  <p>Furthermore, in any distributed interaction, a message may or may not be delivered within bounded time. Higher-level applications don't ever know if the protocol completed. Figure 1 shows how the last message delivery is not guaranteed and the sender never knows what the receiver knows. In any distributed protocol, the sender of the last message can't tell whether it arrived. That would require another message.</p> 
+  <img src="https://spawn-queue.acm.org/cms/attachment/html/10.1145/2927299.2953944/assets/html/helland1.png" alt="Standing on Distributed Shoulders of Giants: Sender gets no confirmation of final message delivery" /> 
+  <p>Another problem is that servers and messages live in their very own time space. Messages sent and received across multiple servers may have surprising reorderings. Each server and each message lives in its own time, and they may be relative to each other but may offer surprises because they are not coordinated. Some appear slower, and some faster. This is annoying. </p> 
+  <p>In figure 2, as work flows across different times in servers and messages, the time is disconnected and may be slower or faster than expected. In this case, the second message sent by A may arrive after work caused by the first message, traveling through C. These problems can make your head hurt in a similar fashion to how it hurts when contemplating twins where one travels close to the speed of light and appears to slow down while the other one stays home and ages.</p> 
+  <img src="https://spawn-queue.acm.org/cms/attachment/html/10.1145/2927299.2953944/assets/html/helland2.png" alt="Standing on Distributed Shoulders of Giants: Disconnected time may be slower or faster than expected" /> 
+  <p>You can't do distributed agreement in bounded time. Messages get lost. You can retry them and they'll probably get through. In a fixed period of time, however, there is a small (perhaps very small) chance they won't arrive. For any fixed period of time, there's a chance the partner server will be running <i>sloooooow</i> and not get back.</p> 
+  <p>Two-phase commit cannot guarantee agreement in bounded time. Similarly, Paxos,<sup>7</sup> Raft,<sup>8</sup> and the other cool agreement protocols cannot guarantee agreement in a bounded time. These protocols are <i>very likely to reach agreement soon,</i> but there's no guarantee<sup>4</sup>. Each lives in its own relative world and doesn't know what's happening over there... at least not yet.</p> 
+  <p>According to the CAP Theorem <sup>1,5</sup> (standing for consistency, availability, partition tolerance), if you tolerate failures of computers and/or networks, you can have either classic database consistency or database availability. To avoid application challenges, most systems choose consistency over availability.</p> 
+  <p>&nbsp;</p> 
+  <p align="center" style="text-align:center"><b>Two-phase commit is the anti-availability protocol.</b></p> 
+  <p>&nbsp;</p> 
+  <p>From where I stand, Einstein made a lot of sense. I'm not sure how you feel about him.</p> 
+  <p>&nbsp;</p> 
+  <h3>Hubble Was Increasingly Far Out</h3> 
+  <p>Edwin Hubble (1889-1953) was an astronomer who discovered that the farther away an object is, the faster it is receding from us. This, in turn, implies the universe is expanding. Basically, everything is getting farther away from everything else.</p> 
+  <p>In computing, we have seen an ever-increasing amount of computation, bandwidth, and memory size. It looks like this will continue for a while. Latency is not decreasing too much and is limited by the speed of light. There are no obvious signs that the speed of light will stop being a constraint anytime soon. The number of instruction opportunities lost to waiting while something is fetched is increasing inexorably.</p> 
+  <p align="center" style="text-align:center"><br /> <b>Computing is like Hubble's universe... <br /> Everything is getting farther away from everything else.</b></p> 
+  <p>&nbsp;</p> 
+  <p>Shared read-only data isn't the biggest problem. With enough cache, you can pull the stuff you need into the sharing system. Sharing writeable stuff is a disaster. You frequently stall while pulling a cache line with the latest copy from a cohort's cache. More and more instruction opportunities will be lost while waiting. <i>This will only get worse as time moves on!</i></p> 
+  <p align="center" style="text-align:center"><b>&nbsp;</b></p> 
+  <p align="center" style="text-align:center"><b>Shared memory works great... as long as you don't <i>share</i> memory.</b></p> 
+  <p>&nbsp;</p> 
+  <p>Either we figure out how to get around that pesky speed-of-light thing, or we're going to need to work harder on asynchrony and concurrency.</p> 
+  <p>&nbsp;</p> 
+  <h3>Heisenberg Wasn't Sure</h3> 
+  <p>Werner Heisenberg (1901 - 1976) defined the uncertainty principle, which states that the more you know about the location of a particle, the less you know about its movement. Basically, you can't know everything about anything.</p> 
+  <p>In a distributed system you have a gaggle of servers, each of which lives in various states of health, death, or garbage collection. The vast majority of the time you can chat with a server and get a crisp and timely result. Other times you don't get a prompt answer and it's tough to know if you should abandon the slacker or wait patiently. Furthermore, you don't know if the server got the request, did the work, and just hasn't answered. Any time a request goes to a single system, you don't know when the request will be delayed.<sup>2,6</sup></p> 
+  <p>In some distributed systems, it is essential to have an extremely consistent and fast response time for online users. To accomplish this, multiple requests must be issued, and the completion of a subset of the requests is accepted as happiness.</p> 
+  <p>&nbsp;</p> 
+  <p align="center" style="text-align:center"><b>In a distributed system, you can know <i>where</i> the work is done or you can know <i>when</i> the work is done but you can't know both.</b></p> 
+  <p>&nbsp;</p> 
+  <p>To know <i>when</i> a request is done within a statistical SLA (service-level agreement), you need to accept that you don't know <i>where</i> the work will be done. Retries of the request are the only option to get a timely answer often enough. Hence, the requests had better be idempotent.</p> 
+  <p>&nbsp;</p> 
+  <h3>Schrödinger's Put</h3> 
+  <p>Erwin Schrödinger (1887-1961) was a leading physicist of the early 20<sup>th</sup> century. While he made many substantial contributions to field quantum theory, he is most often remembered for a thought experiment designed to show the challenges of quantum physics.</p> 
+  <p>In quantum physics the theory, the math, and the experimental observations show that pretty much everything remains in multiple states until it interacts with or is observed by the external world. This is known as a superposition of states that collapse when you actually look.</p> 
+  <p>To show that this seems goofy, Schrödinger proposed that this quantum-level uncertainty could map to a macro-level uncertainty. Start by placing a tiny bit of uranium, a Geiger counter, a vial of cyanide and a cat into a steel box. Rig the Geiger counter to use a hammer to break the vial of cyanide if an atom of uranium has decayed. Since the quantum physics of uranium decay show it is both decayed and not decayed until you observe the state, it is clear that the cat is both simultaneously dead and alive. Turns out many contemporary physicists think that it's not goofy... the cat would be in both states. Go figure!</p> 
+  <p>New distributed systems such as Dynamo<sup>3</sup> store their data in unpredictable locations. This allows prompt and consistent latencies for <code>puts</code> as well as self-managing and self-balancing servers. Typically, the client issues a <code>put</code> to each of three servers, and when the cluster is automatically rebalancing, the destination servers may be sloshing data around. The set of servers used as destinations may be slippery. A subsequent <code>get</code> may need to try many servers to track down the new value. If a client dies during a <code>put</code>, it is possible that no servers received the new value or that only a single server received it. That single server may or may not die before sharing the news. That single server may die, not be around to answer a read, and then later pop back to life resurrecting the missing <code>put</code>.</p> 
+  <p>Therefore, a subsequent <code>get</code> may find the <code>put</code>, or it may not. There is effectively no limit to the number of places it may be hiding. There's no upper bound on the time taken for the new value to appear. If it does appear, it will be re-replicated to make it stick.</p> 
+  <p>&nbsp;</p> 
+  <p align="center" style="text-align:center"><b>While not yet observed, a <code>put</code> does not really exist... it's likely to exist but you can't be sure. Only after it is seen by a <code>get</code> will the <code>put</code> really exist.</b></p> 
+  <p>&nbsp;</p> 
+  <p>Furthermore, the failure to observe does not mean the <code>put</code> is really missing. It may be lurking in a dead or unresponsive machine. If you see the <code>put</code> and force its replication to multiple servers, it remains in existence with very high fidelity. Not seeing it tells you only that it's likely it's not there.</p> 
+  <p>&nbsp;</p> 
+  <h3>Conclusion</h3> 
+  <p>Wow! There have been lots of brilliant physicists, many of them not mentioned here. Much of their work has shown us the very counterintuitive ways the world works. Year after year, there are new understandings and many surprises.</p> 
+  <p>In our nascent discipline of distributed systems, we would be wise to realize that there are subtleties, surprises, and bizarre uncertainties intrinsic in what we do. Understanding, bounding, and managing the tradeoffs inherent in these systems will be a source of great challenge for years to come. I think it's a lot of fun!</p> 
+  <p>&nbsp;</p> 
+  <h4>References</h4> 
+  <p>1. Brewer, E. A. 2000. Towards robust distributed systems. Proceedings of the 19<sup>th</sup> Annual ACM Symposium on Principles of Distributed Computing.</p> 
+  <p>2. Dean, J., Barroso, L. A. 2013. The tail at scale. <i>Communications of the ACM</i> 56(2): 74-80.</p> 
+  <p>3. DeCandia, G., Hastorun, D., Jampani, M., Kakulapati, G., Lakshman, A., Pilchin, A., Sivasubramanian, S., Vosshall, P., Vogels, W. 2007. Dynamo: Amazon's highly available key-value store. Proceedings of the 21<sup>st</sup> ACM Symposium on Operating Systems Principles: 205-220.</p> 
+  <p>4. Fischer, M., Lynch, N., Paterson, M., 1985. The impossibility of distributed consensus with one faulty process. Journal of the Association of Computing Machinery, Vol 32, No. 2, April 1985.</p> 
+  <p>5. Gilbert, S., Lynch, N., Brewer's conjecture and the feasibility of consistent, available, and partition-tolerant web services. ACM SIGACT News, Volume 33 Issue 2 (2002)</p> 
+  <p>6. Helland, P. 2015. Heisenberg was on the write track. Seventh Biennial Conference on Innovative Data Systems Research.</p> 
+  <p>7. Lamport, L. 1998. The part time parliament. ACM Transactions on Computer Systems 16,2, May 1998.</p> 
+  <p>8. Ongaro, D., Ousterhout, J. 2014 In search of an understandable consensus algorithm. Proceedings of the Usenix Annual Technical Conference; <a href="https://www.usenix.org/conference/atc14/technical-sessions/presentation/ongaro">https://www.usenix.org/conference/atc14/technical-sessions/presentation/ongaro</a>.</p> 
+  <p>&nbsp;</p> 
+  <p><b>Pat Helland</b> has been implementing transaction systems, databases, application platforms, distributed systems, fault-tolerant systems, and messaging systems since 1978. For recreation, he occasionally writes technical papers. He currently works at Salesforce.</p> 
+  <p class="MsoNormal">&nbsp;</p> 
+  <h4>More:</h4> 
+  <p> <b>As Big as a Barn?</b> <br />Taking measure of measurement <br />- Stan Kelly-Bootle <br /><a href="https://queue.acm.org/detail.cfm?id=1229919">http://queue.acm.org/detail.cfm?id=1229919</a> </p> 
+  <p> <b>Condos and Clouds</b> <br />Constraints in an environment empower the services. <br />- Pat Helland <br /><a href="https://queue.acm.org/detail.cfm?id=2398392">http://queue.acm.org/detail.cfm?id=2398392</a> </p> 
+  <p> <b>Testable System Administration</b> <br />Models of indeterminism are changing IT management. <br />- Mark Burgess <br /><a href="https://queue.acm.org/detail.cfm?id=1937179">http://queue.acm.org/detail.cfm?id=1937179</a> </p> 
+  <p>&nbsp;</p> 
+  <p>Copyright © 2016 held by owner/author. Publication rights licensed to ACM.</p>  
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9b64914349211773',t:'MTc2NzEyOTQ4My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script> 
+
+	<p>
+	
+		<img class="floatLeft" src="img/q stamp_small.jpg" width="26" height="45" alt="acmqueue"><br><br>
+	
+	<em>Originally published in Queue vol. 14, no. 2</em>&#8212;
+ 	<br>
+	Comment on this article in the <a href="http://portal.acm.org/citation.cfm?id=2953944">ACM Digital Library</a>
+	
+	</p>
+	
+
+
+
+<br />
+<!--
+<a href="https://twitter.com/share" class="twitter-share-button" data-via="ACMQueue">Tweet</a>
+-->
+<script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+
+<br />
+
+<!--
+<fb:like></fb:like>
+-->
+
+<br />
+
+<div class="g-plusone" data-size="small" data-annotation="inline" data-width="120"></div>
+
+<!-- these get hooked up to js events -->
+<script type="text/javascript">
+	addthis_pub             = 'acm';
+	addthis_logo            = 'http://queue.acm.org/img/logo_queue_small.gif';
+	addthis_logo_background = '#ffffff';
+	addthis_logo_color      = '000000';
+	addthis_brand           = 'ACM Queue';
+	addthis_options         = 'reddit, slashdot, facebook, favorites, email, delicious, digg, technorati, blinklist, furl, myspace, google, live, more';
+</script>
+
+<!-- FB Like -->
+<!--
+<div id="fb-root"></div>
+<script>(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) return;
+  js = d.createElement(s); js.id = id;
+  js.src = "connect.facebook.net/en_US/all.js#xfbml=1";
+  fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));</script>
+
+<div id="fb-root"></div>
+-->
+
+<!-- Place this tag after the last +1 button tag. -->
+
+<!--
+<script type="text/javascript">
+  (function() {
+    var po = document.createElement('script'); po.type = 'text/javascript'; po.async = true;
+    po.src = 'https://apis.google.com/js/plusone.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(po, s);
+  })();
+</script>
+
+<br />
+<script src="https://connect.facebook.net/en_US/all.js#xfbml=1"></script>
+
+<script>
+FB.Event.subscribe('edge.create', function(targetUrl) {
+  _gaq.push(['_trackSocial', 'facebook', 'like', targetUrl]);
+});
+</script>
+-->
+
+
+
+<hr noshade size=1 />
+
+
+
+
+More related articles:
+
+	  <p>
+	  <span>Marc Brooker, Ankush Desai</span> - <a href="detail.cfm?id=3712057"><b>Systems Correctness Practices at AWS</b></a>
+	  <br />
+	  Building reliable and secure software requires a range of approaches to reason about systems correctness. Alongside industry-standard testing methods (such as unit and integration testing), AWS has adopted model checking, fuzzing, property-based testing, fault-injection testing, deterministic simulation, event-based simulation, and runtime validation of execution traces. Formal methods have been an important part of the development process - perhaps most importantly, formal specifications as test oracles that provide the correct answers for many of AWS's testing practices. Correctness testing and formal methods remain key areas of investment at AWS, accelerated by the excellent returns seen on investments in these areas already.
+	  </p>
+	  <br />
+
+	  <p>
+	  <span>Achilles Benetopoulos</span> - <a href="detail.cfm?id=3712258"><b>Intermediate Representations for the Datacenter Computer</b></a>
+	  <br />
+	  We have reached a point where distributed computing is ubiquitous. In-memory application data size is outstripping the capacity of individual machines, necessitating its partitioning over clusters of them; online services have high availability requirements, which can be met only by deploying systems as collections of multiple redundant components; high durability requirements can be satisfied only through data replication, sometimes across vast geographical distances.
+	  </p>
+	  <br />
+
+	  <p>
+	  <span>David R. Morrison</span> - <a href="detail.cfm?id=3711677"><b>Simulation: An Underutilized Tool in Distributed Systems</b></a>
+	  <br />
+	  Simulation has a huge role to play in the advent of AI systems: We need an efficient, fast, and cost-effective way to train AI agents to operate in our infrastructure, and simulation absolutely provides that capability.
+	  </p>
+	  <br />
+
+	  <p>
+	  <span>Matt Fata, Philippe-Joseph Arida, Patrick Hahn, Betsy Beyer</span> - <a href="detail.cfm?id=3264508"><b>Corp to Cloud: Google&#8217;s Virtual Desktops</b></a>
+	  <br />
+	  Over one-fourth of Googlers use internal, data-center-hosted virtual desktops. This on-premises offering sits in the corporate network and allows users to develop code, access internal resources, and use GUI tools remotely from anywhere in the world. Among its most notable features, a virtual desktop instance can be sized according to the task at hand, has persistent user storage, and can be moved between corporate data centers to follow traveling Googlers. Until recently, our virtual desktops were hosted on commercially available hardware on Google&#8217;s corporate network using a homegrown open-source virtual cluster-management system called Ganeti. Today, this substantial and Google-critical workload runs on GCP (Google Compute Platform).
+	  </p>
+	  <br />
+
+
+<hr noshade size=1 />
+
+
+
+
+
+<hr noshade size=1 />
+
+	<p>
+	<a href='#'><img src='https://queue.acm.org/img/logo_acm.gif' /></a>
+	<br />
+	&copy; ACM, Inc. All Rights Reserved.
+	</p>
+
+</div>
+
+
+
+</body>
+</html>
