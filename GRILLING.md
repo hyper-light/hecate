@@ -9511,3 +9511,55 @@ exactly this reason); separately, three agents were killed outright by content f
 for returning too much inline. STANDING RULE, now proven twice over: research agents
 MUST WRITE TO A FILE and return a <400-word summary. Transcripts are saved and
 searchable, so nothing is truly lost — but recovery costs a full second pass. ===**
+
+**RECONCILIATION PASS (triggered by lifecycle FINDING B, run against all 37 specs):
+"never reclaim a reservation on a timer" checked against the ledger. TWO REAL
+CONFLICTS FOUND; the most K8s-analogous spec is CLEAN.**
+
+CLEAN — SCHEDULER.md. It already has the exact structure the K8s bug lacked: planning
+and committing separated (§ "only committing must be serial"); **every committed plan
+STAMPED WITH THE STATE VERSION IT WAS VALIDATED AGAINST** (= the `GuaranteedUpdate`
+CAS on resourceVersion); gang admission "reserve all or none... **partial reservations
+are UNREPRESENTABLE** — the coscheduling Permit-wait pathology class"; SCH2 asserts
+zero partial-reservation states ever observable. NO assumed-pod TTL analogue exists.
+Independent arrival at the right answer — record it as validated, not lucky.
+CLEAN — TRANSFER.md. Lease expiry is PROGRESS-DRIVEN, NOT CLOCK-DRIVEN: TR5
+"slow-but-progressing NEVER aborted"; TR7 "NO timeout-abort while lease renews on
+eventual progress". And expiry ABORTS — it never hands the resource to a second party.
+OBJECT_TIER staged-extent lease-reclaim inherits the same shape (GC of already-aborted
+staging, content-addressed). Safe.
+CANONICAL GOOD PATTERN — QUEUE.md §11 "Lease-epoch": the lease token binds
+`(offset, epoch, deadline)`; **a stale ack from an expired-then-redelivered lease is
+REJECTED, not applied to the current generation.** This is the fence. Note it fences
+THE ACK.
+
+**CONFLICT C1 — SIBYL.md §1.** Claims "a lineage's judgment **serializes through
+exactly one Sibyl instance at a time** — assignment via at-most-once claims with
+lease-expiry redelivery (the frontier-service pattern)." WALK IT: instance A holds
+lineage L; A is slow or partitioned BUT ALIVE; A's lease expires; the claim is
+redelivered to B; B begins judging; A wakes and writes an estate mutation. **TWO
+INSTANCES HAVE ACTED ON ONE LINEAGE — the serialization claim is FALSE.** The
+dangerous action is NOT an ack (which QUEUE fences) but an ESTATE MUTATION.
+**CONFLICT C2 — MERGE.md §9.** The frontier service "issues review claims
+(at-most-once, lease-expiry redelivery)". WALK IT: reviewer A holds review unit U;
+lease expires while A still works; U is redelivered to B; both emit findings
+testaments. **TWO VERDICTS AT A GATE THAT CONSUMES ONE**, plus duplicate work against
+a zero-over-work bar. Dangerous action = the TESTAMENT WRITE, not the ack.
+
+**ROOT CAUSE — A NAME COLLISION THAT READS AS A GUARANTEE.** Grepped the whole ledger
+family: LEDGER_CORE / LEDGER / LEDGER_SUBSTRATE / FANOUT contain **ZERO** hits for
+claim-lease / redelivery / claim-epoch. Every "at-most-once" there is about
+**NOTIFICATION delivery** (LEDGER_SUBSTRATE §140/§155 "at-most-once NOTIFY + cursor
+recover"; FANOUT "ephemeral at-most-once PUSH") — a WAKE HINT, not holder exclusivity.
+So SIBYL and MERGE both invoke "at-most-once claims" as though it conferred
+single-holder exclusivity, **and no such fence is defined anywhere for claims.** The
+one real lease fence (QUEUE §11) covers acks only. THE MACHINERY THEY CITE DOES NOT
+EXIST AT THE POINT THEY NEED IT.
+**REMEDY SHAPE (to present, NOT yet written):** no new mechanism — this is the fence
+we ALREADY relocated to the witness/durable-commit point after the EdenFS catch, now
+applied at two more write sites. Per lifecycle FINDING C ("a fence must live in
+something that remembers what it decided"), the claim-holder epoch is checked where
+the displaced holder's action BECOMES DURABLE — the testament write (MERGE) and the
+estate mutation (SIBYL) — never at the holder's own local deadline. Plus a vocabulary
+fix: "at-most-once" must stop being used for two different properties.
+=> OPEN BRANCH: **claim-lease exclusivity fence** — next exchange after seal.
