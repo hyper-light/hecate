@@ -10060,3 +10060,62 @@ record may be reclaimed, and it is the rule our epoch retention must satisfy.
    writes. And R3's counterexample is the trap to avoid by name: **do NOT let the
    force path REMOVE a check; the difference between the timed path and the
    operator path must be more than a metric label.**
+
+**=== SETTLED + WRITTEN: THE DEATH LADDER (ungraceful claim recovery). Approved by
+the user 2026-08-23; landed as `d2e7c33`. Five specs amended. ===**
+The branch opened as "a pod that crashes holding claims has no spec" and closed
+narrower and better: **four of five rungs were ALREADY covered (MONITORING §11 +
+PODS §7, all host-observed), and the single uncovered rung is HOST loss — because
+every failure path we had was written from the host's point of view and therefore
+cannot cover the host's own loss.** That relocation is what made the design small.
+
+**WHAT LANDED:**
+- **FAULTS §5** — eight death-ladder cells (pod-kill Masked / host-kill Degraded /
+  unbounded pause Masked-by-fencing / host-partition Degraded / heal-mid-barrier
+  Masked / heal-mid-propagation Masked / clock Masked / quorum-unavailable
+  **Refused**), plus the **barrier-vs-trigger law** stated explicitly. **F9** sweep
+  (a) step-boundary kill/partition (b) barrier fuzz [0,1h] incl. 0 (c) unbounded
+  pause -> resource-side refusal on all three boundaries + architecture test against
+  client-side/gapped-coordinator checks (d) propagation-ordering fuzz + no-path-
+  disables-verification (e) incarnation monotonicity (f) rejoin-as-fork-branches
+  (g) quorum-unavailable refusal. **Acceptance criterion 5 now STATES THE FAILURE
+  DIRECTION** rather than inheriting it.
+- **CONSENSUS §7** — retitled; **detection-authority law + table** (pod->host
+  fail-stop, host->session-group quorum, region->root quorum); **R5-1..R5-7**;
+  three-boundary fence table; the PREEMPT-AND-ABORT non-requirement argued from the
+  microVM boundary; failure direction; incarnation retention (per-incarnation
+  identity condition). **Generalized the lease-shadow / externalization-fencing /
+  rejoin laws from REGION to ANY FAILURE DOMAIN** — §7a now holds the region scope
+  in full with generalization notes inline. **§6 roster** — death declaration
+  classified CAS-first, no new epoch/quorum class; health explicitly NOT in the
+  roster.
+- **PODS §7** — fifth lifecycle edge (host loss); existing four edges annotated as
+  host-observed/fail-stop. **T25** host-loss rung, **T26** fast-path regression.
+- **AGENTS_RUNTIME §6** — the ungraceful path reaches step 7's adoption with NO
+  cooperating predecessor (graceful = fence handed over; ungraceful = fence declared
+  over the predecessor's head; step 7 must never depend on predecessor ack).
+- **HEALTH §2 + H4** — observer-only restated for declaration, with the REASON: a
+  detector that could declare would collapse unreachable-vs-dead at the decision
+  point, which is the exact ambiguity the quorum + barrier exist to resolve.
+
+**NET: no new fencing mechanism, no new epoch class, no new quorum class, one
+generalization, one new record type, and rungs 1-4 byte-identical.** The three
+fences it consumes all pre-existed (ledger append / VFS attach + disk commit /
+egress chokepoints).
+**THE ARCHITECTURAL CLAIM WORTH REMEMBERING: our ledger is BOTH coordinator AND
+storage, so the check is genuinely RESOURCE-SIDE.** Spark's canCommit->performCommit
+rename is the named check-then-act counterexample; Kafka avoids it only because its
+coordinator and storage are one process. Ours are too. This is why MERGE needed no
+new mechanism and why rung 5's check goes at the append rather than at any
+supervisor.
+**BOOKKEEPING FIXES made while writing:** F9 was inserted before F8 and reordered;
+PODS T22/T23/T24 were already taken so the new tests are T25/T26 (and the FAULTS
+cross-ref was corrected from T22 to T26); §7a's heading was corrected because three
+of its bullets are no longer region-only.
+**RESIDUAL / NOT CLOSED:** the **Shard Manager** paper (Twine ref [16]) was never
+reached — it is where Twine explicitly delegates lifecycle safety, i.e. the one
+place a Meta-scale fencing precedent for rung 5 might exist. If it fences, our R5
+gains a direct precedent; if it does not, the "nobody prevents the double attempt"
+finding is complete. Worth one agent when convenient. Also open from earlier: the
+SIBYL classification (approved in design, NOT written — user scoped that turn to
+MERGE only).
